@@ -1,0 +1,90 @@
+From 846392515b2b0215902aaf7368651af196835f10 Mon Sep 17 00:00:00 2001
+From: Bryan Moffatt <bmoffatt@users.noreply.github.com>
+Date: Wed, 21 Oct 2020 12:42:37 -0700
+Subject: [PATCH] make the Runtime Interface Client's user agent overrideable (#106)
+
+* make the Runtime Interface Client's user agent overrideable
+
+* remove extra empty string
+
+* clang-format -i src/*
+---
+ include/aws/lambda-runtime/runtime.h |  2 ++
+ src/runtime.cpp                      | 20 ++++++++------------
+ 2 files changed, 10 insertions(+), 12 deletions(-)
+
+diff --git a/include/aws/lambda-runtime/runtime.h b/include/aws/lambda-runtime/runtime.h
+index 0dc292c..94e1e22 100644
+--- a/include/aws/lambda-runtime/runtime.h
++++ b/include/aws/lambda-runtime/runtime.h
+@@ -137,6 +137,7 @@ public:
+     using next_outcome = aws::lambda_runtime::outcome<invocation_request, aws::http::response_code>;
+     using post_outcome = aws::lambda_runtime::outcome<no_result, aws::http::response_code>;
+ 
++    runtime(std::string const& endpoint, std::string const& user_agent);
+     runtime(std::string const& endpoint);
+     ~runtime();
+ 
+@@ -164,6 +165,7 @@ private:
+         invocation_response const& handler_response);
+ 
+ private:
++    std::string const m_user_agent_header;
+     std::array<std::string const, 3> const m_endpoints;
+     CURL* const m_curl_handle;
+ };
+diff --git a/src/runtime.cpp b/src/runtime.cpp
+index e2ee7cd..f6131a4 100644
+--- a/src/runtime.cpp
++++ b/src/runtime.cpp
+@@ -124,12 +124,6 @@ static size_t write_header(char* ptr, size_t size, size_t nmemb, void* userdata)
+     return size * nmemb;
+ }
+ 
+-static std::string const& get_user_agent_header()
+-{
+-    static std::string user_agent = std::string("User-Agent: AWS_Lambda_Cpp/") + get_version();
+-    return user_agent;
+-}
+-
+ static size_t read_data(char* buffer, size_t size, size_t nitems, void* userdata)
+ {
+     auto const limit = size * nitems;
+@@ -163,10 +157,12 @@ static int rt_curl_debug_callback(CURL* handle, curl_infotype type, char* data,
+ }
+ #endif
+ 
+-runtime::runtime(std::string const& endpoint)
+-    : m_endpoints{{endpoint + "/2018-06-01/runtime/init/error",
+-                   endpoint + "/2018-06-01/runtime/invocation/next",
+-                   endpoint + "/2018-06-01/runtime/invocation/"}},
++runtime::runtime(std::string const& endpoint) : runtime(endpoint, "AWS_Lambda_Cpp/" + std::string(get_version())) {}
++
++runtime::runtime(std::string const& endpoint, std::string const& user_agent)
++    : m_user_agent_header("User-Agent: " + user_agent), m_endpoints{{endpoint + "/2018-06-01/runtime/init/error",
++                                                                     endpoint + "/2018-06-01/runtime/invocation/next",
++                                                                     endpoint + "/2018-06-01/runtime/invocation/"}},
+       m_curl_handle(curl_easy_init())
+ {
+     if (!m_curl_handle) {
+@@ -234,7 +230,7 @@ runtime::next_outcome runtime::get_next()
+     curl_easy_setopt(m_curl_handle, CURLOPT_HEADERDATA, &resp);
+ 
+     curl_slist* headers = nullptr;
+-    headers = curl_slist_append(headers, get_user_agent_header().c_str());
++    headers = curl_slist_append(headers, m_user_agent_header.c_str());
+     curl_easy_setopt(m_curl_handle, CURLOPT_HTTPHEADER, headers);
+ 
+     logging::log_debug(LOG_TAG, "Making request to %s", m_endpoints[Endpoints::NEXT].c_str());
+@@ -343,7 +343,7 @@ runtime::post_outcome runtime::do_post(
+     headers = curl_slist_append(headers, ("lambda-runtime-function-xray-error-cause: " + xray_response).c_str());
+     headers = curl_slist_append(headers, "Expect:");
+     headers = curl_slist_append(headers, "transfer-encoding:");
+-    headers = curl_slist_append(headers, get_user_agent_header().c_str());
++    headers = curl_slist_append(headers, m_user_agent_header.c_str());
+
+     logging::log_debug(
+         LOG_TAG, "calculating content length... %s", ("content-length: " + std::to_string(payload.length())).c_str());
+-- 
+2.25.2
+

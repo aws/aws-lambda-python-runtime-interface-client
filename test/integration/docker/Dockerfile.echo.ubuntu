@@ -1,0 +1,84 @@
+ARG DISTRO_VERSION
+
+# Stage 1 - bundle base image + runtime interface client
+# Grab a fresh copy of the image and install Python
+FROM ubuntu:${DISTRO_VERSION} AS python-image
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+ARG RUNTIME_VERSION
+
+# Install python and pip
+RUN apt-get update && \
+  apt-get install -y \
+    curl \
+    python${RUNTIME_VERSION} \
+    python${RUNTIME_VERSION}-distutils
+
+RUN ln -s /usr/bin/python${RUNTIME_VERSION} /usr/local/bin/python3
+
+# Stage 2 - build function and dependencies
+FROM python-image AS python-ubuntu-builder
+
+ARG RUNTIME_VERSION
+
+RUN curl "https://bootstrap.pypa.io/get-pip.py" -o "get-pip.py"
+RUN python${RUNTIME_VERSION} get-pip.py
+
+# Install aws-lambda-cpp build dependencies
+RUN apt-get update && \
+  apt-get install -y \
+    g++ \
+    gcc \
+    tar \
+    gzip \
+    make \
+    cmake \
+    autoconf \
+    automake \
+    libtool \
+    libcurl4-openssl-dev \
+    python${RUNTIME_VERSION}-dev
+
+# Include global args in this stage of the build
+ARG RIC_BUILD_DIR="/home/build/"
+# Create function directory
+RUN mkdir -p ${RIC_BUILD_DIR}
+# Copy function code and Runtime Interface Client .tgz
+WORKDIR ${RIC_BUILD_DIR}
+COPY . .
+RUN make init build test && \
+    mv ./dist/awslambdaric-*.tar.gz ./dist/awslambdaric-test.tar.gz
+
+# Include global args in this stage of the build
+ARG FUNCTION_DIR="/home/app/"
+# Create function directory
+RUN mkdir -p ${FUNCTION_DIR}
+# Copy function code
+COPY test/integration/test-handlers/echo/* ${FUNCTION_DIR}
+# Copy Runtime Interface Client .tgz
+RUN cp ./dist/awslambdaric-test.tar.gz ${FUNCTION_DIR}/awslambdaric-test.tar.gz
+
+# Install the function's dependencies
+WORKDIR ${FUNCTION_DIR}
+RUN python${RUNTIME_VERSION} -m pip install \
+        awslambdaric-test.tar.gz \
+        --target ${FUNCTION_DIR} && \
+    rm awslambdaric-test.tar.gz
+
+
+# Stage 4 - final runtime interface client image
+# Grab a fresh copy of the Python image
+FROM python-image
+
+# Define custom function directory
+ARG FUNCTION_DIR="/home/app/"
+
+# copy the lambda function code
+COPY --from=python-ubuntu-builder ${FUNCTION_DIR} ${FUNCTION_DIR}
+
+# Set working directory to function root directory
+WORKDIR ${FUNCTION_DIR}
+
+ENTRYPOINT ["/usr/bin/python${RUNTIME_VERSION}", "-m", "awslambdaric"]
+CMD ["app.handler"]

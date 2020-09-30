@@ -1,0 +1,30 @@
+version: '3.3'
+services:
+  function:
+    build:
+      context: .
+      args:
+        RUNTIME_VERSION: "${runtime_version}"
+        DISTRO_VERSION: "${distro_version}"
+      dockerfile: ./docker/Dockerfile.echo.${DISTRO}
+    environment:
+      - AWS_LAMBDA_RUNTIME_API=runtime:9001
+
+  runtime:
+    build:
+      context: .
+      dockerfile: ../docker-helpers/Dockerfile.runtime
+
+  invoker:
+    build:
+      context: .
+      dockerfile: ../docker-helpers/Dockerfile.aws-cli
+    entrypoint: [
+        aws, lambda, invoke,
+        --endpoint, http://runtime:9001,
+        --no-sign-request,
+        --region, us-west-2,
+        --function-name, ignored,
+        --payload, '{ "name": "Lambda" }',
+        /dev/stdout
+    ]

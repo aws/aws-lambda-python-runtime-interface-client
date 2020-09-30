@@ -1,0 +1,2 @@
+simplejson==3.17.2
+importlib-metadata ~= 2.0 ; python_version < "3.8"

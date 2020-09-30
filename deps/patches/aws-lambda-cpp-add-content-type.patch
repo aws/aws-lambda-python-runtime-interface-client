@@ -1,0 +1,53 @@
+diff --git a/include/aws/lambda-runtime/runtime.h b/include/aws/lambda-runtime/runtime.h
+index e14b804..cc1a789 100644
+--- a/include/aws/lambda-runtime/runtime.h
++++ b/include/aws/lambda-runtime/runtime.h
+@@ -56,6 +56,11 @@ struct invocation_request {
+      */
+     std::string function_arn;
+ 
++    /**
++     * The Content-type of the current invocation.
++     */
++    std::string content_type;
++
+     /**
+      * Function execution deadline counted in milliseconds since the Unix epoch.
+      */
+diff --git a/include/aws/http/response.h b/include/aws/http/response.h
+index 9b8cbda..be184c1 100644
+--- a/include/aws/http/response.h
++++ b/include/aws/http/response.h
+@@ -36,6 +36,7 @@ public:
+     inline void set_response_code(aws::http::response_code c);
+     inline void set_content_type(char const* ct);
+     inline std::string const& get_body() const;
++    inline std::string const& get_content_type() const;
+
+ private:
+     response_code m_response_code;
+@@ -137,6 +138,12 @@ inline std::string const& response::get_body() const
+ {
+     return m_body;
+ }
++
++inline std::string const& response::get_content_type() const
++{
++    return m_content_type;
++}
++
+ inline void response::add_header(std::string name, std::string const& value)
+ {
+     std::transform(name.begin(), name.end(), name.begin(), ::tolower);
+diff --git a/src/runtime.cpp b/src/runtime.cpp
+index 08d7014..1cbd6bb 100644
+--- a/src/runtime.cpp
++++ b/src/runtime.cpp
+@@ -275,6 +275,7 @@ runtime::next_outcome runtime::get_next()
+     invocation_request req;
+     req.payload = resp.get_body();
+     req.request_id = resp.get_header(REQUEST_ID_HEADER);
++    req.content_type = resp.get_content_type();
+
+     if (resp.has_header(TRACE_ID_HEADER)) {
+         req.xray_trace_id = resp.get_header(TRACE_ID_HEADER);

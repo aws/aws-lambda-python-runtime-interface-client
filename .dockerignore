@@ -1,0 +1,9 @@
+.git
+
+**/build/
+**/node_modules/
+**/dist/
+
+test/integration/*
+!test/integration/resources/
+!test/integration/test-handlers/
