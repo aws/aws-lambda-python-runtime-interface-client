@@ -31,7 +31,7 @@ main() {
     RUNTIME_VERSION="$4"
     EXTRA_ENV="${5-}"
 
-    CODEBUILD_TEMP_DIR=$(mktemp -d "${TMPDIR:-/tmp}"codebuild."$OS_DISTRIBUTION"-"$DISTRO_VERSION"-"$RUNTIME_VERSION".XXXXXXXXXX)
+    CODEBUILD_TEMP_DIR=$(mktemp -d codebuild."$OS_DISTRIBUTION"-"$DISTRO_VERSION"-"$RUNTIME_VERSION".XXXXXXXXXX)
     trap 'rm -rf $CODEBUILD_TEMP_DIR' EXIT
 
     # Create an env file for codebuild_build.
