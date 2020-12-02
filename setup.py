@@ -73,13 +73,13 @@ setup(
     description="AWS Lambda Runtime Interface Client for Python",
     long_description=read("README.md"),
     long_description_content_type="text/markdown",
-    url=" https://github.com/aws/aws-lambda-python-runtime-interface-client",
+    url="https://github.com/aws/aws-lambda-python-runtime-interface-client",
     packages=find_packages(
         exclude=("tests", "tests.*", "docs", "examples", "versions")
     ),
     install_requires=read_requirements("base.txt"),
     classifiers=[
-        # "Development Status :: 5 - Production/Stable",
+        "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Developers",
         "Natural Language :: English",
         "Programming Language :: Python :: 3",
