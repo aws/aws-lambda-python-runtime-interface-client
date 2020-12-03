@@ -158,6 +158,17 @@ Then,
 * to run integration tests: `make test-integ`
 * to run smoke tests: `make test-smoke`
 
+### Troubleshooting
+While running integration tests, you might encounter the Docker Hub rate limit error with the following body:
+```
+You have reached your pull rate limit. You may increase the limit by authenticating and upgrading: https://www.docker.com/increase-rate-limits
+```
+To fix the above issue, consider authenticating to a Docker Hub account by setting the Docker Hub credentials as below CodeBuild environment variables.
+```shell script
+DOCKERHUB_USERNAME=<dockerhub username>
+DOCKERHUB_PASSWORD=<dockerhub password>
+```
+Recommended way is to set the Docker Hub credentials in CodeBuild job by retrieving them from AWS Secrets Manager.
 ## Security
 
 If you discover a potential security issue in this project we ask that you notify AWS/Amazon Security via our [vulnerability reporting page](http://aws.amazon.com/security/vulnerability-reporting/). Please do **not** create a public github issue.
