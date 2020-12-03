@@ -1,0 +1,22 @@
+name: test-on-push-and-pr
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ '*' ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+      env:
+        GITHUB_WORKSPACE: /
+    - name: Set up python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.8'
+    - name: Run 'pr' target
+      run: make pr

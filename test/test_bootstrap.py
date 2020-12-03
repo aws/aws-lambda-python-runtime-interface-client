@@ -288,11 +288,13 @@ class TestHandleEventRequest(unittest.TestCase):
             xray_fault["exceptions"][0]["stack"][0]["label"], "raise_exception_handler"
         )
         self.assertIsInstance(xray_fault["exceptions"][0]["stack"][0]["line"], int)
-        self.assertEqual(
-            xray_fault["exceptions"][0]["stack"][0]["path"], os.path.realpath(__file__)
+        self.assertTrue(
+            xray_fault["exceptions"][0]["stack"][0]["path"].endswith(
+                os.path.relpath(__file__)
+            )
         )
         self.assertEqual(len(xray_fault["paths"]), 1)
-        self.assertEqual(xray_fault["paths"][0], os.path.realpath(__file__))
+        self.assertTrue(xray_fault["paths"][0].endswith(os.path.relpath(__file__)))
 
     def test_handle_event_request_no_module(self):
         def unable_to_import_module(json_input, lambda_context):
