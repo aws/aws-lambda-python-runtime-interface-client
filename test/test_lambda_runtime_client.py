@@ -11,7 +11,12 @@ from awslambdaric.lambda_runtime_client import (
     LambdaRuntimeClient,
     LambdaRuntimeClientError,
     InvocationRequest,
+    user_agent,
 )
+
+
+def mock_headers(headers):
+    return lambda name: headers[name]
 
 
 class TestInvocationRequest(unittest.TestCase):
@@ -55,10 +60,10 @@ class TestInvocationRequest(unittest.TestCase):
 
 
 class TestLambdaRuntime(unittest.TestCase):
-    @patch("awslambdaric.lambda_runtime_client.runtime_client")
-    def test_wait_next_invocation(self, mock_runtime_client):
+    @patch("http.client.HTTPConnection", autospec=http.client.HTTPConnection)
+    def test_wait_next_invocation(self, MockHTTPConnection):
         response_body = b"{}"
-        headears = {
+        headers = {
             "Lambda-Runtime-Aws-Request-Id": "RID1234",
             "Lambda-Runtime-Trace-Id": "TID1234",
             "Lambda-Runtime-Invoked-Function-Arn": "FARN1234",
@@ -67,7 +72,13 @@ class TestLambdaRuntime(unittest.TestCase):
             "Lambda-Runtime-Cognito-Identity": "cognito_identity",
             "Content-Type": "application/json",
         }
-        mock_runtime_client.next.return_value = response_body, headears
+        mock_response = MagicMock(autospec=http.client.HTTPResponse)
+        mock_response.read.return_value = response_body
+        mock_response.getheader.side_effect = mock_headers(headers)
+        mock_response.code = http.HTTPStatus.OK
+        mock_conn = MockHTTPConnection.return_value
+        mock_conn.getresponse.return_value = mock_response
+
         runtime_client = LambdaRuntimeClient("localhost:1234")
 
         event_request = runtime_client.wait_next_invocation()
@@ -95,7 +106,10 @@ class TestLambdaRuntime(unittest.TestCase):
 
         MockHTTPConnection.assert_called_with("localhost:1234")
         mock_conn.request.assert_called_once_with(
-            "POST", "/2018-06-01/runtime/init/error", "error_data"
+            "POST",
+            "/2018-06-01/runtime/init/error",
+            "error_data",
+            {"User-Agent": user_agent()},
         )
         mock_response.read.assert_called_once()
 
@@ -116,20 +130,35 @@ class TestLambdaRuntime(unittest.TestCase):
         self.assertEqual(returned_exception.endpoint, "/2018-06-01/runtime/init/error")
         self.assertEqual(returned_exception.response_code, http.HTTPStatus.IM_USED)
 
-    @patch("awslambdaric.lambda_runtime_client.runtime_client")
-    def test_post_invocation_result(self, mock_runtime_client):
+    @patch("http.client.HTTPConnection", autospec=http.client.HTTPConnection)
+    def test_post_invocation_result(self, MockHTTPConnection):
+        mock_conn = MockHTTPConnection.return_value
+        mock_response = MagicMock(autospec=http.client.HTTPResponse)
+        mock_conn.getresponse.return_value = mock_response
+        mock_response.read.return_value = b""
+        mock_response.code = http.HTTPStatus.OK
+
         runtime_client = LambdaRuntimeClient("localhost:1234")
         response_data = "data"
         invoke_id = "1234"
 
         runtime_client.post_invocation_result(invoke_id, response_data)
 
-        mock_runtime_client.post_invocation_result.assert_called_once_with(
-            invoke_id, response_data.encode("utf-8"), "application/json"
+        mock_conn.request.assert_called_once_with(
+            "POST",
+            "/2018-06-01/runtime/invocation/#{invoke_id}/response",
+            response_data.encode("utf-8"),
+            {"Content-Type": "application/json", "User-Agent": user_agent()},
         )
 
-    @patch("awslambdaric.lambda_runtime_client.runtime_client")
-    def test_post_invocation_result_binary_data(self, mock_runtime_client):
+    @patch("http.client.HTTPConnection", autospec=http.client.HTTPConnection)
+    def test_post_invocation_result_binary_data(self, MockHTTPConnection):
+        mock_conn = MockHTTPConnection.return_value
+        mock_response = MagicMock(autospec=http.client.HTTPResponse)
+        mock_conn.getresponse.return_value = mock_response
+        mock_response.read.return_value = b""
+        mock_response.code = http.HTTPStatus.ACCEPTED
+
         runtime_client = LambdaRuntimeClient("localhost:1234")
         response_data = b"binary_data"
         invoke_id = "1234"
@@ -137,25 +166,40 @@ class TestLambdaRuntime(unittest.TestCase):
 
         runtime_client.post_invocation_result(invoke_id, response_data, content_type)
 
-        mock_runtime_client.post_invocation_result.assert_called_once_with(
-            invoke_id, response_data, content_type
+        mock_conn.request.assert_called_once_with(
+            "POST",
+            "/2018-06-01/runtime/invocation/#{invoke_id}/response",
+            response_data,
+            {"Content-Type": "application/octet-stream", "User-Agent": user_agent()},
         )
 
-    @patch("awslambdaric.lambda_runtime_client.runtime_client")
-    def test_post_invocation_result_failure(self, mock_runtime_client):
+    @patch("http.client.HTTPConnection", autospec=http.client.HTTPConnection)
+    def test_post_invocation_result_failure(self, MockHTTPConnection):
+        mock_conn = MockHTTPConnection.return_value
+        mock_response = MagicMock(autospec=http.client.HTTPResponse)
+        mock_conn.getresponse.return_value = mock_response
+        mock_response.read.return_value = b""
+        mock_response.code = http.HTTPStatus.ACCEPTED
+
         runtime_client = LambdaRuntimeClient("localhost:1234")
         response_data = "data"
         invoke_id = "1234"
 
-        mock_runtime_client.post_invocation_result.side_effect = RuntimeError(
+        mock_conn.request.side_effect = RuntimeError(
             "Failed to post invocation response"
         )
 
         with self.assertRaisesRegex(RuntimeError, "Failed to post invocation response"):
             runtime_client.post_invocation_result(invoke_id, response_data)
 
-    @patch("awslambdaric.lambda_runtime_client.runtime_client")
-    def test_post_invocation_error(self, mock_runtime_client):
+    @patch("http.client.HTTPConnection", autospec=http.client.HTTPConnection)
+    def test_post_invocation_error(self, MockHTTPConnection):
+        mock_conn = MockHTTPConnection.return_value
+        mock_response = MagicMock(autospec=http.client.HTTPResponse)
+        mock_conn.getresponse.return_value = mock_response
+        mock_response.read.return_value = b""
+        mock_response.code = http.HTTPStatus.ACCEPTED
+
         runtime_client = LambdaRuntimeClient("localhost:1234")
         error_data = "data"
         invoke_id = "1234"
@@ -163,12 +207,24 @@ class TestLambdaRuntime(unittest.TestCase):
 
         runtime_client.post_invocation_error(invoke_id, error_data, xray_fault)
 
-        mock_runtime_client.post_error.assert_called_once_with(
-            invoke_id, error_data, xray_fault
+        mock_conn.request.assert_called_once_with(
+            "POST",
+            "/2018-06-01/runtime/invocation/#{invoke_id}/error",
+            error_data,
+            {
+                "User-Agent": user_agent(),
+                "Lambda-Runtime-Function-XRay-Error-Cause": xray_fault,
+            },
         )
 
-    @patch("awslambdaric.lambda_runtime_client.runtime_client")
-    def test_post_invocation_error_with_large_xray_cause(self, mock_runtime_client):
+    @patch("http.client.HTTPConnection", autospec=http.client.HTTPConnection)
+    def test_post_invocation_error_with_large_xray_cause(self, MockHTTPConnection):
+        mock_conn = MockHTTPConnection.return_value
+        mock_response = MagicMock(autospec=http.client.HTTPResponse)
+        mock_conn.getresponse.return_value = mock_response
+        mock_response.read.return_value = b""
+        mock_response.code = http.HTTPStatus.ACCEPTED
+
         runtime_client = LambdaRuntimeClient("localhost:1234")
         error_data = "data"
         invoke_id = "1234"
@@ -176,12 +232,24 @@ class TestLambdaRuntime(unittest.TestCase):
 
         runtime_client.post_invocation_error(invoke_id, error_data, large_xray_fault)
 
-        mock_runtime_client.post_error.assert_called_once_with(
-            invoke_id, error_data, large_xray_fault
+        mock_conn.request.assert_called_once_with(
+            "POST",
+            "/2018-06-01/runtime/invocation/#{invoke_id}/error",
+            error_data,
+            {
+                "User-Agent": user_agent(),
+                "Lambda-Runtime-Function-XRay-Error-Cause": large_xray_fault,
+            },
         )
 
-    @patch("awslambdaric.lambda_runtime_client.runtime_client")
-    def test_post_invocation_error_with_too_large_xray_cause(self, mock_runtime_client):
+    @patch("http.client.HTTPConnection", autospec=http.client.HTTPConnection)
+    def test_post_invocation_error_with_too_large_xray_cause(self, MockHTTPConnection):
+        mock_conn = MockHTTPConnection.return_value
+        mock_response = MagicMock(autospec=http.client.HTTPResponse)
+        mock_conn.getresponse.return_value = mock_response
+        mock_response.read.return_value = b""
+        mock_response.code = http.HTTPStatus.ACCEPTED
+
         runtime_client = LambdaRuntimeClient("localhost:1234")
         error_data = "data"
         invoke_id = "1234"
@@ -191,8 +259,14 @@ class TestLambdaRuntime(unittest.TestCase):
             invoke_id, error_data, too_large_xray_fault
         )
 
-        mock_runtime_client.post_error.assert_called_once_with(
-            invoke_id, error_data, ""
+        mock_conn.request.assert_called_once_with(
+            "POST",
+            "/2018-06-01/runtime/invocation/#{invoke_id}/error",
+            error_data,
+            {
+                "User-Agent": user_agent(),
+                "Lambda-Runtime-Function-XRay-Error-Cause": "",
+            },
         )
 
     def test_connection_refused(self):
