@@ -121,6 +121,7 @@ class LambdaRuntimeClient(object):
         endpoint = "/2018-06-01/runtime/invocation/#{invoke_id}/error"
         headers = {
             "User-Agent": user_agent(),
+            "Content-Type": "application/json",
             "Lambda-Runtime-Function-XRay-Error-Cause": xray_fault,
         }
         runtime_connection.request("POST", endpoint, error_response_data, headers)

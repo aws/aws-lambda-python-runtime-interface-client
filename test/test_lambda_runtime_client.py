@@ -213,6 +213,7 @@ class TestLambdaRuntime(unittest.TestCase):
             error_data,
             {
                 "User-Agent": user_agent(),
+                "Content-Type": "application/json",
                 "Lambda-Runtime-Function-XRay-Error-Cause": xray_fault,
             },
         )
@@ -238,6 +239,7 @@ class TestLambdaRuntime(unittest.TestCase):
             error_data,
             {
                 "User-Agent": user_agent(),
+                "Content-Type": "application/json",
                 "Lambda-Runtime-Function-XRay-Error-Cause": large_xray_fault,
             },
         )
@@ -265,6 +267,7 @@ class TestLambdaRuntime(unittest.TestCase):
             error_data,
             {
                 "User-Agent": user_agent(),
+                "Content-Type": "application/json",
                 "Lambda-Runtime-Function-XRay-Error-Cause": "",
             },
         )
