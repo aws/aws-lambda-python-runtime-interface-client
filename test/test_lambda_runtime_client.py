@@ -157,7 +157,7 @@ class TestLambdaRuntime(unittest.TestCase):
         mock_response = MagicMock(autospec=http.client.HTTPResponse)
         mock_conn.getresponse.return_value = mock_response
         mock_response.read.return_value = b""
-        mock_response.code = http.HTTPStatus.ACCEPTED
+        mock_response.code = http.HTTPStatus.OK
 
         runtime_client = LambdaRuntimeClient("localhost:1234")
         response_data = b"binary_data"
@@ -179,7 +179,7 @@ class TestLambdaRuntime(unittest.TestCase):
         mock_response = MagicMock(autospec=http.client.HTTPResponse)
         mock_conn.getresponse.return_value = mock_response
         mock_response.read.return_value = b""
-        mock_response.code = http.HTTPStatus.ACCEPTED
+        mock_response.code = http.HTTPStatus.OK
 
         runtime_client = LambdaRuntimeClient("localhost:1234")
         response_data = "data"
@@ -198,7 +198,7 @@ class TestLambdaRuntime(unittest.TestCase):
         mock_response = MagicMock(autospec=http.client.HTTPResponse)
         mock_conn.getresponse.return_value = mock_response
         mock_response.read.return_value = b""
-        mock_response.code = http.HTTPStatus.ACCEPTED
+        mock_response.code = http.HTTPStatus.OK
 
         runtime_client = LambdaRuntimeClient("localhost:1234")
         error_data = "data"
@@ -224,7 +224,7 @@ class TestLambdaRuntime(unittest.TestCase):
         mock_response = MagicMock(autospec=http.client.HTTPResponse)
         mock_conn.getresponse.return_value = mock_response
         mock_response.read.return_value = b""
-        mock_response.code = http.HTTPStatus.ACCEPTED
+        mock_response.code = http.HTTPStatus.OK
 
         runtime_client = LambdaRuntimeClient("localhost:1234")
         error_data = "data"
@@ -250,7 +250,7 @@ class TestLambdaRuntime(unittest.TestCase):
         mock_response = MagicMock(autospec=http.client.HTTPResponse)
         mock_conn.getresponse.return_value = mock_response
         mock_response.read.return_value = b""
-        mock_response.code = http.HTTPStatus.ACCEPTED
+        mock_response.code = http.HTTPStatus.OK
 
         runtime_client = LambdaRuntimeClient("localhost:1234")
         error_data = "data"

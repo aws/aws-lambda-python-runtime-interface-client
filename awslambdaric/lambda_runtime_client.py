@@ -111,6 +111,11 @@ class LambdaRuntimeClient(object):
             else result_data.encode("utf-8"),
             headers,
         )
+        response = runtime_connection.getresponse()
+        response_body = response.read()
+
+        if response.code != http.HTTPStatus.OK:
+            raise LambdaRuntimeClientError(endpoint, response.code, response_body)
 
     def post_invocation_error(self, invoke_id, error_response_data, xray_fault):
         max_header_size = 1024 * 1024  # 1MiB
@@ -125,3 +130,8 @@ class LambdaRuntimeClient(object):
             "Lambda-Runtime-Function-XRay-Error-Cause": xray_fault,
         }
         runtime_connection.request("POST", endpoint, error_response_data, headers)
+        response = runtime_connection.getresponse()
+        response_body = response.read()
+
+        if response.code != http.HTTPStatus.OK:
+            raise LambdaRuntimeClientError(endpoint, response.code, response_body)
