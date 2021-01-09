@@ -101,7 +101,7 @@ class LambdaRuntimeClient(object):
     ):
         runtime_connection = http.client.HTTPConnection(self.lambda_runtime_address)
         runtime_connection.connect()
-        endpoint = "/2018-06-01/runtime/invocation/#{invoke_id}/response"
+        endpoint = f"/2018-06-01/runtime/invocation/{invoke_id}/response"
         headers = {"Content-Type": content_type, "User-Agent": user_agent()}
         runtime_connection.request(
             "POST",
@@ -123,7 +123,7 @@ class LambdaRuntimeClient(object):
 
         runtime_connection = http.client.HTTPConnection(self.lambda_runtime_address)
         runtime_connection.connect()
-        endpoint = "/2018-06-01/runtime/invocation/#{invoke_id}/error"
+        endpoint = f"/2018-06-01/runtime/invocation/{invoke_id}/error"
         headers = {
             "User-Agent": user_agent(),
             "Content-Type": "application/json",

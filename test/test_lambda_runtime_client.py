@@ -146,7 +146,7 @@ class TestLambdaRuntime(unittest.TestCase):
 
         mock_conn.request.assert_called_once_with(
             "POST",
-            "/2018-06-01/runtime/invocation/#{invoke_id}/response",
+            f"/2018-06-01/runtime/invocation/{invoke_id}/response",
             response_data.encode("utf-8"),
             {"Content-Type": "application/json", "User-Agent": user_agent()},
         )
@@ -168,7 +168,7 @@ class TestLambdaRuntime(unittest.TestCase):
 
         mock_conn.request.assert_called_once_with(
             "POST",
-            "/2018-06-01/runtime/invocation/#{invoke_id}/response",
+            f"/2018-06-01/runtime/invocation/{invoke_id}/response",
             response_data,
             {"Content-Type": "application/octet-stream", "User-Agent": user_agent()},
         )
@@ -209,7 +209,7 @@ class TestLambdaRuntime(unittest.TestCase):
 
         mock_conn.request.assert_called_once_with(
             "POST",
-            "/2018-06-01/runtime/invocation/#{invoke_id}/error",
+            f"/2018-06-01/runtime/invocation/{invoke_id}/error",
             error_data,
             {
                 "User-Agent": user_agent(),
@@ -235,7 +235,7 @@ class TestLambdaRuntime(unittest.TestCase):
 
         mock_conn.request.assert_called_once_with(
             "POST",
-            "/2018-06-01/runtime/invocation/#{invoke_id}/error",
+            f"/2018-06-01/runtime/invocation/{invoke_id}/error",
             error_data,
             {
                 "User-Agent": user_agent(),
@@ -263,7 +263,7 @@ class TestLambdaRuntime(unittest.TestCase):
 
         mock_conn.request.assert_called_once_with(
             "POST",
-            "/2018-06-01/runtime/invocation/#{invoke_id}/error",
+            f"/2018-06-01/runtime/invocation/{invoke_id}/error",
             error_data,
             {
                 "User-Agent": user_agent(),
