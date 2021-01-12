@@ -394,7 +394,7 @@ def run(app_root, handler, lambda_runtime_api_addr):
             logger_handler = LambdaLoggerHandler(log_sink)
             logger_handler.setFormatter(
                 logging.Formatter(
-                    "[%(levelname)s]\t%(asctime)s.%(msecs)dZ\t%(aws_request_id)s\t%(message)s\n",
+                    "[%(levelname)s]\t%(asctime)s.%(msecs)03dZ\t%(aws_request_id)s\t%(message)s\n",
                     "%Y-%m-%dT%H:%M:%S",
                 )
             )
