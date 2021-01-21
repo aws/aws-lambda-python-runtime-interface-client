@@ -23,8 +23,15 @@ RUN yum install -y \
   libffi-devel \
   sqlite-devel
 
-RUN RUNTIME_LATEST_VERSION=${RUNTIME_VERSION}.$(curl -s https://www.python.org/ftp/python/ | grep -oE "href=\"$(echo ${RUNTIME_VERSION} | sed "s/\\./\\\./g")\.[0-9]+" | cut -d. -f3 | sort -n | tail -n1) \
-  && wget -c https://www.python.org/ftp/python/${RUNTIME_LATEST_VERSION}/Python-${RUNTIME_LATEST_VERSION}.tgz -O - | tar -xz \
+RUN RUNTIME_LATEST_VERSION=${RUNTIME_VERSION}.$(curl -s https://www.python.org/ftp/python/ | \
+                                                grep -oE "href=\"$(echo ${RUNTIME_VERSION} | sed "s/\\./\\\./g")\.[0-9]+" | \
+                                                cut -d. -f3 | \
+                                                sort -rn | \
+                                                while read -r patch; do \
+                                                  $(wget -c https://www.python.org/ftp/python/${RUNTIME_VERSION}.$patch/Python-${RUNTIME_VERSION}.$patch.tgz -O Python-${RUNTIME_VERSION}.$patch.tgz); \
+                                                  [ $? -eq 0 ] && echo $patch && break; \
+                                                done) \
+  && tar -xzf Python-${RUNTIME_LATEST_VERSION}.tgz \
   && cd Python-${RUNTIME_LATEST_VERSION} \
   && ./configure --prefix=/usr/local --enable-shared \
   && make \
