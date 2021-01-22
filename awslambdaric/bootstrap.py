@@ -90,9 +90,11 @@ def make_fault_handler(fault):
 
 
 def make_error(error_message, error_type, stack_trace):
-    result = {'errorMessage': error_message if error_message else "",
-                'errorType': error_type if error_type else "",
-                'stackTrace': stack_trace if stack_trace else []}
+    result = {
+        "errorMessage": error_message if error_message else "",
+        "errorType": error_type if error_type else "",
+        "stackTrace": stack_trace if stack_trace else [],
+    }
     return result
 
 

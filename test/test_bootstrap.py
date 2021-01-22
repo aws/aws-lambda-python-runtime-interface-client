@@ -296,6 +296,58 @@ class TestHandleEventRequest(unittest.TestCase):
         self.assertEqual(len(xray_fault["paths"]), 1)
         self.assertTrue(xray_fault["paths"][0].endswith(os.path.relpath(__file__)))
 
+    def test_handle_event_request_custom_empty_error_message_exception(self):
+        def raise_exception_handler(json_input, lambda_context):
+            class MyError(Exception):
+                def __init__(self, message):
+                    self.message = message
+
+            raise MyError("")
+
+        expected_response = {"errorType": "MyError", "errorMessage": ""}
+        bootstrap.handle_event_request(
+            self.lambda_runtime,
+            raise_exception_handler,
+            "invoke_id",
+            self.event_body,
+            "application/json",
+            {},
+            {},
+            "invoked_function_arn",
+            0,
+            bootstrap.StandardLogSink(),
+        )
+        args, _ = self.lambda_runtime.post_invocation_error.call_args
+        error_response = json.loads(args[1])
+        self.assertEqual(args[0], "invoke_id")
+        self.assertTrue(
+            expected_response.items() <= error_response.items(),
+            "Expected response is not a subset of the actual response\nExpected: {}\nActual: {}".format(
+                expected_response, error_response
+            ),
+        )
+        xray_fault = json.loads(args[2])
+        self.assertEqual(xray_fault["working_directory"], self.working_directory)
+        self.assertEqual(len(xray_fault["exceptions"]), 1)
+        self.assertEqual(
+            xray_fault["exceptions"][0]["message"], expected_response["errorMessage"]
+        )
+        self.assertEqual(
+            xray_fault["exceptions"][0]["type"], expected_response["errorType"]
+        )
+        self.assertEqual(len(xray_fault["exceptions"][0]["stack"]), 1)
+        self.assertEqual(
+            xray_fault["exceptions"][0]["stack"][0]["label"], "raise_exception_handler"
+        )
+        self.assertIsInstance(xray_fault["exceptions"][0]["stack"][0]["line"], int)
+        self.assertTrue(
+            xray_fault["exceptions"][0]["stack"][0]["path"].endswith(
+                os.path.relpath(__file__)
+            )
+        )
+        self.assertEqual(len(xray_fault["paths"]), 1)
+        self.assertTrue(xray_fault["paths"][0].endswith(os.path.relpath(__file__)))
+
     def test_handle_event_request_no_module(self):
         def unable_to_import_module(json_input, lambda_context):
             import invalid_module
@@ -835,7 +887,9 @@ class TestLogError(unittest.TestCase):
         err_to_log = bootstrap.make_error("Error message", "ErrorType", None)
         bootstrap.log_error(err_to_log, bootstrap.StandardLogSink())
 
-        expected_logged_error = "[ERROR] ErrorType: Error message\rTraceback (most recent call last):\n"
+        expected_logged_error = (
+            "[ERROR] ErrorType: Error message\rTraceback (most recent call last):\n"
+        )
         self.assertEqual(mock_stdout.getvalue(), expected_logged_error)
 
     def test_log_error_framed_log_sink(self):
@@ -844,7 +898,9 @@ class TestLogError(unittest.TestCase):
                 err_to_log = bootstrap.make_error("Error message", "ErrorType", None)
                 bootstrap.log_error(err_to_log, log_sink)
 
-            expected_logged_error = "[ERROR] ErrorType: Error message\nTraceback (most recent call last):"
+            expected_logged_error = (
+                "[ERROR] ErrorType: Error message\nTraceback (most recent call last):"
+            )
 
             with open(temp_file.name, "rb") as f:
                 content = f.read()
