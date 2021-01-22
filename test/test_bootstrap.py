@@ -852,9 +852,6 @@ class TestLogError(unittest.TestCase):
                 frame_type = int.from_bytes(content[:4], "big")
                 self.assertEqual(frame_type, 0xA55A0001)
 
-                actual_message = content[8:].decode()
-                self.assertEqual(actual_message, expected_logged_error)
-
                 length = int.from_bytes(content[4:8], "big")
                 self.assertEqual(length, len(expected_logged_error.encode("utf8")))
 
