@@ -435,7 +435,7 @@ class TestHandleEventRequest(unittest.TestCase):
             0,
             bootstrap.StandardLogSink(),
         )
-        error_logs = "[ERROR] FaultExceptionType: Fault exception msg\n"
+        error_logs = "[ERROR] FaultExceptionType: Fault exception msg\rTraceback (most recent call last):\n"
 
         self.assertEqual(mock_stdout.getvalue(), error_logs)
 
@@ -461,7 +461,7 @@ class TestHandleEventRequest(unittest.TestCase):
             0,
             bootstrap.StandardLogSink(),
         )
-        error_logs = "[ERROR] FaultExceptionType\n"
+        error_logs = "[ERROR] FaultExceptionType\rTraceback (most recent call last):\n"
 
         self.assertEqual(mock_stdout.getvalue(), error_logs)
 
@@ -487,7 +487,7 @@ class TestHandleEventRequest(unittest.TestCase):
             0,
             bootstrap.StandardLogSink(),
         )
-        error_logs = "[ERROR] Fault exception msg\n"
+        error_logs = "[ERROR] Fault exception msg\rTraceback (most recent call last):\n"
 
         self.assertEqual(mock_stdout.getvalue(), error_logs)
 
@@ -835,7 +835,7 @@ class TestLogError(unittest.TestCase):
         err_to_log = bootstrap.make_error("Error message", "ErrorType", None)
         bootstrap.log_error(err_to_log, bootstrap.StandardLogSink())
 
-        expected_logged_error = "[ERROR] ErrorType: Error message\n"
+        expected_logged_error = "[ERROR] ErrorType: Error message\rTraceback (most recent call last):\n"
         self.assertEqual(mock_stdout.getvalue(), expected_logged_error)
 
     def test_log_error_framed_log_sink(self):
@@ -844,13 +844,16 @@ class TestLogError(unittest.TestCase):
                 err_to_log = bootstrap.make_error("Error message", "ErrorType", None)
                 bootstrap.log_error(err_to_log, log_sink)
 
-            expected_logged_error = "[ERROR] ErrorType: Error message"
+            expected_logged_error = "[ERROR] ErrorType: Error message\nTraceback (most recent call last):"
 
             with open(temp_file.name, "rb") as f:
                 content = f.read()
 
                 frame_type = int.from_bytes(content[:4], "big")
                 self.assertEqual(frame_type, 0xA55A0001)
+
+                actual_message = content[8:].decode()
+                self.assertEqual(actual_message, expected_logged_error)
 
                 length = int.from_bytes(content[4:8], "big")
                 self.assertEqual(length, len(expected_logged_error.encode("utf8")))
