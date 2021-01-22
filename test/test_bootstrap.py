@@ -764,7 +764,7 @@ class TestContentType(unittest.TestCase):
         )
 
     def test_binary_request_binary_response(self):
-        event_body = b"\x89PNG\r\n\n\x1a\n\x00\x00\x00"
+        event_body = b"\x89PNG\r\n\x1a\n\x00\x00\x00"
         bootstrap.handle_event_request(
             lambda_runtime_client=self.lambda_runtime,
             request_handler=lambda event, ctx: event,
@@ -783,7 +783,7 @@ class TestContentType(unittest.TestCase):
         )
 
     def test_json_request_binary_response(self):
-        binary_data = b"\x89PNG\r\n\n\x1a\n\x00\x00\x00"
+        binary_data = b"\x89PNG\r\n\x1a\n\x00\x00\x00"
         bootstrap.handle_event_request(
             lambda_runtime_client=self.lambda_runtime,
             request_handler=lambda event, ctx: binary_data,
@@ -806,7 +806,7 @@ class TestContentType(unittest.TestCase):
             lambda_runtime_client=self.lambda_runtime,
             request_handler=lambda event, ctx: event,
             invoke_id="invoke-id",
-            event_body=b"\x89PNG\r\n\n\x1a\n\x00\x00\x00",
+            event_body=b"\x89PNG\r\n\x1a\n\x00\x00\x00",
             content_type="application/json",
             client_context_json=None,
             cognito_identity_json=None,
