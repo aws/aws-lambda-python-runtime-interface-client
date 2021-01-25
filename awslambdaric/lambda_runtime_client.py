@@ -13,7 +13,7 @@ except ImportError:
     import importlib_metadata as metadata
 
 
-def _user_agent():
+def user_agent():
     py_version = (
         f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
     )
@@ -23,13 +23,6 @@ def _user_agent():
         pkg_version = "unknown"
     return f"aws-lambda-python/{py_version}-{pkg_version}"
 
-
-try:
-    import runtime_client
-
-    runtime_client.initialize_client(_user_agent())
-except ImportError:
-    runtime_client = None
 
 from .lambda_runtime_marshaller import LambdaMarshaller
 
@@ -65,7 +58,12 @@ class LambdaRuntimeClient(object):
         runtime_connection = http.client.HTTPConnection(self.lambda_runtime_address)
         runtime_connection.connect()
         endpoint = "/2018-06-01/runtime/init/error"
-        runtime_connection.request("POST", endpoint, error_response_data)
+        runtime_connection.request(
+            "POST",
+            endpoint,
+            body=error_response_data,
+            headers={"User-Agent": user_agent()},
+        )
         response = runtime_connection.getresponse()
         response_body = response.read()
 
@@ -73,30 +71,67 @@ class LambdaRuntimeClient(object):
             raise LambdaRuntimeClientError(endpoint, response.code, response_body)
 
     def wait_next_invocation(self):
-        response_body, headers = runtime_client.next()
+        runtime_connection = http.client.HTTPConnection(self.lambda_runtime_address)
+        runtime_connection.connect()
+        endpoint = "/2018-06-01/runtime/invocation/next"
+        runtime_connection.request(
+            "GET", endpoint, headers={"User-Agent": user_agent()}
+        )
+        response = runtime_connection.getresponse()
+        response_body = response.read()
+
+        if response.code != http.HTTPStatus.OK:
+            raise LambdaRuntimeClientError(endpoint, response.code, response_body)
+
         return InvocationRequest(
-            invoke_id=headers.get("Lambda-Runtime-Aws-Request-Id"),
-            x_amzn_trace_id=headers.get("Lambda-Runtime-Trace-Id"),
-            invoked_function_arn=headers.get("Lambda-Runtime-Invoked-Function-Arn"),
-            deadline_time_in_ms=headers.get("Lambda-Runtime-Deadline-Ms"),
-            client_context=headers.get("Lambda-Runtime-Client-Context"),
-            cognito_identity=headers.get("Lambda-Runtime-Cognito-Identity"),
-            content_type=headers.get("Content-Type"),
+            invoke_id=response.getheader("Lambda-Runtime-Aws-Request-Id"),
+            x_amzn_trace_id=response.getheader("Lambda-Runtime-Trace-Id"),
+            invoked_function_arn=response.getheader(
+                "Lambda-Runtime-Invoked-Function-Arn"
+            ),
+            deadline_time_in_ms=response.getheader("Lambda-Runtime-Deadline-Ms"),
+            client_context=response.getheader("Lambda-Runtime-Client-Context"),
+            cognito_identity=response.getheader("Lambda-Runtime-Cognito-Identity"),
+            content_type=response.getheader("Content-Type"),
             event_body=response_body,
         )
 
     def post_invocation_result(
         self, invoke_id, result_data, content_type="application/json"
     ):
-        runtime_client.post_invocation_result(
-            invoke_id,
+        runtime_connection = http.client.HTTPConnection(self.lambda_runtime_address)
+        runtime_connection.connect()
+        endpoint = f"/2018-06-01/runtime/invocation/{invoke_id}/response"
+        headers = {"Content-Type": content_type, "User-Agent": user_agent()}
+        runtime_connection.request(
+            "POST",
+            endpoint,
             result_data
             if isinstance(result_data, bytes)
             else result_data.encode("utf-8"),
-            content_type,
+            headers,
         )
+        response = runtime_connection.getresponse()
+        response_body = response.read()
+
+        if response.code != http.HTTPStatus.OK:
+            raise LambdaRuntimeClientError(endpoint, response.code, response_body)
 
     def post_invocation_error(self, invoke_id, error_response_data, xray_fault):
         max_header_size = 1024 * 1024  # 1MiB
         xray_fault = xray_fault if len(xray_fault.encode()) < max_header_size else ""
-        runtime_client.post_error(invoke_id, error_response_data, xray_fault)
+
+        runtime_connection = http.client.HTTPConnection(self.lambda_runtime_address)
+        runtime_connection.connect()
+        endpoint = f"/2018-06-01/runtime/invocation/{invoke_id}/error"
+        headers = {
+            "User-Agent": user_agent(),
+            "Content-Type": "application/json",
+            "Lambda-Runtime-Function-XRay-Error-Cause": xray_fault,
+        }
+        runtime_connection.request("POST", endpoint, error_response_data, headers)
+        response = runtime_connection.getresponse()
+        response_body = response.read()
+
+        if response.code != http.HTTPStatus.OK:
+            raise LambdaRuntimeClientError(endpoint, response.code, response_body)
