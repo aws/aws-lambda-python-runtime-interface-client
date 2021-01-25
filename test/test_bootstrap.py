@@ -456,11 +456,11 @@ class TestHandleEventRequest(unittest.TestCase):
         )
 
         # NOTE: Indentation characters are NO-BREAK SPACE (U+00A0) not SPACE (U+0020)
-        error_logs = "[ERROR] FaultExceptionType: Fault exception msg\r"
-        error_logs += "Traceback (most recent call last):\r"
-        error_logs += '  File "spam.py", line 3, in <module>\r'
-        error_logs += "    spam.eggs()\r"
-        error_logs += '  File "eggs.py", line 42, in eggs\r'
+        error_logs = "[ERROR] FaultExceptionType: Fault exception msg\r\n"
+        error_logs += "Traceback (most recent call last):\r\n"
+        error_logs += '  File "spam.py", line 3, in <module>\r\n'
+        error_logs += "    spam.eggs()\r\n"
+        error_logs += '  File "eggs.py", line 42, in eggs\r\n'
         error_logs += '    return "bacon"\n'
 
         self.assertEqual(mock_stdout.getvalue(), error_logs)
@@ -575,11 +575,11 @@ class TestHandleEventRequest(unittest.TestCase):
             bootstrap.StandardLogSink(),
         )
 
-        error_logs = "[ERROR]\r"
-        error_logs += "Traceback (most recent call last):\r"
-        error_logs += '  File "spam.py", line 3, in <module>\r'
-        error_logs += "    spam.eggs()\r"
-        error_logs += '  File "eggs.py", line 42, in eggs\r'
+        error_logs = "[ERROR]\r\n"
+        error_logs += "Traceback (most recent call last):\r\n"
+        error_logs += '  File "spam.py", line 3, in <module>\r\n'
+        error_logs += "    spam.eggs()\r\n"
+        error_logs += '  File "eggs.py", line 42, in eggs\r\n'
         error_logs += '    return "bacon"\n'
 
         self.assertEqual(mock_stdout.getvalue(), error_logs)
@@ -618,9 +618,9 @@ class TestHandleEventRequest(unittest.TestCase):
 
         sys.stderr.write(mock_stdout.getvalue())
 
-        error_logs = "[ERROR] Runtime.UserCodeSyntaxError: Syntax error in module 'a': unexpected EOF while parsing (<string>, line 1)\r"
-        error_logs += "Traceback (most recent call last):\r"
-        error_logs += '  File "<string>" Line 1\r'
+        error_logs = "[ERROR] Runtime.UserCodeSyntaxError: Syntax error in module 'a': unexpected EOF while parsing (<string>, line 1)\r\n"
+        error_logs += "Traceback (most recent call last):\r\n"
+        error_logs += '  File "<string>" Line 1\r\n'
         error_logs += "    -\n"
 
         self.assertEqual(mock_stdout.getvalue(), error_logs)
@@ -921,7 +921,7 @@ class TestLogError(unittest.TestCase):
         )
         bootstrap.log_error(err_to_log, bootstrap.StandardLogSink())
 
-        expected_logged_error = "[ERROR] ErrorType: Error message\rTraceback (most recent call last):\r\xa0\xa0line1  \r\xa0\xa0line2  \r\xa0\xa0\n"
+        expected_logged_error = "[ERROR] ErrorType: Error message\r\nTraceback (most recent call last):\r\n\xa0\xa0line1  \r\n\xa0\xa0line2  \r\n\xa0\xa0\n"
         self.assertEqual(mock_stdout.getvalue(), expected_logged_error)
 
     def test_log_error_indentation_framed_log_sink(self):
@@ -953,7 +953,7 @@ class TestLogError(unittest.TestCase):
         )
         bootstrap.log_error(err_to_log, bootstrap.StandardLogSink())
 
-        expected_logged_error = "[ERROR] ErrorType: Error message\rTraceback (most recent call last):\rline1\r\rline2\n"
+        expected_logged_error = "[ERROR] ErrorType: Error message\r\nTraceback (most recent call last):\r\nline1\r\n\r\nline2\n"
         self.assertEqual(mock_stdout.getvalue(), expected_logged_error)
 
     def test_log_error_empty_stacktrace_line_framed_log_sink(self):

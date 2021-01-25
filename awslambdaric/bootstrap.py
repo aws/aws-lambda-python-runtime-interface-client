@@ -19,7 +19,7 @@ with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=DeprecationWarning)
     import imp
 
-ERROR_LOG_LINE_TERMINATE = "\r"
+ERROR_LOG_LINE_TERMINATE = "\r\n"
 ERROR_LOG_IDENT = "\u00a0"  # NO-BREAK SPACE U+00A0
 
 
