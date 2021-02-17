@@ -38,7 +38,7 @@ ARG FUNCTION_DIR="/home/app/"
 # Create function directory
 RUN mkdir -p ${FUNCTION_DIR}
 # Copy function code
-COPY test/integration/test-handlers/echo/* ${FUNCTION_DIR}
+COPY tests/integration/test-handlers/echo/* ${FUNCTION_DIR}
 # Copy Runtime Interface Client .tgz
 RUN cp ./dist/awslambdaric-test.tar.gz ${FUNCTION_DIR}/awslambdaric-test.tar.gz
 

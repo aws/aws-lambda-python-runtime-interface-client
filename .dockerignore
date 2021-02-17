@@ -4,6 +4,6 @@
 **/node_modules/
 **/dist/
 
-test/integration/*
-!test/integration/resources/
-!test/integration/test-handlers/
+tests/integration/*
+!tests/integration/resources/
+!tests/integration/test-handlers/
