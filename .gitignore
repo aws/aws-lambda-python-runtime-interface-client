@@ -1,6 +1,6 @@
 generated.docker-compose.*.yml
 
-test/integration/resources/init
+tests/integration/resources/init
 
 node_modules/
 *.tsbuildinfo

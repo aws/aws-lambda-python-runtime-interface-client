@@ -9,19 +9,19 @@ init:
 
 .PHONY: test
 test: check-format
-	pytest --cov awslambdaric --cov-report term-missing --cov-fail-under 90 test
+	pytest --cov awslambdaric --cov-report term-missing --cov-fail-under 90 tests
 
 .PHONY: setup-codebuild-agent
 setup-codebuild-agent:
-	docker build -t codebuild-agent - < test/integration/codebuild-local/Dockerfile.agent
+	docker build -t codebuild-agent - < tests/integration/codebuild-local/Dockerfile.agent
 
 .PHONY: test-smoke
 test-smoke: setup-codebuild-agent
-	CODEBUILD_IMAGE_TAG=codebuild-agent test/integration/codebuild-local/test_one.sh test/integration/codebuild/buildspec.os.alpine.1.yml alpine 3.12 3.8
+	CODEBUILD_IMAGE_TAG=codebuild-agent tests/integration/codebuild-local/test_one.sh tests/integration/codebuild/buildspec.os.alpine.1.yml alpine 3.12 3.8
 
 .PHONY: test-integ
 test-integ: setup-codebuild-agent
-	CODEBUILD_IMAGE_TAG=codebuild-agent test/integration/codebuild-local/test_all.sh test/integration/codebuild/.
+	CODEBUILD_IMAGE_TAG=codebuild-agent tests/integration/codebuild-local/test_all.sh tests/integration/codebuild/.
 
 .PHONY: check-security
 check-security:
@@ -29,11 +29,11 @@ check-security:
 
 .PHONY: format
 format:
-	black setup.py awslambdaric/ test/
+	black setup.py awslambdaric/ tests/
 
 .PHONY: check-format
 check-format:
-	black --check setup.py awslambdaric/ test/
+	black --check setup.py awslambdaric/ tests/
 
 # Command to run everytime you make changes to verify everything works
 .PHONY: dev
