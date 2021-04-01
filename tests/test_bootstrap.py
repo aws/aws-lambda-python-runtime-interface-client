@@ -2,6 +2,7 @@
 Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 """
 
+import importlib
 import json
 import os
 import re
@@ -688,50 +689,50 @@ class TestGetEventHandler(unittest.TestCase):
         )
 
     def test_get_event_handler_syntax_error(self):
-        tmp_file = tempfile.NamedTemporaryFile(suffix=".py", dir=".", delete=False)
-        tmp_file.write(
-            b"def syntax_error()\n\tprint('syntax error, no colon after function')"
-        )
-        tmp_file.close()
-        filename_w_ext = os.path.basename(tmp_file.name)
-        filename, _ = os.path.splitext(filename_w_ext)
-        handler_name = "{}.syntax_error".format(filename)
-        response_handler = bootstrap._get_handler(handler_name)
+        importlib.invalidate_caches()
+        with tempfile.NamedTemporaryFile(suffix=".py", dir=".", delete=False) as tmp_file:
+            tmp_file.write(
+                b"def syntax_error()\n\tprint('syntax error, no colon after function')"
+            )
+            tmp_file.flush()
 
-        with self.assertRaises(FaultException) as cm:
-            response_handler()
-        returned_exception = cm.exception
-        self.assertEqual(
-            self.FaultExceptionMatcher(
-                "Syntax error in",
-                "Runtime.UserCodeSyntaxError",
-                ".*File.*\\.py.*Line 1.*",
-            ),
-            returned_exception,
-        )
-        if os.path.exists(tmp_file.name):
-            os.remove(tmp_file.name)
+            filename_w_ext = os.path.basename(tmp_file.name)
+            filename, _ = os.path.splitext(filename_w_ext)
+            handler_name = "{}.syntax_error".format(filename)
+            response_handler = bootstrap._get_handler(handler_name)
+
+            with self.assertRaises(FaultException) as cm:
+                response_handler()
+            returned_exception = cm.exception
+            self.assertEqual(
+                self.FaultExceptionMatcher(
+                    "Syntax error in",
+                    "Runtime.UserCodeSyntaxError",
+                    ".*File.*\\.py.*Line 1.*",
+                ),
+                returned_exception,
+            )
 
     def test_get_event_handler_missing_error(self):
-        tmp_file = tempfile.NamedTemporaryFile(suffix=".py", dir=".", delete=False)
-        tmp_file.write(b"def wrong_handler_name():\n\tprint('hello')")
-        tmp_file.close()
-        filename_w_ext = os.path.basename(tmp_file.name)
-        filename, _ = os.path.splitext(filename_w_ext)
-        handler_name = "{}.my_handler".format(filename)
-        response_handler = bootstrap._get_handler(handler_name)
-        with self.assertRaises(FaultException) as cm:
-            response_handler()
-        returned_exception = cm.exception
-        self.assertEqual(
-            self.FaultExceptionMatcher(
-                "Handler 'my_handler' missing on module '{}'".format(filename),
-                "Runtime.HandlerNotFound",
-            ),
-            returned_exception,
-        )
-        if os.path.exists(tmp_file.name):
-            os.remove(tmp_file.name)
+        importlib.invalidate_caches()
+        with tempfile.NamedTemporaryFile(suffix=".py", dir=".", delete=False) as tmp_file:
+            tmp_file.write(b"def wrong_handler_name():\n\tprint('hello')")
+            tmp_file.flush()
+
+            filename_w_ext = os.path.basename(tmp_file.name)
+            filename, _ = os.path.splitext(filename_w_ext)
+            handler_name = "{}.my_handler".format(filename)
+            response_handler = bootstrap._get_handler(handler_name)
+            with self.assertRaises(FaultException) as cm:
+                response_handler()
+            returned_exception = cm.exception
+            self.assertEqual(
+                self.FaultExceptionMatcher(
+                    "Handler 'my_handler' missing on module '{}'".format(filename),
+                    "Runtime.HandlerNotFound",
+                ),
+                returned_exception,
+            )
 
     def test_get_event_handler_build_in_conflict(self):
         response_handler = bootstrap._get_handler("sys.hello")
