@@ -690,7 +690,9 @@ class TestGetEventHandler(unittest.TestCase):
 
     def test_get_event_handler_syntax_error(self):
         importlib.invalidate_caches()
-        with tempfile.NamedTemporaryFile(suffix=".py", dir=".", delete=False) as tmp_file:
+        with tempfile.NamedTemporaryFile(
+            suffix=".py", dir=".", delete=False
+        ) as tmp_file:
             tmp_file.write(
                 b"def syntax_error()\n\tprint('syntax error, no colon after function')"
             )
@@ -715,7 +717,9 @@ class TestGetEventHandler(unittest.TestCase):
 
     def test_get_event_handler_missing_error(self):
         importlib.invalidate_caches()
-        with tempfile.NamedTemporaryFile(suffix=".py", dir=".", delete=False) as tmp_file:
+        with tempfile.NamedTemporaryFile(
+            suffix=".py", dir=".", delete=False
+        ) as tmp_file:
             tmp_file.write(b"def wrong_handler_name():\n\tprint('hello')")
             tmp_file.flush()
 
