@@ -584,6 +584,47 @@ class TestHandleEventRequest(unittest.TestCase):
 
         self.assertEqual(mock_stdout.getvalue(), error_logs)
 
+    @patch("sys.stdout", new_callable=StringIO)
+    @patch("importlib.import_module")
+    def test_handle_event_request_fault_exception_logging_syntax_error(
+        self, mock_import_module, mock_stdout
+    ):
+        try:
+            eval("-")
+        except SyntaxError as e:
+            syntax_error = e
+
+        mock_import_module.side_effect = syntax_error
+
+        response_handler = bootstrap._get_handler("a.b")
+
+        bootstrap.handle_event_request(
+            self.lambda_runtime,
+            response_handler,
+            "invoke_id",
+            self.event_body,
+            "application/json",
+            {},
+            {},
+            "invoked_function_arn",
+            0,
+            bootstrap.StandardLogSink(),
+        )
+
+        import sys
+
+        sys.stderr.write(mock_stdout.getvalue())
+
+        error_logs = (
+            "[ERROR] Runtime.UserCodeSyntaxError: Syntax error in module 'a': "
+            "unexpected EOF while parsing (<string>, line 1)\r"
+        )
+        error_logs += "Traceback (most recent call last):\r"
+        error_logs += '  File "<string>" Line 1\r'
+        error_logs += "    -\n"
+
+        self.assertEqual(mock_stdout.getvalue(), error_logs)
+
 
 class TestXrayFault(unittest.TestCase):
     def test_make_xray(self):
