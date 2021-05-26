@@ -2,22 +2,18 @@
 Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 """
 
+import importlib
 import json
 import logging
 import os
 import sys
 import time
 import traceback
-import warnings
 
 from .lambda_context import LambdaContext
 from .lambda_runtime_client import LambdaRuntimeClient
 from .lambda_runtime_exception import FaultException
 from .lambda_runtime_marshaller import to_json
-
-with warnings.catch_warnings():
-    warnings.filterwarnings("ignore", category=DeprecationWarning)
-    import imp
 
 ERROR_LOG_LINE_TERMINATE = "\r"
 ERROR_LOG_IDENT = "\u00a0"  # NO-BREAK SPACE U+00A0
@@ -33,23 +29,14 @@ def _get_handler(handler):
         )
         return make_fault_handler(fault)
 
-    file_handle, pathname, desc = None, None, None
     try:
-        # Recursively loading handler in nested directories
-        for segment in modname.split("."):
-            if pathname is not None:
-                pathname = [pathname]
-            file_handle, pathname, desc = imp.find_module(segment, pathname)
-        if file_handle is None:
-            module_type = desc[2]
-            if module_type == imp.C_BUILTIN:
-                fault = FaultException(
-                    FaultException.BUILT_IN_MODULE_CONFLICT,
-                    "Cannot use built-in module {} as a handler module".format(modname),
-                )
-                request_handler = make_fault_handler(fault)
-                return request_handler
-        m = imp.load_module(modname, file_handle, pathname, desc)
+        if modname.split(".")[0] in sys.builtin_module_names:
+            fault = FaultException(
+                FaultException.BUILT_IN_MODULE_CONFLICT,
+                "Cannot use built-in module {} as a handler module".format(modname),
+            )
+            return make_fault_handler(fault)
+        m = importlib.import_module(modname)
     except ImportError as e:
         fault = FaultException(
             FaultException.IMPORT_MODULE_ERROR,
@@ -66,9 +53,6 @@ def _get_handler(handler):
         )
         request_handler = make_fault_handler(fault)
         return request_handler
-    finally:
-        if file_handle is not None:
-            file_handle.close()
 
     try:
         request_handler = getattr(m, fname)
@@ -402,7 +386,7 @@ def run(app_root, handler, lambda_runtime_api_addr):
             global _GLOBAL_AWS_REQUEST_ID
 
             request_handler = _get_handler(handler)
-        except Exception as e:
+        except Exception:
             error_result = build_fault_result(sys.exc_info(), None)
 
             log_error(error_result, log_sink)
