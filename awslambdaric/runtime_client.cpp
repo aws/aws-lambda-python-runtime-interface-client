@@ -25,18 +25,25 @@ static PyObject *method_initialize_client(PyObject *self, PyObject *args) {
 }
 
 static PyObject *method_next(PyObject *self) {
-    if (CLIENT == nullptr) {
-        PyErr_SetString(PyExc_RuntimeError, "Client not yet initalized");
-        return NULL;
-    }
+    aws::lambda_runtime::invocation_request response;
 
-    auto outcome = CLIENT->get_next();
+    // Release GIL and save thread state
+    // ref: https://docs.python.org/3/c-api/init.html#thread-state-and-the-global-interpreter-lock
+    PyThreadState *_save;
+    _save = PyEval_SaveThread();
+
+    auto outcome = CLIENT.get_next();
     if (!outcome.is_success()) {
+        // Reacquire GIL before exiting
+        PyEval_RestoreThread(_save);
         PyErr_SetString(PyExc_RuntimeError, "Failed to get next");
         return NULL;
     }
 
-    auto response = outcome.get_result();
+    response = outcome.get_result();
+    // Reacquire GIL before constructing return object
+    PyEval_RestoreThread(_save);
+
     auto payload = response.payload;
     auto request_id = response.request_id.c_str();
     auto trace_id = response.xray_trace_id.c_str();

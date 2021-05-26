@@ -2,6 +2,7 @@
 Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 """
 
+import ctypes
 import http
 import http.client
 import unittest.mock
@@ -81,6 +82,15 @@ class TestLambdaRuntime(unittest.TestCase):
         self.assertEqual(event_request.cognito_identity, "cognito_identity")
         self.assertEqual(event_request.content_type, "application/json")
         self.assertEqual(event_request.event_body, response_body)
+
+    # Ensures GIL is reacquired when next invocation returns an error from Runtime API
+    # Skip test on platforms that aren't Linux as the runtime_client extension only builds for that
+    @unittest.skipUnless(sys.platform.startswith("linux"))
+    def test_wait_next_invocation_error_gil_reacquired(self):
+        with self.assertRaises(RuntimeError):
+            runtime_client = LambdaRuntimeClient("localhost:1234")
+            runtime_client.wait_next_invocation()
+        self.assertEqual(ctypes.pythonapi.PyGILState_Check(), 1)
 
     @patch("http.client.HTTPConnection", autospec=http.client.HTTPConnection)
     def test_post_init_error(self, MockHTTPConnection):
