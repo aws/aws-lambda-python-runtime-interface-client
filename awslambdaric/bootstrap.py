@@ -73,10 +73,11 @@ def make_fault_handler(fault):
     return result
 
 
-def make_error(error_message, error_type, stack_trace):
+def make_error(error_message, error_type, stack_trace, invoke_id=None):
     result = {
         "errorMessage": error_message if error_message else "",
         "errorType": error_type if error_type else "",
+        "requestId": invoke_id if invoke_id is not None else "",
         "stackTrace": stack_trace if stack_trace else [],
     }
     return result
@@ -151,7 +152,7 @@ def handle_event_request(
         )
     except FaultException as e:
         xray_fault = make_xray_fault("LambdaValidationError", e.msg, os.getcwd(), [])
-        error_result = make_error(e.msg, e.exception_type, e.trace)
+        error_result = make_error(e.msg, e.exception_type, e.trace, invoke_id)
 
     except Exception:
         etype, value, tb = sys.exc_info()
@@ -163,7 +164,7 @@ def handle_event_request(
 
         xray_fault = make_xray_fault(etype.__name__, str(value), os.getcwd(), tb_tuples)
         error_result = make_error(
-            str(value), etype.__name__, traceback.format_list(tb_tuples)
+            str(value), etype.__name__, traceback.format_list(tb_tuples), invoke_id
         )
 
     if error_result is not None:

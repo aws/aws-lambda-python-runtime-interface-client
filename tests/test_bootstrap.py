@@ -392,6 +392,7 @@ class TestHandleEventRequest(unittest.TestCase):
         expected_response = {
             "errorType": "FaultExceptionType",
             "errorMessage": "Fault exception msg",
+            "requestId": "invoke_id",
             "stackTrace": ["trace_line1\ntrace_line2", "trace_line3\ntrace_line4"],
         }
         bootstrap.handle_event_request(
@@ -968,6 +969,35 @@ class TestLogError(unittest.TestCase):
             with bootstrap.FramedTelemetryLogSink(temp_file.name) as log_sink:
                 err_to_log = bootstrap.make_error(
                     "Error message", "ErrorType", ["line1", "", "line2"]
+                )
+                bootstrap.log_error(err_to_log, log_sink)
+
+            expected_logged_error = (
+                "[ERROR] ErrorType: Error message\nTraceback "
+                "(most recent call last):\nline1\n\nline2"
+            )
+
+            with open(temp_file.name, "rb") as f:
+                content = f.read()
+
+                frame_type = int.from_bytes(content[:4], "big")
+                self.assertEqual(frame_type, 0xA55A0001)
+
+                length = int.from_bytes(content[4:8], "big")
+                self.assertEqual(length, len(expected_logged_error))
+
+                actual_message = content[8:].decode()
+                self.assertEqual(actual_message, expected_logged_error)
+
+    # Just to ensure we are not logging the requestId from error response, just sending in the response
+    def test_log_error_invokeId_line_framed_log_sink(self):
+        with NamedTemporaryFile() as temp_file:
+            with bootstrap.FramedTelemetryLogSink(temp_file.name) as log_sink:
+                err_to_log = bootstrap.make_error(
+                    "Error message",
+                    "ErrorType",
+                    ["line1", "", "line2"],
+                    "testrequestId",
                 )
                 bootstrap.log_error(err_to_log, log_sink)
 
