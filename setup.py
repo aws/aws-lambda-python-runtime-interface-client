@@ -68,7 +68,7 @@ def read_requirements(req="base.txt"):
 
 setup(
     name="awslambdaric",
-    version="1.2.1",
+    version="1.2.0",
     author="Amazon Web Services",
     description="AWS Lambda Runtime Interface Client for Python",
     long_description=read("README.md"),
