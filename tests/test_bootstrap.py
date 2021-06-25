@@ -780,6 +780,12 @@ class TestGetEventHandler(unittest.TestCase):
                 returned_exception,
             )
 
+    def test_get_event_handler_slash(self):
+        importlib.invalidate_caches()
+        handler_name = "tests/test_handler_with_slash/test_handler.my_handler"
+        response_handler = bootstrap._get_handler(handler_name)
+        response_handler()
+
     def test_get_event_handler_build_in_conflict(self):
         response_handler = bootstrap._get_handler("sys.hello")
         with self.assertRaises(FaultException) as cm:
@@ -792,6 +798,18 @@ class TestGetEventHandler(unittest.TestCase):
             ),
             returned_exception,
         )
+
+    def test_get_event_handler_doesnt_throw_build_in_module_name_slash(self):
+        response_handler = bootstrap._get_handler(
+            "tests/test_built_in_module_name/sys.my_handler"
+        )
+        response_handler()
+
+    def test_get_event_handler_doent_throw_build_in_module_name(self):
+        response_handler = bootstrap._get_handler(
+            "tests.test_built_in_module_name.sys.my_handler"
+        )
+        response_handler()
 
 
 class TestContentType(unittest.TestCase):
