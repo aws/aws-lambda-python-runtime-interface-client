@@ -36,8 +36,7 @@ def _get_handler(handler):
                 "Cannot use built-in module {} as a handler module".format(modname),
             )
             return make_fault_handler(fault)
-        modname = modname.replace("/", ".")
-        m = importlib.import_module(modname)
+        m = importlib.import_module(modname.replace("/", "."))
     except ImportError as e:
         fault = FaultException(
             FaultException.IMPORT_MODULE_ERROR,
