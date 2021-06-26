@@ -101,6 +101,39 @@ Example Python handler `app.py`:
 def handler(event, context):
     return "Hello World!"
 ```
+### Alpine Linux Dependencies
+
+```dockerfile
+# Install GCC (Alpine uses musl but we compile and link dependencies with GCC)
+RUN apk add --no-cache \
+    libstdc++
+```
+
+```dockerfile
+# Install aws-lambda-cpp build dependencies
+RUN apk add --no-cache \
+    build-base \
+    libtool \
+    autoconf \
+    automake \
+    libexecinfo-dev \
+    make \
+    cmake \
+    libcurl
+```
+
+### Amazon Linux 2 Dependencies
+
+```dockerfile
+RUN yum update && yum groupinstall -y "Development Tools" && \
+  yum install -y \
+  cmake3 \
+  libcurl-devel \
+  python3 \
+  python3-devel \
+  python3-pip \
+  gzip
+```
 
 ### Local Testing
 
