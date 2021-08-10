@@ -19,7 +19,7 @@ else
     cd deps
     . ./versions
 
-    rm -rf ./curl-curl-$CURL_VERSION
+    rm -rf ./curl-$CURL_VERSION
     rm -rf ./aws-lambda-cpp-$AWS_LAMBDA_CPP_RELEASE
 
     # unpack dependencies
@@ -28,7 +28,7 @@ else
 
     (
         # Build Curl
-        cd curl-curl-$CURL_VERSION && \
+        cd curl-$CURL_VERSION && \
             ./buildconf && \
             ./configure \
                 --prefix "$ARTIFACTS_DIR" \
