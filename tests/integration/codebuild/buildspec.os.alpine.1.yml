@@ -2,9 +2,9 @@ version: 0.2
 
 env:
   variables:
-    OS_DISTRIBUTION: amazonlinux
-    PYTHON_LOCATION: "/usr/local/bin/python3"
-    TEST_NAME: "aws-lambda-python-rtc-amazonlinux-test"
+    OS_DISTRIBUTION: alpine
+    PYTHON_LOCATION: "/usr/local/bin/python"
+    TEST_NAME: "aws-lambda-python-rtc-alpine-1-test"
 batch:
   build-matrix:
     static:
@@ -16,13 +16,10 @@ batch:
       env:
         variables:
           DISTRO_VERSION:
-            - "1"
-            - "2"
+            - "3.9"
           RUNTIME_VERSION:
             - "3.6"
             - "3.7"
-            - "3.8"
-            - "3.9"
 phases:
   pre_build:
     commands:
@@ -30,9 +27,12 @@ phases:
       - echo "Extracting and including the Runtime Interface Emulator"
       - SCRATCH_DIR=".scratch"
       - mkdir "${SCRATCH_DIR}"
-      - tar -xvf test/integration/resources/aws-lambda-rie.tar.gz --directory "${SCRATCH_DIR}"
+      - tar -xvf tests/integration/resources/aws-lambda-rie.tar.gz --directory "${SCRATCH_DIR}"
       - >
-        cp "test/integration/docker/Dockerfile.echo.${OS_DISTRIBUTION}" \
+        cp "tests/integration/docker/Dockerfile.echo.${OS_DISTRIBUTION}" \
+          "${SCRATCH_DIR}/Dockerfile.echo.${OS_DISTRIBUTION}.tmp"
+      - >
+        echo "RUN apk add curl" >> \
           "${SCRATCH_DIR}/Dockerfile.echo.${OS_DISTRIBUTION}.tmp"
       - >
         echo "COPY ${SCRATCH_DIR}/aws-lambda-rie /usr/bin/aws-lambda-rie" >> \

@@ -2,9 +2,9 @@ version: 0.2
 
 env:
   variables:
-    OS_DISTRIBUTION: centos
+    OS_DISTRIBUTION: amazonlinux
     PYTHON_LOCATION: "/usr/local/bin/python3"
-    TEST_NAME: "aws-lambda-python-rtc-centos-2-test"
+    TEST_NAME: "aws-lambda-python-rtc-amazonlinux-test"
 batch:
   build-matrix:
     static:
@@ -16,7 +16,8 @@ batch:
       env:
         variables:
           DISTRO_VERSION:
-            - "8"
+            - "1"
+            - "2"
           RUNTIME_VERSION:
             - "3.6"
             - "3.7"
@@ -29,9 +30,9 @@ phases:
       - echo "Extracting and including the Runtime Interface Emulator"
       - SCRATCH_DIR=".scratch"
       - mkdir "${SCRATCH_DIR}"
-      - tar -xvf test/integration/resources/aws-lambda-rie.tar.gz --directory "${SCRATCH_DIR}"
+      - tar -xvf tests/integration/resources/aws-lambda-rie.tar.gz --directory "${SCRATCH_DIR}"
       - >
-        cp "test/integration/docker/Dockerfile.echo.${OS_DISTRIBUTION}" \
+        cp "tests/integration/docker/Dockerfile.echo.${OS_DISTRIBUTION}" \
           "${SCRATCH_DIR}/Dockerfile.echo.${OS_DISTRIBUTION}.tmp"
       - >
         echo "COPY ${SCRATCH_DIR}/aws-lambda-rie /usr/bin/aws-lambda-rie" >> \

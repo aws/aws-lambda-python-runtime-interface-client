@@ -32,7 +32,7 @@ def get_curl_extra_linker_flags():
 def get_runtime_client_extension():
     if platform.system() != "Linux" and os.getenv("BUILD") != "true":
         print(
-            "The native runtime_client only builds in Linux. Skiping its compilation."
+            "The native runtime_client only builds on Linux. Skipping its compilation."
         )
         return []
 
@@ -68,7 +68,7 @@ def read_requirements(req="base.txt"):
 
 setup(
     name="awslambdaric",
-    version="1.0.0",
+    version="1.2.1",
     author="Amazon Web Services",
     description="AWS Lambda Runtime Interface Client for Python",
     long_description=read("README.md"),
