@@ -7,6 +7,7 @@ import os
 import platform
 from subprocess import check_call, check_output
 from setuptools import Extension, find_packages, setup
+from awslambdaric import __version__
 
 
 def get_curl_extra_linker_flags():
@@ -68,7 +69,7 @@ def read_requirements(req="base.txt"):
 
 setup(
     name="awslambdaric",
-    version="1.2.1",
+    version=__version__,
     author="Amazon Web Services",
     description="AWS Lambda Runtime Interface Client for Python",
     long_description=read("README.md"),
