@@ -6,11 +6,14 @@ import http
 import http.client
 import unittest.mock
 from unittest.mock import MagicMock, patch
+from awslambdaric import __version__
+
 
 from awslambdaric.lambda_runtime_client import (
     LambdaRuntimeClient,
     LambdaRuntimeClientError,
     InvocationRequest,
+    _user_agent,
 )
 
 
@@ -204,6 +207,9 @@ class TestLambdaRuntime(unittest.TestCase):
         with self.assertRaises(OSError):
             runtime_client = LambdaRuntimeClient("::::")
             runtime_client.post_init_error("error")
+
+    def test_lambdaric_version(self):
+        self.assertTrue(_user_agent().endswith(__version__))
 
 
 class TestLambdaRuntimeClientError(unittest.TestCase):
