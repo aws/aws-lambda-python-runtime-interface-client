@@ -34,6 +34,7 @@ else
                 --prefix "$ARTIFACTS_DIR" \
                 --disable-shared \
                 --without-ssl \
+                --with-pic \
                 --without-zlib && \
             make && \
             make install
