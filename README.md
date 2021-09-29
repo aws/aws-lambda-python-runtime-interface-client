@@ -1,5 +1,135 @@
 ## AWS Lambda Python Runtime Interface Client
 
+<<<<<<< HEAD
+The Lambda Runtime Interface Client helps with packaging functions using your own or community provided images. 
+It allows your runtime to receive requests from and send requests to the Lambda service. 
+The Runtime client starts the runtime and communicates with the Lambda [Runtime API](https://docs.aws.amazon.com/lambda/latest/dg/runtimes-api.html) i.e., it calls the API for invocation events, starts the function code, calls the API to return the response. 
+The Lambda Python Runtime Interface Client is vended through [pip](https://pypi.org/project/awslambdaric). 
+You can include this package in your preferred base image to make that base image Lambda compatible.
+
+## Requirements
+The Python Runtime Interface Client package currently works on Python versions:
+ - Python 3.6.x
+ - Python 3.7.x
+ - Python 3.8.x
+ - Python 3.9.x
+
+## Usage
+
+### Creating a Docker Image for Lambda with the Runtime Interface Client
+First step is to choose the base image to be used. The supported Linux OS distributions are:
+
+ - Amazon Linux 2
+ - Alpine
+ - CentOS
+ - Debian
+ - Ubuntu
+
+
+Then, the Runtime Interface Client needs to be installed. We provide both wheel and source distribution. If the OS/pip version used does not support manylinux2014 wheels, you will also need to install the required build dependencies. Also, the Lambda function code needs to be copied into the image.
+
+```Docker
+# Include global arg in this stage of the build
+ARG FUNCTION_DIR
+
+# Install aws-lambda-cpp build dependencies
+RUN apt-get update && \
+  apt-get install -y \
+  g++ \
+  make \
+  cmake \
+  unzip \
+  libcurl4-openssl-dev
+
+
+# Create function directory
+RUN mkdir -p ${FUNCTION_DIR}
+
+# Copy handler function
+COPY app/* ${FUNCTION_DIR}
+
+# Install the function's dependencies
+RUN pip install \
+    --target ${FUNCTION_DIR} \
+        awslambdaruntimeclient
+```
+
+The next step would be to set the `ENTRYPOINT` property of the Docker image to invoke the Runtime Interface Client and then set the `CMD` argument to specify the desired handler.
+
+Example Dockerfile (to keep the image light we use a multi-stage build):
+```Docker
+# Define custom function directory
+ARG FUNCTION_DIR="/function"
+
+FROM python:buster as build-image
+
+# Include global arg in this stage of the build
+ARG FUNCTION_DIR
+
+# Install aws-lambda-cpp build dependencies
+RUN apt-get update && \
+  apt-get install -y \
+  g++ \
+  make \
+  cmake \
+  unzip \
+  libcurl4-openssl-dev
+
+
+# Create function directory
+RUN mkdir -p ${FUNCTION_DIR}
+
+# Copy handler function
+COPY app/* ${FUNCTION_DIR}
+
+# Install the function's dependencies
+RUN pip install \
+    --target ${FUNCTION_DIR} \
+        awslambdaric
+
+
+FROM python:buster
+
+# Include global arg in this stage of the build
+ARG FUNCTION_DIR
+
+# Set working directory to function root directory
+WORKDIR ${FUNCTION_DIR}
+
+# Copy in the built dependencies
+COPY --from=build-image ${FUNCTION_DIR} ${FUNCTION_DIR}
+
+ENTRYPOINT [ "/usr/local/bin/python", "-m", "awslambdaric" ]
+CMD [ "app.handler" ]
+
+```
+
+### Local Testing
+
+For testing locally you will need to set up a local Runtime Interface Emulator against which the Runtime Interface Client will make API calls. You will need to post data to the endpoint it creates in order to invoke your function. For more information check out the [Runtime Interface Emulator](https://github.com/aws/aws-lambda-runtime-interface-emulator).
+
+
+## Development
+
+### Building the package
+Clone this repository and run:
+
+```bash
+make init
+make build
+```
+
+### Running tests
+
+Make sure the project is built:
+```bash
+make init build
+```
+Then,
+* to run unit tests: `make test`
+* to run integration tests: `make test-integ`
+* to run examples: `make test-example`
+=======
 We have open-sourced a set of software packages, Runtime Interface Clients (RIC), that implement the Lambda
  [Runtime API](https://docs.aws.amazon.com/lambda/latest/dg/runtimes-api.html), allowing you to seamlessly extend your preferred
   base images to be Lambda compatible.
@@ -11,6 +141,7 @@ You can include this package in your preferred base image to make that base imag
 ## Requirements
 The Python Runtime Interface Client package currently supports Python versions:
  - 3.6.x up to and including 3.9.x
+>>>>>>> origin/main
 
 ## Usage
 
