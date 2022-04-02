@@ -166,7 +166,9 @@ class TestLambdaRuntime(unittest.TestCase):
 
         runtime_client.post_invocation_error(invoke_id, error_data, xray_fault)
 
-        mock_runtime_client.post_error.assert_called_once_with(invoke_id, error_data, xray_fault)
+        mock_runtime_client.post_error.assert_called_once_with(
+            invoke_id, error_data, xray_fault
+        )
 
     @patch("awslambdaric.lambda_runtime_client.runtime_client")
     def test_post_invocation_error_with_large_xray_cause(self, mock_runtime_client):
@@ -188,9 +190,13 @@ class TestLambdaRuntime(unittest.TestCase):
         invoke_id = "1234"
         too_large_xray_fault = "a" * int(1024 * 1024)
 
-        runtime_client.post_invocation_error(invoke_id, error_data, too_large_xray_fault)
+        runtime_client.post_invocation_error(
+            invoke_id, error_data, too_large_xray_fault
+        )
 
-        mock_runtime_client.post_error.assert_called_once_with(invoke_id, error_data, "")
+        mock_runtime_client.post_error.assert_called_once_with(
+            invoke_id, error_data, ""
+        )
 
     def test_connection_refused(self):
         with self.assertRaises(ConnectionRefusedError):

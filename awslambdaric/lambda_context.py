@@ -27,12 +27,18 @@ class LambdaContext(object):
 
         self.client_context = make_obj_from_dict(ClientContext, client_context)
         if self.client_context is not None:
-            self.client_context.client = make_obj_from_dict(Client, self.client_context.client)
+            self.client_context.client = make_obj_from_dict(
+                Client, self.client_context.client
+            )
 
         self.identity = make_obj_from_dict(CognitoIdentity, {})
         if cognito_identity is not None:
-            self.identity.cognito_identity_id = cognito_identity.get("cognitoIdentityId")
-            self.identity.cognito_identity_pool_id = cognito_identity.get("cognitoIdentityPoolId")
+            self.identity.cognito_identity_id = cognito_identity.get(
+                "cognitoIdentityId"
+            )
+            self.identity.cognito_identity_pool_id = cognito_identity.get(
+                "cognitoIdentityPoolId"
+            )
 
         self._epoch_deadline_time_in_ms = epoch_deadline_time_in_ms
 
