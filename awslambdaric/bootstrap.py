@@ -143,13 +143,9 @@ def handle_event_request(
             invoke_id,
             invoked_function_arn,
         )
-        event = lambda_runtime_client.marshaller.unmarshal_request(
-            event_body, content_type
-        )
+        event = lambda_runtime_client.marshaller.unmarshal_request(event_body, content_type)
         response = request_handler(event, lambda_context)
-        result, result_content_type = lambda_runtime_client.marshaller.marshal_response(
-            response
-        )
+        result, result_content_type = lambda_runtime_client.marshaller.marshal_response(response)
     except FaultException as e:
         xray_fault = make_xray_fault("LambdaValidationError", e.msg, os.getcwd(), [])
         error_result = make_error(e.msg, e.exception_type, e.trace, invoke_id)
@@ -173,9 +169,7 @@ def handle_event_request(
             invoke_id, to_json(error_result), to_json(xray_fault)
         )
     else:
-        lambda_runtime_client.post_invocation_result(
-            invoke_id, result, result_content_type
-        )
+        lambda_runtime_client.post_invocation_result(invoke_id, result, result_content_type)
 
 
 def parse_json_header(header, name):
@@ -220,9 +214,7 @@ def build_fault_result(exc_info, msg):
             tb_tuples = tb_tuples[i:]
             break
 
-    return make_error(
-        msg if msg else str(value), etype.__name__, traceback.format_list(tb_tuples)
-    )
+    return make_error(msg if msg else str(value), etype.__name__, traceback.format_list(tb_tuples))
 
 
 def make_xray_fault(ex_type, ex_msg, working_dir, tb_tuples):
@@ -327,7 +319,7 @@ class FramedTelemetryLogSink(object):
         self.frame_type = 0xA55A0001 .to_bytes(4, "big")
 
     def __enter__(self):
-        self.file = os.fdopen(self.fd, 'wb', 0)
+        self.file = os.fdopen(self.fd, "wb", 0)
         return self
 
     def __exit__(self, exc_type, exc_value, exc_tb):

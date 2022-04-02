@@ -277,21 +277,15 @@ class TestHandleEventRequest(unittest.TestCase):
         xray_fault = json.loads(args[2])
         self.assertEqual(xray_fault["working_directory"], self.working_directory)
         self.assertEqual(len(xray_fault["exceptions"]), 1)
-        self.assertEqual(
-            xray_fault["exceptions"][0]["message"], expected_response["errorMessage"]
-        )
-        self.assertEqual(
-            xray_fault["exceptions"][0]["type"], expected_response["errorType"]
-        )
+        self.assertEqual(xray_fault["exceptions"][0]["message"], expected_response["errorMessage"])
+        self.assertEqual(xray_fault["exceptions"][0]["type"], expected_response["errorType"])
         self.assertEqual(len(xray_fault["exceptions"][0]["stack"]), 1)
         self.assertEqual(
             xray_fault["exceptions"][0]["stack"][0]["label"], "raise_exception_handler"
         )
         self.assertIsInstance(xray_fault["exceptions"][0]["stack"][0]["line"], int)
         self.assertTrue(
-            xray_fault["exceptions"][0]["stack"][0]["path"].endswith(
-                os.path.relpath(__file__)
-            )
+            xray_fault["exceptions"][0]["stack"][0]["path"].endswith(os.path.relpath(__file__))
         )
         self.assertEqual(len(xray_fault["paths"]), 1)
         self.assertTrue(xray_fault["paths"][0].endswith(os.path.relpath(__file__)))
@@ -329,21 +323,15 @@ class TestHandleEventRequest(unittest.TestCase):
         xray_fault = json.loads(args[2])
         self.assertEqual(xray_fault["working_directory"], self.working_directory)
         self.assertEqual(len(xray_fault["exceptions"]), 1)
-        self.assertEqual(
-            xray_fault["exceptions"][0]["message"], expected_response["errorMessage"]
-        )
-        self.assertEqual(
-            xray_fault["exceptions"][0]["type"], expected_response["errorType"]
-        )
+        self.assertEqual(xray_fault["exceptions"][0]["message"], expected_response["errorMessage"])
+        self.assertEqual(xray_fault["exceptions"][0]["type"], expected_response["errorType"])
         self.assertEqual(len(xray_fault["exceptions"][0]["stack"]), 1)
         self.assertEqual(
             xray_fault["exceptions"][0]["stack"][0]["label"], "raise_exception_handler"
         )
         self.assertIsInstance(xray_fault["exceptions"][0]["stack"][0]["line"], int)
         self.assertTrue(
-            xray_fault["exceptions"][0]["stack"][0]["path"].endswith(
-                os.path.relpath(__file__)
-            )
+            xray_fault["exceptions"][0]["stack"][0]["path"].endswith(os.path.relpath(__file__))
         )
         self.assertEqual(len(xray_fault["paths"]), 1)
         self.assertTrue(xray_fault["paths"][0].endswith(os.path.relpath(__file__)))
@@ -472,9 +460,7 @@ class TestHandleEventRequest(unittest.TestCase):
             try:
                 import invalid_module  # noqa: F401
             except ImportError:
-                raise bootstrap.FaultException(
-                    "FaultExceptionType", "Fault exception msg", None
-                )
+                raise bootstrap.FaultException("FaultExceptionType", "Fault exception msg", None)
 
         bootstrap.handle_event_request(
             self.lambda_runtime,
@@ -488,14 +474,14 @@ class TestHandleEventRequest(unittest.TestCase):
             0,
             bootstrap.StandardLogSink(),
         )
-        error_logs = "[ERROR] FaultExceptionType: Fault exception msg\rTraceback (most recent call last):\n"
+        error_logs = (
+            "[ERROR] FaultExceptionType: Fault exception msg\rTraceback (most recent call last):\n"
+        )
 
         self.assertEqual(mock_stdout.getvalue(), error_logs)
 
     @patch("sys.stdout", new_callable=StringIO)
-    def test_handle_event_request_fault_exception_logging_nomessage_notrace(
-        self, mock_stdout
-    ):
+    def test_handle_event_request_fault_exception_logging_nomessage_notrace(self, mock_stdout):
         def raise_exception_handler(json_input, lambda_context):
             try:
                 import invalid_module  # noqa: F401
@@ -519,9 +505,7 @@ class TestHandleEventRequest(unittest.TestCase):
         self.assertEqual(mock_stdout.getvalue(), error_logs)
 
     @patch("sys.stdout", new_callable=StringIO)
-    def test_handle_event_request_fault_exception_logging_notype_notrace(
-        self, mock_stdout
-    ):
+    def test_handle_event_request_fault_exception_logging_notype_notrace(self, mock_stdout):
         def raise_exception_handler(json_input, lambda_context):
             try:
                 import invalid_module  # noqa: F401
@@ -545,9 +529,7 @@ class TestHandleEventRequest(unittest.TestCase):
         self.assertEqual(mock_stdout.getvalue(), error_logs)
 
     @patch("sys.stdout", new_callable=StringIO)
-    def test_handle_event_request_fault_exception_logging_notype_nomessage(
-        self, mock_stdout
-    ):
+    def test_handle_event_request_fault_exception_logging_notype_nomessage(self, mock_stdout):
         def raise_exception_handler(json_input, lambda_context):
             try:
                 import invalid_module  # noqa: F401
@@ -670,9 +652,7 @@ class TestXrayFault(unittest.TestCase):
         self.assertEqual(actual["exceptions"][0]["stack"][0]["label"], "test_method")
         self.assertEqual(actual["exceptions"][0]["stack"][0]["path"], "test.py")
         self.assertEqual(actual["exceptions"][0]["stack"][0]["line"], 28)
-        self.assertEqual(
-            actual["exceptions"][0]["stack"][1]["label"], "another_test_method"
-        )
+        self.assertEqual(actual["exceptions"][0]["stack"][1]["label"], "another_test_method")
         self.assertEqual(actual["exceptions"][0]["stack"][1]["path"], "another_test.py")
         self.assertEqual(actual["exceptions"][0]["stack"][1]["line"], 2718)
 
@@ -682,9 +662,7 @@ class TestGetEventHandler(unittest.TestCase):
         def __init__(self, msg, exception_type=None, trace_pattern=None):
             self.msg = msg
             self.exception_type = exception_type
-            self.trace = (
-                trace_pattern if trace_pattern is None else re.compile(trace_pattern)
-            )
+            self.trace = trace_pattern if trace_pattern is None else re.compile(trace_pattern)
 
         def __eq__(self, other):
             trace_matches = True
@@ -732,12 +710,8 @@ class TestGetEventHandler(unittest.TestCase):
 
     def test_get_event_handler_syntax_error(self):
         importlib.invalidate_caches()
-        with tempfile.NamedTemporaryFile(
-            suffix=".py", dir=".", delete=False
-        ) as tmp_file:
-            tmp_file.write(
-                b"def syntax_error()\n\tprint('syntax error, no colon after function')"
-            )
+        with tempfile.NamedTemporaryFile(suffix=".py", dir=".", delete=False) as tmp_file:
+            tmp_file.write(b"def syntax_error()\n\tprint('syntax error, no colon after function')")
             tmp_file.flush()
 
             filename_w_ext = os.path.basename(tmp_file.name)
@@ -759,9 +733,7 @@ class TestGetEventHandler(unittest.TestCase):
 
     def test_get_event_handler_missing_error(self):
         importlib.invalidate_caches()
-        with tempfile.NamedTemporaryFile(
-            suffix=".py", dir=".", delete=False
-        ) as tmp_file:
+        with tempfile.NamedTemporaryFile(suffix=".py", dir=".", delete=False) as tmp_file:
             tmp_file.write(b"def wrong_handler_name():\n\tprint('hello')")
             tmp_file.flush()
 
@@ -800,15 +772,11 @@ class TestGetEventHandler(unittest.TestCase):
         )
 
     def test_get_event_handler_doesnt_throw_build_in_module_name_slash(self):
-        response_handler = bootstrap._get_handler(
-            "tests/test_built_in_module_name/sys.my_handler"
-        )
+        response_handler = bootstrap._get_handler("tests/test_built_in_module_name/sys.my_handler")
         response_handler()
 
     def test_get_event_handler_doent_throw_build_in_module_name(self):
-        response_handler = bootstrap._get_handler(
-            "tests.test_built_in_module_name.sys.my_handler"
-        )
+        response_handler = bootstrap._get_handler("tests.test_built_in_module_name.sys.my_handler")
         response_handler()
 
 
@@ -914,7 +882,9 @@ class TestLogError(unittest.TestCase):
 
     def test_log_error_framed_log_sink(self):
         with NamedTemporaryFile() as temp_file:
-            with bootstrap.FramedTelemetryLogSink(os.open(temp_file.name, os.O_CREAT | os.O_RDWR)) as log_sink:
+            with bootstrap.FramedTelemetryLogSink(
+                os.open(temp_file.name, os.O_CREAT | os.O_RDWR)
+            ) as log_sink:
                 err_to_log = bootstrap.make_error("Error message", "ErrorType", None)
                 bootstrap.log_error(err_to_log, log_sink)
 
@@ -949,7 +919,9 @@ class TestLogError(unittest.TestCase):
 
     def test_log_error_indentation_framed_log_sink(self):
         with NamedTemporaryFile() as temp_file:
-            with bootstrap.FramedTelemetryLogSink(os.open(temp_file.name, os.O_CREAT | os.O_RDWR)) as log_sink:
+            with bootstrap.FramedTelemetryLogSink(
+                os.open(temp_file.name, os.O_CREAT | os.O_RDWR)
+            ) as log_sink:
                 err_to_log = bootstrap.make_error(
                     "Error message", "ErrorType", ["  line1  ", "  line2  ", "  "]
                 )
@@ -974,9 +946,7 @@ class TestLogError(unittest.TestCase):
 
     @patch("sys.stdout", new_callable=StringIO)
     def test_log_error_empty_stacktrace_line_standard_log_sink(self, mock_stdout):
-        err_to_log = bootstrap.make_error(
-            "Error message", "ErrorType", ["line1", "", "line2"]
-        )
+        err_to_log = bootstrap.make_error("Error message", "ErrorType", ["line1", "", "line2"])
         bootstrap.log_error(err_to_log, bootstrap.StandardLogSink())
 
         expected_logged_error = "[ERROR] ErrorType: Error message\rTraceback (most recent call last):\rline1\r\rline2\n"
@@ -984,7 +954,9 @@ class TestLogError(unittest.TestCase):
 
     def test_log_error_empty_stacktrace_line_framed_log_sink(self):
         with NamedTemporaryFile() as temp_file:
-            with bootstrap.FramedTelemetryLogSink(os.open(temp_file.name, os.O_CREAT | os.O_RDWR)) as log_sink:
+            with bootstrap.FramedTelemetryLogSink(
+                os.open(temp_file.name, os.O_CREAT | os.O_RDWR)
+            ) as log_sink:
                 err_to_log = bootstrap.make_error(
                     "Error message", "ErrorType", ["line1", "", "line2"]
                 )
@@ -1082,7 +1054,9 @@ class TestLogSink(unittest.TestCase):
     def test_single_frame(self):
         with NamedTemporaryFile() as temp_file:
             message = "hello world\nsomething on a new line!\n"
-            with bootstrap.FramedTelemetryLogSink(os.open(temp_file.name, os.O_CREAT | os.O_RDWR)) as ls:
+            with bootstrap.FramedTelemetryLogSink(
+                os.open(temp_file.name, os.O_CREAT | os.O_RDWR)
+            ) as ls:
                 ls.log(message)
             with open(temp_file.name, "rb") as f:
                 content = f.read()
@@ -1101,7 +1075,9 @@ class TestLogSink(unittest.TestCase):
             first_message = "hello world\nsomething on a new line!"
             second_message = "hello again\nhere's another message\n"
 
-            with bootstrap.FramedTelemetryLogSink(os.open(temp_file.name, os.O_CREAT | os.O_RDWR)) as ls:
+            with bootstrap.FramedTelemetryLogSink(
+                os.open(temp_file.name, os.O_CREAT | os.O_RDWR)
+            ) as ls:
                 ls.log(first_message)
                 ls.log(second_message)
 
@@ -1141,9 +1117,7 @@ class TestBootstrapModule(unittest.TestCase):
         ]
 
         with self.assertRaises(TypeError):
-            bootstrap.run(
-                expected_app_root, expected_handler, expected_lambda_runtime_api_addr
-            )
+            bootstrap.run(expected_app_root, expected_handler, expected_lambda_runtime_api_addr)
 
         mock_handle_event_request.assert_called_once()
 
@@ -1166,9 +1140,7 @@ class TestBootstrapModule(unittest.TestCase):
         mock_sys.exit.side_effect = TestException("Boom!")
 
         with self.assertRaises(TestException):
-            bootstrap.run(
-                expected_app_root, expected_handler, expected_lambda_runtime_api_addr
-            )
+            bootstrap.run(expected_app_root, expected_handler, expected_lambda_runtime_api_addr)
 
         mock_sys.exit.assert_called_once_with(1)
 
