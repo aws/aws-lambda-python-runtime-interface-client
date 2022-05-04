@@ -324,7 +324,7 @@ class FramedTelemetryLogSink(object):
 
     def __init__(self, fd):
         self.fd = int(fd)
-        self.frame_type = 0xA55A0001 .to_bytes(4, "big")
+        self.frame_type = 0xA55A0001.to_bytes(4, "big")
 
     def __enter__(self):
         self.file = os.fdopen(self.fd, "wb", 0)
