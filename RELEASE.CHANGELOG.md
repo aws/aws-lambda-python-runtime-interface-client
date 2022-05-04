@@ -1,3 +1,9 @@
+### May 4, 2022
+`2.0.3`:
+- Add changelog ([#75](https://github.com/aws/aws-lambda-python-runtime-interface-client/pull/75))
+- Fix curl download url ([#74](https://github.com/aws/aws-lambda-python-runtime-interface-client/pull/74))
+- Update curl to 7.83.0 ([#72](https://github.com/aws/aws-lambda-python-runtime-interface-client/pull/72))
+
 ### Apr 7, 2022
 `2.0.2`:
 - Add leading zeros to the milliseconds part of a log timestamp ([#13](https://github.com/aws/aws-lambda-python-runtime-interface-client/pull/13))
