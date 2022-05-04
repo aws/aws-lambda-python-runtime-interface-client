@@ -2,6 +2,8 @@ generated.docker-compose.*.yml
 
 tests/integration/resources/init
 
+.idea
+
 node_modules/
 *.tsbuildinfo
 

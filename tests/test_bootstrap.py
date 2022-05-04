@@ -914,7 +914,9 @@ class TestLogError(unittest.TestCase):
 
     def test_log_error_framed_log_sink(self):
         with NamedTemporaryFile() as temp_file:
-            with bootstrap.FramedTelemetryLogSink(temp_file.name) as log_sink:
+            with bootstrap.FramedTelemetryLogSink(
+                os.open(temp_file.name, os.O_CREAT | os.O_RDWR)
+            ) as log_sink:
                 err_to_log = bootstrap.make_error("Error message", "ErrorType", None)
                 bootstrap.log_error(err_to_log, log_sink)
 
@@ -949,7 +951,9 @@ class TestLogError(unittest.TestCase):
 
     def test_log_error_indentation_framed_log_sink(self):
         with NamedTemporaryFile() as temp_file:
-            with bootstrap.FramedTelemetryLogSink(temp_file.name) as log_sink:
+            with bootstrap.FramedTelemetryLogSink(
+                os.open(temp_file.name, os.O_CREAT | os.O_RDWR)
+            ) as log_sink:
                 err_to_log = bootstrap.make_error(
                     "Error message", "ErrorType", ["  line1  ", "  line2  ", "  "]
                 )
@@ -984,7 +988,9 @@ class TestLogError(unittest.TestCase):
 
     def test_log_error_empty_stacktrace_line_framed_log_sink(self):
         with NamedTemporaryFile() as temp_file:
-            with bootstrap.FramedTelemetryLogSink(temp_file.name) as log_sink:
+            with bootstrap.FramedTelemetryLogSink(
+                os.open(temp_file.name, os.O_CREAT | os.O_RDWR)
+            ) as log_sink:
                 err_to_log = bootstrap.make_error(
                     "Error message", "ErrorType", ["line1", "", "line2"]
                 )
@@ -1010,7 +1016,9 @@ class TestLogError(unittest.TestCase):
     # Just to ensure we are not logging the requestId from error response, just sending in the response
     def test_log_error_invokeId_line_framed_log_sink(self):
         with NamedTemporaryFile() as temp_file:
-            with bootstrap.FramedTelemetryLogSink(temp_file.name) as log_sink:
+            with bootstrap.FramedTelemetryLogSink(
+                os.open(temp_file.name, os.O_CREAT | os.O_RDWR)
+            ) as log_sink:
                 err_to_log = bootstrap.make_error(
                     "Error message",
                     "ErrorType",
@@ -1070,19 +1078,21 @@ class TestLogSink(unittest.TestCase):
         self.assertEqual(mock_stdout.getvalue(), "log")
 
     def test_create_framed_telemetry_log_sinks(self):
-        fd = "test_fd"
-        os.environ["_LAMBDA_TELEMETRY_LOG_FD"] = fd
+        fd = 3
+        os.environ["_LAMBDA_TELEMETRY_LOG_FD"] = "3"
 
         actual = bootstrap.create_log_sink()
 
         self.assertIsInstance(actual, bootstrap.FramedTelemetryLogSink)
-        self.assertEqual(actual.filename, "/proc/self/fd/" + fd)
+        self.assertEqual(actual.fd, fd)
         self.assertFalse("_LAMBDA_TELEMETRY_LOG_FD" in os.environ)
 
     def test_single_frame(self):
         with NamedTemporaryFile() as temp_file:
             message = "hello world\nsomething on a new line!\n"
-            with bootstrap.FramedTelemetryLogSink(temp_file.name) as ls:
+            with bootstrap.FramedTelemetryLogSink(
+                os.open(temp_file.name, os.O_CREAT | os.O_RDWR)
+            ) as ls:
                 ls.log(message)
             with open(temp_file.name, "rb") as f:
                 content = f.read()
@@ -1101,7 +1111,9 @@ class TestLogSink(unittest.TestCase):
             first_message = "hello world\nsomething on a new line!"
             second_message = "hello again\nhere's another message\n"
 
-            with bootstrap.FramedTelemetryLogSink(temp_file.name) as ls:
+            with bootstrap.FramedTelemetryLogSink(
+                os.open(temp_file.name, os.O_CREAT | os.O_RDWR)
+            ) as ls:
                 ls.log(first_message)
                 ls.log(second_message)
 

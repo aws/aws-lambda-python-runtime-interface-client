@@ -322,12 +322,12 @@ class FramedTelemetryLogSink(object):
     big-endian.
     """
 
-    def __init__(self, filename):
-        self.filename = filename
-        self.frame_type = 0xA55A0001 .to_bytes(4, "big")
+    def __init__(self, fd):
+        self.fd = int(fd)
+        self.frame_type = 0xA55A0001.to_bytes(4, "big")
 
     def __enter__(self):
-        self.file = open(self.filename, "wb", 0)
+        self.file = os.fdopen(self.fd, "wb", 0)
         return self
 
     def __exit__(self, exc_type, exc_value, exc_tb):
@@ -355,7 +355,7 @@ def create_log_sink():
     if "_LAMBDA_TELEMETRY_LOG_FD" in os.environ:
         fd = os.environ["_LAMBDA_TELEMETRY_LOG_FD"]
         del os.environ["_LAMBDA_TELEMETRY_LOG_FD"]
-        return FramedTelemetryLogSink("/proc/self/fd/" + fd)
+        return FramedTelemetryLogSink(fd)
 
     else:
         return StandardLogSink()
@@ -377,7 +377,7 @@ def run(app_root, handler, lambda_runtime_api_addr):
             logger_handler = LambdaLoggerHandler(log_sink)
             logger_handler.setFormatter(
                 logging.Formatter(
-                    "[%(levelname)s]\t%(asctime)s.%(msecs)dZ\t%(aws_request_id)s\t%(message)s\n",
+                    "[%(levelname)s]\t%(asctime)s.%(msecs)03dZ\t%(aws_request_id)s\t%(message)s\n",
                     "%Y-%m-%dT%H:%M:%S",
                 )
             )
