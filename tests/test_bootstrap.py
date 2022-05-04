@@ -1016,7 +1016,9 @@ class TestLogError(unittest.TestCase):
     # Just to ensure we are not logging the requestId from error response, just sending in the response
     def test_log_error_invokeId_line_framed_log_sink(self):
         with NamedTemporaryFile() as temp_file:
-            with bootstrap.FramedTelemetryLogSink(temp_file.name) as log_sink:
+            with bootstrap.FramedTelemetryLogSink(
+                os.open(temp_file.name, os.O_CREAT | os.O_RDWR)
+            ) as log_sink:
                 err_to_log = bootstrap.make_error(
                     "Error message",
                     "ErrorType",
