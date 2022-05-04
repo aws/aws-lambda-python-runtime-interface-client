@@ -19,7 +19,7 @@ else
     cd deps
     . ./versions
 
-	CURL_VERSION="${CURL_MAJOR_VERSION}.${CURL_MINOR_VERSION}.${CURL_PATCH_VERSION}"
+    CURL_VERSION="${CURL_MAJOR_VERSION}.${CURL_MINOR_VERSION}.${CURL_PATCH_VERSION}"
 
     rm -rf ./curl-$CURL_VERSION
     rm -rf ./aws-lambda-cpp-$AWS_LAMBDA_CPP_RELEASE
