@@ -18,32 +18,33 @@ from .lambda_runtime_marshaller import to_json
 ERROR_LOG_LINE_TERMINATE = "\r"
 ERROR_LOG_IDENT = "\u00a0"  # NO-BREAK SPACE U+00A0
 
-
-def _get_handler(handler):
+def _handler_path_check(handler: str):
     try:
         (modname, fname) = handler.rsplit(".", 1)
+        return (modname, fname)
     except ValueError as e:
         fault = FaultException(
             FaultException.MALFORMED_HANDLER_NAME,
             "Bad handler '{}': {}".format(handler, str(e)),
         )
-        return make_fault_handler(fault)
+        raise fault
 
+def _handler_file_contents_check(modname: str):
     try:
         if modname.split(".")[0] in sys.builtin_module_names:
             fault = FaultException(
                 FaultException.BUILT_IN_MODULE_CONFLICT,
                 "Cannot use built-in module {} as a handler module".format(modname),
             )
-            return make_fault_handler(fault)
-        m = importlib.import_module(modname.replace("/", "."))
+            raise fault
+        mod = importlib.import_module(modname.replace("/", "."))
+        return mod
     except ImportError as e:
         fault = FaultException(
             FaultException.IMPORT_MODULE_ERROR,
             "Unable to import module '{}': {}".format(modname, str(e)),
         )
-        request_handler = make_fault_handler(fault)
-        return request_handler
+        raise fault
     except SyntaxError as e:
         trace = ['  File "%s" Line %s\n    %s' % (e.filename, e.lineno, e.text)]
         fault = FaultException(
@@ -51,18 +52,31 @@ def _get_handler(handler):
             "Syntax error in module '{}': {}".format(modname, str(e)),
             trace,
         )
-        request_handler = make_fault_handler(fault)
-        return request_handler
+        raise fault
+    except FaultException as f:
+        raise f
 
+def _get_request_handler(mod, file_name):
     try:
-        request_handler = getattr(m, fname)
+        request_handler = getattr(mod, file_name)
+        return request_handler
     except AttributeError:
         fault = FaultException(
             FaultException.HANDLER_NOT_FOUND,
             "Handler '{}' missing on module '{}'".format(fname, modname),
             None,
         )
+        raise fault
+
+def _get_handler(handler: str):
+    try:
+        (modname, file_name) = _handler_path_check(handler)
+        mod = _handler_file_contents_check(modname)
+
+        request_handler = _get_request_handler(mod, file_name)
+    except FaultException as fault:
         request_handler = make_fault_handler(fault)
+
     return request_handler
 
 
