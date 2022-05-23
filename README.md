@@ -10,7 +10,7 @@ You can include this package in your preferred base image to make that base imag
 
 ## Requirements
 The Python Runtime Interface Client package currently supports Python versions:
- - 3.6.x up to and including 3.9.x
+ - 3.6.x up to and including 3.10.x
 
 ## Usage
 
@@ -176,3 +176,4 @@ If you discover a potential security issue in this project we ask that you notif
 ## License
 
 This project is licensed under the Apache-2.0 License.
+
