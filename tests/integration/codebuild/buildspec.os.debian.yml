@@ -16,8 +16,8 @@ batch:
         variables:
           DISTRO_VERSION:
             - "buster"
+            - "bullseye"
           RUNTIME_VERSION:
-            - "3.6"
             - "3.7"
             - "3.8"
             - "3.9"

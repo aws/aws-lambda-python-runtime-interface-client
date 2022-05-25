@@ -2,7 +2,7 @@ ARG RUNTIME_VERSION
 ARG DISTRO_VERSION
 
 # Stage 1 - build function and dependencies
-FROM python:${RUNTIME_VERSION}-${DISTRO_VERSION} AS python-debian-builder
+FROM public.ecr.aws/docker/library/python:${RUNTIME_VERSION}-${DISTRO_VERSION} AS python-debian-builder
 
 # Install aws-lambda-cpp build dependencies
 RUN apt-get update && \
@@ -40,8 +40,8 @@ RUN pip install \
 
 
 # Stage 2 - final runtime interface client image
-# Grab a fresh slim copy of the Node image
-FROM python:${RUNTIME_VERSION}-slim-${DISTRO_VERSION}
+# Grab a fresh slim copy of the Python image
+FROM public.ecr.aws/docker/library/python:${RUNTIME_VERSION}-slim-${DISTRO_VERSION}
 
 # Include global arg in this stage of the build
 ARG FUNCTION_DIR="/home/app/"
