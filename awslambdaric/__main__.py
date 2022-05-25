@@ -10,7 +10,12 @@ from . import bootstrap
 
 def main(args):
     app_root = os.getcwd()
-    handler = args[1]
+
+    try:
+        handler = args[1]
+    except IndexError:
+        raise ValueError("Handler not set")
+
     lambda_runtime_api_addr = os.environ["AWS_LAMBDA_RUNTIME_API"]
 
     bootstrap.run(app_root, handler, lambda_runtime_api_addr)

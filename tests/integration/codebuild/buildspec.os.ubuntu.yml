@@ -2,9 +2,9 @@ version: 0.2
 
 env:
   variables:
-    OS_DISTRIBUTION: alpine
-    PYTHON_LOCATION: "/usr/local/bin/python"
-    TEST_NAME: "aws-lambda-python-rtc-alpine-3-test"
+    OS_DISTRIBUTION: ubuntu
+    PYTHON_LOCATION: "/usr/bin/python"
+    TEST_NAME: "aws-lambda-python-rtc-ubuntu-test"
 batch:
   build-matrix:
     static:
@@ -15,9 +15,9 @@ batch:
       env:
         variables:
           DISTRO_VERSION:
-            - "3.12"
+            - "20.04"
+            - "22.04"
           RUNTIME_VERSION:
-            - "3.6"
             - "3.7"
             - "3.8"
             - "3.9"
@@ -43,9 +43,6 @@ phases:
         cp "tests/integration/docker/Dockerfile.echo.${OS_DISTRIBUTION}" \
           "${SCRATCH_DIR}/Dockerfile.echo.${OS_DISTRIBUTION}.tmp"
       - >
-        echo "RUN apk add curl" >> \
-          "${SCRATCH_DIR}/Dockerfile.echo.${OS_DISTRIBUTION}.tmp"
-      - >
         echo "COPY ${SCRATCH_DIR}/${RIE} /usr/bin/${RIE}" >> \
           "${SCRATCH_DIR}/Dockerfile.echo.${OS_DISTRIBUTION}.tmp"
       - >
@@ -68,6 +65,7 @@ phases:
       - set -x
       - echo "Running Image ${IMAGE_TAG}"
       - docker network create "${TEST_NAME}-network"
+      - PYTHON_LOCATION=${PYTHON_LOCATION}${RUNTIME_VERSION}
       - >
         docker run \
           --detach \

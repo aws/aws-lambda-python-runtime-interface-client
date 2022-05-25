@@ -10,7 +10,8 @@ You can include this package in your preferred base image to make that base imag
 
 ## Requirements
 The Python Runtime Interface Client package currently supports Python versions:
- - 3.6.x up to and including 3.10.x
+
+ - 3.7.x up to and including 3.10.x
 
 ## Usage
 
@@ -58,7 +59,7 @@ Example Dockerfile (to keep the image light we use a multi-stage build):
 # Define custom function directory
 ARG FUNCTION_DIR="/function"
 
-FROM python:buster as build-image
+FROM public.ecr.aws/docker/library/python:buster as build-image
 
 # Include global arg in this stage of the build
 ARG FUNCTION_DIR
@@ -82,7 +83,7 @@ RUN pip install \
         awslambdaric
 
 
-FROM python:buster
+FROM public.ecr.aws/docker/library/python:buster
 
 # Include global arg in this stage of the build
 ARG FUNCTION_DIR
