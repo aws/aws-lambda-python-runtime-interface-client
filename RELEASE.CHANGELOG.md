@@ -1,3 +1,9 @@
+### May 25, 2022
+`2.0.4`:
+- Update os distro and runtime versions in compatibility tests, source base images from Amazon ECR Public ([#80](https://github.com/aws/aws-lambda-python-runtime-interface-client/pull/80))
+- Improve error output for missing handler ([#70](https://github.com/aws/aws-lambda-python-runtime-interface-client/pull/70))
+- Update curl to 7.83.1 ([#79](https://github.com/aws/aws-lambda-python-runtime-interface-client/pull/79))
+
 ### May 4, 2022
 `2.0.3`:
 - Add changelog ([#75](https://github.com/aws/aws-lambda-python-runtime-interface-client/pull/75))
