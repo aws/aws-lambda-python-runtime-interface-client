@@ -4,7 +4,7 @@ env:
   variables:
     OS_DISTRIBUTION: alpine
     PYTHON_LOCATION: "/usr/local/bin/python"
-    TEST_NAME: "aws-lambda-python-rtc-alpine-3-test"
+    TEST_NAME: "aws-lambda-python-rtc-alpine-test"
 batch:
   build-matrix:
     static:
@@ -15,9 +15,10 @@ batch:
       env:
         variables:
           DISTRO_VERSION:
-            - "3.12"
+            - "3.13"
+            - "3.14"
+            - "3.15"
           RUNTIME_VERSION:
-            - "3.6"
             - "3.7"
             - "3.8"
             - "3.9"

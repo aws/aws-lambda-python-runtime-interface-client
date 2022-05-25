@@ -4,7 +4,7 @@ env:
   variables:
     OS_DISTRIBUTION: ubuntu
     PYTHON_LOCATION: "/usr/bin/python"
-    TEST_NAME: "aws-lambda-python-rtc-ubuntu-1-test"
+    TEST_NAME: "aws-lambda-python-rtc-ubuntu-test"
 batch:
   build-matrix:
     static:
@@ -15,11 +15,12 @@ batch:
       env:
         variables:
           DISTRO_VERSION:
-            - "18.04"
+            - "20.04"
+            - "22.04"
           RUNTIME_VERSION:
-            - "3.6"
             - "3.7"
             - "3.8"
+            - "3.9"
 phases:
   pre_build:
     commands:
