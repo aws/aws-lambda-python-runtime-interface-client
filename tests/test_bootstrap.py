@@ -1163,7 +1163,7 @@ class TestBootstrapModule(unittest.TestCase):
         "awslambdaric.bootstrap.LambdaLoggerHandler",
         Mock(side_effect=Exception("Boom!")),
     )
-    @patch("awslambdaric.bootstrap.build_fault_result", MagicMock())
+    @patch("awslambdaric.bootstrap.build_fault_result", MagicMock(return_value={}))
     @patch("awslambdaric.bootstrap.log_error", MagicMock())
     @patch("awslambdaric.bootstrap.LambdaRuntimeClient", MagicMock())
     @patch("awslambdaric.bootstrap.sys")
