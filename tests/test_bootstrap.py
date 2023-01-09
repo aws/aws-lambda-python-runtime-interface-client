@@ -7,6 +7,7 @@ import json
 import os
 import re
 import tempfile
+import time
 import traceback
 import unittest
 from io import StringIO
@@ -1090,20 +1091,26 @@ class TestLogSink(unittest.TestCase):
     def test_single_frame(self):
         with NamedTemporaryFile() as temp_file:
             message = "hello world\nsomething on a new line!\n"
+            before = int(time.time_ns() / 1000)
             with bootstrap.FramedTelemetryLogSink(
                 os.open(temp_file.name, os.O_CREAT | os.O_RDWR)
             ) as ls:
                 ls.log(message)
+            after = int(time.time_ns() / 1000)
             with open(temp_file.name, "rb") as f:
                 content = f.read()
 
                 frame_type = int.from_bytes(content[:4], "big")
-                self.assertEqual(frame_type, 0xA55A0001)
+                self.assertEqual(frame_type, 0xA55A0003)
 
                 length = int.from_bytes(content[4:8], "big")
                 self.assertEqual(length, len(message))
 
-                actual_message = content[8:].decode()
+                timestamp = int.from_bytes(content[8:16], "big")
+                self.assertTrue(before <= timestamp)
+                self.assertTrue(timestamp <= after)
+
+                actual_message = content[16:].decode()
                 self.assertEqual(actual_message, message)
 
     def test_multiple_frame(self):
@@ -1111,23 +1118,30 @@ class TestLogSink(unittest.TestCase):
             first_message = "hello world\nsomething on a new line!"
             second_message = "hello again\nhere's another message\n"
 
+            before = int(time.time_ns() / 1000)
             with bootstrap.FramedTelemetryLogSink(
                 os.open(temp_file.name, os.O_CREAT | os.O_RDWR)
             ) as ls:
                 ls.log(first_message)
                 ls.log(second_message)
+            after = int(time.time_ns() / 1000)
 
             with open(temp_file.name, "rb") as f:
                 content = f.read()
                 pos = 0
                 for message in [first_message, second_message]:
                     frame_type = int.from_bytes(content[pos : pos + 4], "big")
-                    self.assertEqual(frame_type, 0xA55A0001)
+                    self.assertEqual(frame_type, 0xA55A0003)
                     pos += 4
 
                     length = int.from_bytes(content[pos : pos + 4], "big")
                     self.assertEqual(length, len(message))
                     pos += 4
+
+                    timestamp = int.from_bytes(content[pos : pos + 8], "big")
+                    self.assertTrue(before <= timestamp)
+                    self.assertTrue(timestamp <= after)
+                    pos += 8
 
                     actual_message = content[pos : pos + len(message)].decode()
                     self.assertEqual(actual_message, message)
