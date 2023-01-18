@@ -915,11 +915,13 @@ class TestLogError(unittest.TestCase):
 
     def test_log_error_framed_log_sink(self):
         with NamedTemporaryFile() as temp_file:
+            before = int(time.time_ns() / 1000)
             with bootstrap.FramedTelemetryLogSink(
                 os.open(temp_file.name, os.O_CREAT | os.O_RDWR)
             ) as log_sink:
                 err_to_log = bootstrap.make_error("Error message", "ErrorType", None)
                 bootstrap.log_error(err_to_log, log_sink)
+            after = int(time.time_ns() / 1000)
 
             expected_logged_error = (
                 "[ERROR] ErrorType: Error message\nTraceback (most recent call last):"
@@ -934,7 +936,11 @@ class TestLogError(unittest.TestCase):
                 length = int.from_bytes(content[4:8], "big")
                 self.assertEqual(length, len(expected_logged_error.encode("utf8")))
 
-                actual_message = content[8:].decode()
+                timestamp = int.from_bytes(content[8:16], "big")
+                self.assertTrue(before <= timestamp)
+                self.assertTrue(timestamp <= after)
+
+                actual_message = content[16:].decode()
                 self.assertEqual(actual_message, expected_logged_error)
 
     @patch("sys.stdout", new_callable=StringIO)
@@ -952,6 +958,7 @@ class TestLogError(unittest.TestCase):
 
     def test_log_error_indentation_framed_log_sink(self):
         with NamedTemporaryFile() as temp_file:
+            before = int(time.time_ns() / 1000)
             with bootstrap.FramedTelemetryLogSink(
                 os.open(temp_file.name, os.O_CREAT | os.O_RDWR)
             ) as log_sink:
@@ -959,6 +966,7 @@ class TestLogError(unittest.TestCase):
                     "Error message", "ErrorType", ["  line1  ", "  line2  ", "  "]
                 )
                 bootstrap.log_error(err_to_log, log_sink)
+            after = int(time.time_ns() / 1000)
 
             expected_logged_error = (
                 "[ERROR] ErrorType: Error message\nTraceback (most recent call last):"
@@ -974,7 +982,11 @@ class TestLogError(unittest.TestCase):
                 length = int.from_bytes(content[4:8], "big")
                 self.assertEqual(length, len(expected_logged_error.encode("utf8")))
 
-                actual_message = content[8:].decode()
+                timestamp = int.from_bytes(content[8:16], "big")
+                self.assertTrue(before <= timestamp)
+                self.assertTrue(timestamp <= after)
+
+                actual_message = content[16:].decode()
                 self.assertEqual(actual_message, expected_logged_error)
 
     @patch("sys.stdout", new_callable=StringIO)
@@ -989,6 +1001,7 @@ class TestLogError(unittest.TestCase):
 
     def test_log_error_empty_stacktrace_line_framed_log_sink(self):
         with NamedTemporaryFile() as temp_file:
+            before = int(time.time_ns() / 1000)
             with bootstrap.FramedTelemetryLogSink(
                 os.open(temp_file.name, os.O_CREAT | os.O_RDWR)
             ) as log_sink:
@@ -996,6 +1009,7 @@ class TestLogError(unittest.TestCase):
                     "Error message", "ErrorType", ["line1", "", "line2"]
                 )
                 bootstrap.log_error(err_to_log, log_sink)
+            after = int(time.time_ns() / 1000)
 
             expected_logged_error = (
                 "[ERROR] ErrorType: Error message\nTraceback "
@@ -1011,12 +1025,17 @@ class TestLogError(unittest.TestCase):
                 length = int.from_bytes(content[4:8], "big")
                 self.assertEqual(length, len(expected_logged_error))
 
-                actual_message = content[8:].decode()
+                timestamp = int.from_bytes(content[8:16], "big")
+                self.assertTrue(before <= timestamp)
+                self.assertTrue(timestamp <= after)
+
+                actual_message = content[16:].decode()
                 self.assertEqual(actual_message, expected_logged_error)
 
     # Just to ensure we are not logging the requestId from error response, just sending in the response
     def test_log_error_invokeId_line_framed_log_sink(self):
         with NamedTemporaryFile() as temp_file:
+            before = int(time.time_ns() / 1000)
             with bootstrap.FramedTelemetryLogSink(
                 os.open(temp_file.name, os.O_CREAT | os.O_RDWR)
             ) as log_sink:
@@ -1027,6 +1046,7 @@ class TestLogError(unittest.TestCase):
                     "testrequestId",
                 )
                 bootstrap.log_error(err_to_log, log_sink)
+            after = int(time.time_ns() / 1000)
 
             expected_logged_error = (
                 "[ERROR] ErrorType: Error message\nTraceback "
@@ -1042,7 +1062,11 @@ class TestLogError(unittest.TestCase):
                 length = int.from_bytes(content[4:8], "big")
                 self.assertEqual(length, len(expected_logged_error))
 
-                actual_message = content[8:].decode()
+                timestamp = int.from_bytes(content[8:16], "big")
+                self.assertTrue(before <= timestamp)
+                self.assertTrue(timestamp <= after)
+
+                actual_message = content[16:].decode()
                 self.assertEqual(actual_message, expected_logged_error)
 
 
