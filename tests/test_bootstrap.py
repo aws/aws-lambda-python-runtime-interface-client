@@ -929,7 +929,7 @@ class TestLogError(unittest.TestCase):
                 content = f.read()
 
                 frame_type = int.from_bytes(content[:4], "big")
-                self.assertEqual(frame_type, 0xA55A0001)
+                self.assertEqual(frame_type, 0xA55A0003)
 
                 length = int.from_bytes(content[4:8], "big")
                 self.assertEqual(length, len(expected_logged_error.encode("utf8")))
@@ -969,7 +969,7 @@ class TestLogError(unittest.TestCase):
                 content = f.read()
 
                 frame_type = int.from_bytes(content[:4], "big")
-                self.assertEqual(frame_type, 0xA55A0001)
+                self.assertEqual(frame_type, 0xA55A0003)
 
                 length = int.from_bytes(content[4:8], "big")
                 self.assertEqual(length, len(expected_logged_error.encode("utf8")))
@@ -1006,7 +1006,7 @@ class TestLogError(unittest.TestCase):
                 content = f.read()
 
                 frame_type = int.from_bytes(content[:4], "big")
-                self.assertEqual(frame_type, 0xA55A0001)
+                self.assertEqual(frame_type, 0xA55A0003)
 
                 length = int.from_bytes(content[4:8], "big")
                 self.assertEqual(length, len(expected_logged_error))
@@ -1037,7 +1037,7 @@ class TestLogError(unittest.TestCase):
                 content = f.read()
 
                 frame_type = int.from_bytes(content[:4], "big")
-                self.assertEqual(frame_type, 0xA55A0001)
+                self.assertEqual(frame_type, 0xA55A0003)
 
                 length = int.from_bytes(content[4:8], "big")
                 self.assertEqual(length, len(expected_logged_error))
