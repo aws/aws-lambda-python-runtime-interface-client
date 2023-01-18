@@ -335,8 +335,13 @@ class FramedTelemetryLogSink(object):
 
     def log(self, msg):
         encoded_msg = msg.encode("utf8")
-        timestamp = int(time.time_ns() / 1000) # UNIX timestamp in microseconds
-        log_msg = self.frame_type + len(encoded_msg).to_bytes(4, "big") + timestamp.to_bytes(8, "big") + encoded_msg
+        timestamp = int(time.time_ns() / 1000)  # UNIX timestamp in microseconds
+        log_msg = (
+            self.frame_type
+            + len(encoded_msg).to_bytes(4, "big")
+            + timestamp.to_bytes(8, "big")
+            + encoded_msg
+        )
         self.file.write(log_msg)
 
     def log_error(self, message_lines):
