@@ -6,7 +6,9 @@ import io
 import os
 import platform
 from subprocess import check_call, check_output
+
 from setuptools import Extension, find_packages, setup
+
 from awslambdaric import __version__
 
 
@@ -88,6 +90,8 @@ setup(
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
         "License :: OSI Approved :: Apache Software License",
         "Operating System :: OS Independent",
     ],

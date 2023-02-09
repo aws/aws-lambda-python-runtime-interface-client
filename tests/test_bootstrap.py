@@ -585,10 +585,10 @@ class TestHandleEventRequest(unittest.TestCase):
 
         self.assertEqual(mock_stdout.getvalue(), error_logs)
 
-    @patch("sys.stdout", new_callable=StringIO)
     @patch("importlib.import_module")
+    @patch("sys.stdout", new_callable=StringIO)
     def test_handle_event_request_fault_exception_logging_syntax_error(
-        self, mock_import_module, mock_stdout
+        self, mock_stdout, mock_import_module
     ):
         try:
             eval("-")
@@ -616,10 +616,17 @@ class TestHandleEventRequest(unittest.TestCase):
 
         sys.stderr.write(mock_stdout.getvalue())
 
-        error_logs = (
-            "[ERROR] Runtime.UserCodeSyntaxError: Syntax error in module 'a': "
-            "unexpected EOF while parsing (<string>, line 1)\r"
-        )
+        if sys.version_info < (3, 10):
+            error_logs = (
+                "[ERROR] Runtime.UserCodeSyntaxError: Syntax error in module 'a': "
+                "unexpected EOF while parsing (<string>, line 1)\r"
+            )
+        else:
+            error_logs = (
+                "[ERROR] Runtime.UserCodeSyntaxError: Syntax error in module 'a': "
+                "invalid syntax (<string>, line 1)\r"
+            )
+
         error_logs += "Traceback (most recent call last):\r"
         error_logs += '  File "<string>" Line 1\r'
         error_logs += "    -\n"

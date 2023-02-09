@@ -17,7 +17,7 @@ setup-codebuild-agent:
 
 .PHONY: test-smoke
 test-smoke: setup-codebuild-agent
-	CODEBUILD_IMAGE_TAG=codebuild-agent tests/integration/codebuild-local/test_one.sh tests/integration/codebuild/buildspec.os.alpine.yml alpine 3.15 3.9
+	CODEBUILD_IMAGE_TAG=codebuild-agent tests/integration/codebuild-local/test_one.sh tests/integration/codebuild/buildspec.os.alpine.yml alpine 3.15 3.11
 
 .PHONY: test-integ
 test-integ: setup-codebuild-agent
