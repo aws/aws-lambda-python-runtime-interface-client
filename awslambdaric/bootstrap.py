@@ -312,19 +312,19 @@ class FramedTelemetryLogSink(object):
     framing protocol so message boundaries can be determined. Each frame can be visualized as follows:
      <pre>
     {@code
-    +----------------------+------------------------+-----------------------+
-    | Frame Type - 4 bytes | Length (len) - 4 bytes | Message - 'len' bytes |
-    +----------------------+------------------------+-----------------------+
+    +----------------------+------------------------+---------------------+-----------------------+
+    | Frame Type - 4 bytes | Length (len) - 4 bytes | Timestamp - 8 bytes | Message - 'len' bytes |
+    +----------------------+------------------------+---------------------+-----------------------+
     }
     </pre>
-    The first 4 bytes indicate the type of the frame - log frames have a type defined as the hex value 0xa55a0001. The
-    second 4 bytes should indicate the message's length. The next 'len' bytes contain the message. The byte order is
-    big-endian.
+    The first 4 bytes indicate the type of the frame - log frames have a type defined as the hex value 0xa55a0003. The
+    second 4 bytes should indicate the message's length. The next 8 bytes should indicate the timestamp of the message.
+    The next 'len' bytes contain the message. The byte order is big-endian.
     """
 
     def __init__(self, fd):
         self.fd = int(fd)
-        self.frame_type = 0xA55A0001.to_bytes(4, "big")
+        self.frame_type = 0xA55A0003.to_bytes(4, "big")
 
     def __enter__(self):
         self.file = os.fdopen(self.fd, "wb", 0)
@@ -335,7 +335,13 @@ class FramedTelemetryLogSink(object):
 
     def log(self, msg):
         encoded_msg = msg.encode("utf8")
-        log_msg = self.frame_type + len(encoded_msg).to_bytes(4, "big") + encoded_msg
+        timestamp = int(time.time_ns() / 1000)  # UNIX timestamp in microseconds
+        log_msg = (
+            self.frame_type
+            + len(encoded_msg).to_bytes(4, "big")
+            + timestamp.to_bytes(8, "big")
+            + encoded_msg
+        )
         self.file.write(log_msg)
 
     def log_error(self, message_lines):
