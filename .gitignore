@@ -148,3 +148,9 @@ cython_debug/
 
 # Test files generated
 tmp*.py
+
+# Dependencies
+deps/*
+!deps/*.tar.gz
+!deps/versions
+!deps/patches/
