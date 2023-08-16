@@ -1,3 +1,10 @@
+### August 16, 2023
+`2.0.5`:
+- Add support for Python3.11. ([#103](https://github.com/aws/aws-lambda-python-runtime-interface-client/pull/103))
+- Add support for Python3.10. ([#102](https://github.com/aws/aws-lambda-python-runtime-interface-client/pull/102))
+- Emit multi-line logs with timestamps.([#92](https://github.com/aws/aws-lambda-python-runtime-interface-client/pull/92))
+- Remove importlib-metadata depenendcy.([#83](https://github.com/aws/aws-lambda-python-runtime-interface-client/pull/83))
+
 ### May 25, 2022
 `2.0.4`:
 - Update os distro and runtime versions in compatibility tests, source base images from Amazon ECR Public ([#80](https://github.com/aws/aws-lambda-python-runtime-interface-client/pull/80))
