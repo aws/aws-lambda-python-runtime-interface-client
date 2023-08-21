@@ -6,13 +6,12 @@ import http
 import http.client
 import unittest.mock
 from unittest.mock import MagicMock, patch
+
 from awslambdaric import __version__
-
-
 from awslambdaric.lambda_runtime_client import (
+    InvocationRequest,
     LambdaRuntimeClient,
     LambdaRuntimeClientError,
-    InvocationRequest,
     _user_agent,
 )
 

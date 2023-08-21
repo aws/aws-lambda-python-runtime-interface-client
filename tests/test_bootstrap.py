@@ -4,6 +4,8 @@ Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 
 import importlib
 import json
+import logging
+import logging.config
 import os
 import re
 import tempfile
@@ -16,6 +18,7 @@ from unittest.mock import MagicMock, Mock, patch
 
 import awslambdaric.bootstrap as bootstrap
 from awslambdaric.lambda_runtime_exception import FaultException
+from awslambdaric.lambda_runtime_log_utils import LogFormat
 from awslambdaric.lambda_runtime_marshaller import LambdaMarshaller
 
 
@@ -613,14 +616,7 @@ class TestHandleEventRequest(unittest.TestCase):
             bootstrap.StandardLogSink(),
         )
 
-        import sys
-
-        sys.stderr.write(mock_stdout.getvalue())
-
-        error_logs = (
-            "[ERROR] Runtime.UserCodeSyntaxError: Syntax error in module 'a': "
-            "unexpected EOF while parsing (<string>, line 1)\r"
-        )
+        error_logs = f"[ERROR] Runtime.UserCodeSyntaxError: Syntax error in module 'a': {syntax_error}\r"
         error_logs += "Traceback (most recent call last):\r"
         error_logs += '  File "<string>" Line 1\r'
         error_logs += "    -\n"
@@ -1172,6 +1168,215 @@ class TestLogSink(unittest.TestCase):
                     pos += len(message)
 
                 self.assertEqual(content[pos:], b"")
+
+
+class TestLoggingSetup(unittest.TestCase):
+    def test_log_level(self) -> None:
+        test_cases = [
+            (LogFormat.JSON, "TRACE", logging.DEBUG),
+            (LogFormat.JSON, "DEBUG", logging.DEBUG),
+            (LogFormat.JSON, "INFO", logging.INFO),
+            (LogFormat.JSON, "WARN", logging.WARNING),
+            (LogFormat.JSON, "ERROR", logging.ERROR),
+            (LogFormat.JSON, "FATAL", logging.CRITICAL),
+            # Log level is set only for Json format
+            (LogFormat.TEXT, "TRACE", logging.NOTSET),
+            (LogFormat.TEXT, "DEBUG", logging.NOTSET),
+            (LogFormat.TEXT, "INFO", logging.NOTSET),
+            (LogFormat.TEXT, "WARN", logging.NOTSET),
+            (LogFormat.TEXT, "ERROR", logging.NOTSET),
+            (LogFormat.TEXT, "FATAL", logging.NOTSET),
+            ("Unknown format", "INFO", logging.NOTSET),
+            # if level is unknown fall back to default
+            (LogFormat.JSON, "Unknown level", logging.NOTSET),
+        ]
+        for fmt, log_level, expected_level in test_cases:
+            with self.subTest():
+                # Drop previous setup
+                logging.getLogger().handlers.clear()
+                logging.getLogger().level = logging.NOTSET
+
+                bootstrap._setup_logging(fmt, log_level, bootstrap.StandardLogSink())
+
+                self.assertEqual(expected_level, logging.getLogger().level)
+
+
+class TestLogging(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        logging.getLogger().handlers.clear()
+        logging.getLogger().level = logging.NOTSET
+        bootstrap._setup_logging(
+            LogFormat.from_str("JSON"), "INFO", bootstrap.StandardLogSink()
+        )
+
+    @patch("sys.stderr", new_callable=StringIO)
+    def test_json_formatter(self, mock_stderr):
+        logger = logging.getLogger("a.b")
+
+        test_cases = [
+            (
+                logging.ERROR,
+                "TEST 1",
+                {
+                    "level": "ERROR",
+                    "logger": "a.b",
+                    "message": "TEST 1",
+                    "requestId": "",
+                },
+            ),
+            (
+                logging.ERROR,
+                "test \nwith \nnew \nlines",
+                {
+                    "level": "ERROR",
+                    "logger": "a.b",
+                    "message": "test \nwith \nnew \nlines",
+                    "requestId": "",
+                },
+            ),
+            (
+                logging.CRITICAL,
+                "TEST CRITICAL",
+                {
+                    "level": "CRITICAL",
+                    "logger": "a.b",
+                    "message": "TEST CRITICAL",
+                    "requestId": "",
+                },
+            ),
+        ]
+        for level, msg, expected in test_cases:
+            with self.subTest(msg):
+                with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
+                    logger.log(level, msg)
+
+                    data = json.loads(mock_stdout.getvalue())
+                    data.pop("timestamp")
+                    self.assertEqual(
+                        data,
+                        expected,
+                    )
+        self.assertEqual(mock_stderr.getvalue(), "")
+
+    @patch("sys.stdout", new_callable=StringIO)
+    @patch("sys.stderr", new_callable=StringIO)
+    def test_exception(self, mock_stderr, mock_stdout):
+        try:
+            raise ValueError("error message")
+        except ValueError:
+            logging.getLogger("test.logger").exception("test exception")
+
+        exception_log = json.loads(mock_stdout.getvalue())
+        self.assertIn("location", exception_log)
+        self.assertIn("stackTrace", exception_log)
+        exception_log.pop("timestamp")
+        exception_log.pop("location")
+        stack_trace = exception_log.pop("stackTrace")
+
+        self.assertEqual(len(stack_trace), 1)
+
+        self.assertEqual(
+            exception_log,
+            {
+                "errorMessage": "error message",
+                "errorType": "ValueError",
+                "level": "ERROR",
+                "logger": "test.logger",
+                "message": "test exception",
+                "requestId": "",
+            },
+        )
+
+        self.assertEqual(mock_stderr.getvalue(), "")
+
+    @patch("sys.stdout", new_callable=StringIO)
+    @patch("sys.stderr", new_callable=StringIO)
+    def test_log_level(self, mock_stderr, mock_stdout):
+        logger = logging.getLogger("test.logger")
+
+        logger.debug("debug message")
+        logger.info("info message")
+
+        data = json.loads(mock_stdout.getvalue())
+        data.pop("timestamp")
+
+        self.assertEqual(
+            data,
+            {
+                "level": "INFO",
+                "logger": "test.logger",
+                "message": "info message",
+                "requestId": "",
+            },
+        )
+        self.assertEqual(mock_stderr.getvalue(), "")
+
+    @patch("sys.stdout", new_callable=StringIO)
+    @patch("sys.stderr", new_callable=StringIO)
+    def test_set_log_level_manually(self, mock_stderr, mock_stdout):
+        logger = logging.getLogger("test.logger")
+
+        # Changing log level after `bootstrap.setup_logging`
+        logging.getLogger().setLevel(logging.CRITICAL)
+
+        logger.debug("debug message")
+        logger.info("info message")
+        logger.warning("warning message")
+        logger.error("error message")
+        logger.critical("critical message")
+
+        data = json.loads(mock_stdout.getvalue())
+        data.pop("timestamp")
+
+        self.assertEqual(
+            data,
+            {
+                "level": "CRITICAL",
+                "logger": "test.logger",
+                "message": "critical message",
+                "requestId": "",
+            },
+        )
+        self.assertEqual(mock_stderr.getvalue(), "")
+
+    @patch("sys.stdout", new_callable=StringIO)
+    @patch("sys.stderr", new_callable=StringIO)
+    def test_set_log_level_with_dictConfig(self, mock_stderr, mock_stdout):
+        # Changing log level after `bootstrap.setup_logging`
+        logging.config.dictConfig(
+            {
+                "version": 1,
+                "disable_existing_loggers": False,
+                "formatters": {"simple": {"format": "%(levelname)-8s - %(message)s"}},
+                "handlers": {
+                    "stdout": {
+                        "class": "logging.StreamHandler",
+                        "formatter": "simple",
+                    },
+                },
+                "root": {
+                    "level": "CRITICAL",
+                    "handlers": [
+                        "stdout",
+                    ],
+                },
+            }
+        )
+
+        logger = logging.getLogger("test.logger")
+        logger.debug("debug message")
+        logger.info("info message")
+        logger.warning("warning message")
+        logger.error("error message")
+        logger.critical("critical message")
+
+        data = mock_stderr.getvalue()
+        self.assertEqual(
+            data,
+            "CRITICAL - critical message\n",
+        )
+        self.assertEqual(mock_stdout.getvalue(), "")
 
 
 class TestBootstrapModule(unittest.TestCase):
