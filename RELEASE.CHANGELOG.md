@@ -1,3 +1,9 @@
+### August 22, 2023
+
+`2.0.6`:
+
+- Add structured logging implementation ([#101](https://github.com/aws/aws-lambda-python-runtime-interface-client/pull/101))
+
 ### August 16, 2023
 
 `2.0.5`:
