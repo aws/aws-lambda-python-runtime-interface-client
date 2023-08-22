@@ -13,10 +13,19 @@ import traceback
 from .lambda_context import LambdaContext
 from .lambda_runtime_client import LambdaRuntimeClient
 from .lambda_runtime_exception import FaultException
+from .lambda_runtime_log_utils import (
+    _DATETIME_FORMAT,
+    _DEFAULT_FRAME_TYPE,
+    _JSON_FRAME_TYPES,
+    JsonFormatter,
+    LogFormat,
+)
 from .lambda_runtime_marshaller import to_json
 
 ERROR_LOG_LINE_TERMINATE = "\r"
 ERROR_LOG_IDENT = "\u00a0"  # NO-BREAK SPACE U+00A0
+_AWS_LAMBDA_LOG_FORMAT = LogFormat.from_str(os.environ.get("AWS_LAMBDA_LOG_FORMAT"))
+_AWS_LAMBDA_LOG_LEVEL = os.environ.get("AWS_LAMBDA_LOG_LEVEL", "").upper()
 
 
 def _get_handler(handler):
@@ -73,7 +82,12 @@ def make_fault_handler(fault):
     return result
 
 
-def make_error(error_message, error_type, stack_trace, invoke_id=None):
+def make_error(
+    error_message,
+    error_type,
+    stack_trace,
+    invoke_id=None,
+):
     result = {
         "errorMessage": error_message if error_message else "",
         "errorType": error_type if error_type else "",
@@ -92,34 +106,52 @@ def replace_line_indentation(line, indent_char, new_indent_char):
     return (new_indent_char * ident_chars_count) + line[ident_chars_count:]
 
 
-def log_error(error_result, log_sink):
-    error_description = "[ERROR]"
+if _AWS_LAMBDA_LOG_FORMAT == LogFormat.JSON:
+    _ERROR_FRAME_TYPE = _JSON_FRAME_TYPES[logging.ERROR]
 
-    error_result_type = error_result.get("errorType")
-    if error_result_type:
-        error_description += " " + error_result_type
+    def log_error(error_result, log_sink):
+        error_result = {
+            "timestamp": time.strftime(
+                _DATETIME_FORMAT, logging.Formatter.converter(time.time())
+            ),
+            "log_level": "ERROR",
+            **error_result,
+        }
+        log_sink.log_error(
+            [to_json(error_result)],
+        )
 
-    error_result_message = error_result.get("errorMessage")
-    if error_result_message:
+else:
+    _ERROR_FRAME_TYPE = _DEFAULT_FRAME_TYPE
+
+    def log_error(error_result, log_sink):
+        error_description = "[ERROR]"
+
+        error_result_type = error_result.get("errorType")
         if error_result_type:
-            error_description += ":"
-        error_description += " " + error_result_message
+            error_description += " " + error_result_type
 
-    error_message_lines = [error_description]
+        error_result_message = error_result.get("errorMessage")
+        if error_result_message:
+            if error_result_type:
+                error_description += ":"
+            error_description += " " + error_result_message
 
-    stack_trace = error_result.get("stackTrace")
-    if stack_trace is not None:
-        error_message_lines += ["Traceback (most recent call last):"]
-        for trace_element in stack_trace:
-            if trace_element == "":
-                error_message_lines += [""]
-            else:
-                for trace_line in trace_element.splitlines():
-                    error_message_lines += [
-                        replace_line_indentation(trace_line, " ", ERROR_LOG_IDENT)
-                    ]
+        error_message_lines = [error_description]
 
-    log_sink.log_error(error_message_lines)
+        stack_trace = error_result.get("stackTrace")
+        if stack_trace is not None:
+            error_message_lines += ["Traceback (most recent call last):"]
+            for trace_element in stack_trace:
+                if trace_element == "":
+                    error_message_lines += [""]
+                else:
+                    for trace_line in trace_element.splitlines():
+                        error_message_lines += [
+                            replace_line_indentation(trace_line, " ", ERROR_LOG_IDENT)
+                        ]
+
+        log_sink.log_error(error_message_lines)
 
 
 def handle_event_request(
@@ -152,7 +184,12 @@ def handle_event_request(
         )
     except FaultException as e:
         xray_fault = make_xray_fault("LambdaValidationError", e.msg, os.getcwd(), [])
-        error_result = make_error(e.msg, e.exception_type, e.trace, invoke_id)
+        error_result = make_error(
+            e.msg,
+            e.exception_type,
+            e.trace,
+            invoke_id,
+        )
 
     except Exception:
         etype, value, tb = sys.exc_info()
@@ -221,7 +258,9 @@ def build_fault_result(exc_info, msg):
             break
 
     return make_error(
-        msg if msg else str(value), etype.__name__, traceback.format_list(tb_tuples)
+        msg if msg else str(value),
+        etype.__name__,
+        traceback.format_list(tb_tuples),
     )
 
 
@@ -257,7 +296,8 @@ class LambdaLoggerHandler(logging.Handler):
 
     def emit(self, record):
         msg = self.format(record)
-        self.log_sink.log(msg)
+
+        self.log_sink.log(msg, frame_type=getattr(record, "_frame_type", None))
 
 
 class LambdaLoggerFilter(logging.Filter):
@@ -298,7 +338,7 @@ class StandardLogSink(object):
     def __exit__(self, exc_type, exc_value, exc_tb):
         pass
 
-    def log(self, msg):
+    def log(self, msg, frame_type=None):
         sys.stdout.write(msg)
 
     def log_error(self, message_lines):
@@ -324,7 +364,6 @@ class FramedTelemetryLogSink(object):
 
     def __init__(self, fd):
         self.fd = int(fd)
-        self.frame_type = 0xA55A0003.to_bytes(4, "big")
 
     def __enter__(self):
         self.file = os.fdopen(self.fd, "wb", 0)
@@ -333,11 +372,12 @@ class FramedTelemetryLogSink(object):
     def __exit__(self, exc_type, exc_value, exc_tb):
         self.file.close()
 
-    def log(self, msg):
+    def log(self, msg, frame_type=None):
         encoded_msg = msg.encode("utf8")
+
         timestamp = int(time.time_ns() / 1000)  # UNIX timestamp in microseconds
         log_msg = (
-            self.frame_type
+            (frame_type or _DEFAULT_FRAME_TYPE)
             + len(encoded_msg).to_bytes(4, "big")
             + timestamp.to_bytes(8, "big")
             + encoded_msg
@@ -346,7 +386,10 @@ class FramedTelemetryLogSink(object):
 
     def log_error(self, message_lines):
         error_message = "\n".join(message_lines)
-        self.log(error_message)
+        self.log(
+            error_message,
+            frame_type=_ERROR_FRAME_TYPE,
+        )
 
 
 def update_xray_env_variable(xray_trace_id):
@@ -370,6 +413,28 @@ def create_log_sink():
 _GLOBAL_AWS_REQUEST_ID = None
 
 
+def _setup_logging(log_format, log_level, log_sink):
+    logging.Formatter.converter = time.gmtime
+    logger = logging.getLogger()
+    logger_handler = LambdaLoggerHandler(log_sink)
+    if log_format == LogFormat.JSON:
+        logger_handler.setFormatter(JsonFormatter())
+
+        logging.addLevelName(logging.DEBUG, "TRACE")
+        if log_level in logging._nameToLevel:
+            logger.setLevel(log_level)
+    else:
+        logger_handler.setFormatter(
+            logging.Formatter(
+                "[%(levelname)s]\t%(asctime)s.%(msecs)03dZ\t%(aws_request_id)s\t%(message)s\n",
+                "%Y-%m-%dT%H:%M:%S",
+            )
+        )
+
+    logger_handler.addFilter(LambdaLoggerFilter())
+    logger.addHandler(logger_handler)
+
+
 def run(app_root, handler, lambda_runtime_api_addr):
     sys.stdout = Unbuffered(sys.stdout)
     sys.stderr = Unbuffered(sys.stderr)
@@ -378,18 +443,7 @@ def run(app_root, handler, lambda_runtime_api_addr):
         lambda_runtime_client = LambdaRuntimeClient(lambda_runtime_api_addr)
 
         try:
-            logging.Formatter.converter = time.gmtime
-            logger = logging.getLogger()
-            logger_handler = LambdaLoggerHandler(log_sink)
-            logger_handler.setFormatter(
-                logging.Formatter(
-                    "[%(levelname)s]\t%(asctime)s.%(msecs)03dZ\t%(aws_request_id)s\t%(message)s\n",
-                    "%Y-%m-%dT%H:%M:%S",
-                )
-            )
-            logger_handler.addFilter(LambdaLoggerFilter())
-            logger.addHandler(logger_handler)
-
+            _setup_logging(_AWS_LAMBDA_LOG_FORMAT, _AWS_LAMBDA_LOG_LEVEL, log_sink)
             global _GLOBAL_AWS_REQUEST_ID
 
             request_handler = _get_handler(handler)

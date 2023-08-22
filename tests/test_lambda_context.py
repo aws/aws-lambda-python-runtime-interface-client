@@ -4,7 +4,7 @@ Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 
 import os
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 from awslambdaric.lambda_context import LambdaContext
 
