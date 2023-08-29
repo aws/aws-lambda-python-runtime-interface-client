@@ -1,3 +1,9 @@
+### August 29, 2023
+
+`2.0.7`:
+
+- Allow already structured logs in text format to use level-specific headers for logging protocol ([#111](https://github.com/aws/aws-lambda-python-runtime-interface-client/pull/111))
+
 ### August 22, 2023
 
 `2.0.6`:
