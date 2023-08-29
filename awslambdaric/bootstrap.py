@@ -17,15 +17,20 @@ from .lambda_runtime_log_utils import (
     _DATETIME_FORMAT,
     _DEFAULT_FRAME_TYPE,
     _JSON_FRAME_TYPES,
+    _TEXT_FRAME_TYPES,
     JsonFormatter,
     LogFormat,
+    _format_log_level,
+    _get_log_level_from_env_var,
 )
 from .lambda_runtime_marshaller import to_json
 
 ERROR_LOG_LINE_TERMINATE = "\r"
 ERROR_LOG_IDENT = "\u00a0"  # NO-BREAK SPACE U+00A0
 _AWS_LAMBDA_LOG_FORMAT = LogFormat.from_str(os.environ.get("AWS_LAMBDA_LOG_FORMAT"))
-_AWS_LAMBDA_LOG_LEVEL = os.environ.get("AWS_LAMBDA_LOG_LEVEL", "").upper()
+_AWS_LAMBDA_LOG_LEVEL = _get_log_level_from_env_var(
+    os.environ.get("AWS_LAMBDA_LOG_LEVEL")
+)
 
 
 def _get_handler(handler):
@@ -122,7 +127,7 @@ if _AWS_LAMBDA_LOG_FORMAT == LogFormat.JSON:
         )
 
 else:
-    _ERROR_FRAME_TYPE = _DEFAULT_FRAME_TYPE
+    _ERROR_FRAME_TYPE = _TEXT_FRAME_TYPES[logging.ERROR]
 
     def log_error(error_result, log_sink):
         error_description = "[ERROR]"
@@ -296,8 +301,22 @@ class LambdaLoggerHandler(logging.Handler):
 
     def emit(self, record):
         msg = self.format(record)
+        self.log_sink.log(msg)
 
-        self.log_sink.log(msg, frame_type=getattr(record, "_frame_type", None))
+
+class LambdaLoggerHandlerWithFrameType(logging.Handler):
+    def __init__(self, log_sink):
+        super().__init__()
+        self.log_sink = log_sink
+
+    def emit(self, record):
+        self.log_sink.log(
+            self.format(record),
+            frame_type=(
+                getattr(record, "_frame_type", None)
+                or _TEXT_FRAME_TYPES.get(_format_log_level(record))
+            ),
+        )
 
 
 class LambdaLoggerFilter(logging.Filter):
@@ -416,13 +435,14 @@ _GLOBAL_AWS_REQUEST_ID = None
 def _setup_logging(log_format, log_level, log_sink):
     logging.Formatter.converter = time.gmtime
     logger = logging.getLogger()
-    logger_handler = LambdaLoggerHandler(log_sink)
+
+    if log_format == LogFormat.JSON or log_level:
+        logger_handler = LambdaLoggerHandlerWithFrameType(log_sink)
+    else:
+        logger_handler = LambdaLoggerHandler(log_sink)
+
     if log_format == LogFormat.JSON:
         logger_handler.setFormatter(JsonFormatter())
-
-        logging.addLevelName(logging.DEBUG, "TRACE")
-        if log_level in logging._nameToLevel:
-            logger.setLevel(log_level)
     else:
         logger_handler.setFormatter(
             logging.Formatter(
@@ -430,6 +450,9 @@ def _setup_logging(log_format, log_level, log_sink):
                 "%Y-%m-%dT%H:%M:%S",
             )
         )
+
+    if log_level in logging._nameToLevel:
+        logger.setLevel(log_level)
 
     logger_handler.addFilter(LambdaLoggerFilter())
     logger.addHandler(logger_handler)

@@ -45,6 +45,10 @@ class LogFormat(IntEnum):
         return cls.TEXT.value
 
 
+def _get_log_level_from_env_var(log_level):
+    return {None: "", "TRACE": "DEBUG"}.get(log_level, log_level).upper()
+
+
 _JSON_FRAME_TYPES = {
     logging.NOTSET: 0xA55A0002.to_bytes(4, "big"),
     logging.DEBUG: 0xA55A000A.to_bytes(4, "big"),
@@ -53,10 +57,22 @@ _JSON_FRAME_TYPES = {
     logging.ERROR: 0xA55A0016.to_bytes(4, "big"),
     logging.CRITICAL: 0xA55A001A.to_bytes(4, "big"),
 }
-_DEFAULT_FRAME_TYPE = 0xA55A0003.to_bytes(4, "big")
+_TEXT_FRAME_TYPES = {
+    logging.NOTSET: 0xA55A0003.to_bytes(4, "big"),
+    logging.DEBUG: 0xA55A000B.to_bytes(4, "big"),
+    logging.INFO: 0xA55A000F.to_bytes(4, "big"),
+    logging.WARNING: 0xA55A0013.to_bytes(4, "big"),
+    logging.ERROR: 0xA55A0017.to_bytes(4, "big"),
+    logging.CRITICAL: 0xA55A001B.to_bytes(4, "big"),
+}
+_DEFAULT_FRAME_TYPE = _TEXT_FRAME_TYPES[logging.NOTSET]
 
 _json_encoder = json.JSONEncoder(ensure_ascii=False)
 _encode_json = _json_encoder.encode
+
+
+def _format_log_level(record: logging.LogRecord) -> int:
+    return min(50, max(0, record.levelno)) // 10 * 10
 
 
 class JsonFormatter(logging.Formatter):
@@ -90,13 +106,9 @@ class JsonFormatter(logging.Formatter):
 
         return f"{record.pathname}:{record.funcName}:{record.lineno}"
 
-    @staticmethod
-    def __format_log_level(record: logging.LogRecord):
-        record.levelno = min(50, max(0, record.levelno)) // 10 * 10
-        record.levelname = logging.getLevelName(record.levelno)
-
     def format(self, record: logging.LogRecord) -> str:
-        self.__format_log_level(record)
+        record.levelno = _format_log_level(record)
+        record.levelname = logging.getLevelName(record.levelno)
         record._frame_type = _JSON_FRAME_TYPES.get(
             record.levelno, _JSON_FRAME_TYPES[logging.NOTSET]
         )
