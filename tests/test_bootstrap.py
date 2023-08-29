@@ -18,7 +18,7 @@ from unittest.mock import MagicMock, Mock, patch
 
 import awslambdaric.bootstrap as bootstrap
 from awslambdaric.lambda_runtime_exception import FaultException
-from awslambdaric.lambda_runtime_log_utils import LogFormat
+from awslambdaric.lambda_runtime_log_utils import LogFormat, _get_log_level_from_env_var
 from awslambdaric.lambda_runtime_marshaller import LambdaMarshaller
 
 
@@ -927,7 +927,7 @@ class TestLogError(unittest.TestCase):
                 content = f.read()
 
                 frame_type = int.from_bytes(content[:4], "big")
-                self.assertEqual(frame_type, 0xA55A0003)
+                self.assertEqual(frame_type, 0xA55A0017)
 
                 length = int.from_bytes(content[4:8], "big")
                 self.assertEqual(length, len(expected_logged_error.encode("utf8")))
@@ -973,7 +973,7 @@ class TestLogError(unittest.TestCase):
                 content = f.read()
 
                 frame_type = int.from_bytes(content[:4], "big")
-                self.assertEqual(frame_type, 0xA55A0003)
+                self.assertEqual(frame_type, 0xA55A0017)
 
                 length = int.from_bytes(content[4:8], "big")
                 self.assertEqual(length, len(expected_logged_error.encode("utf8")))
@@ -1016,7 +1016,7 @@ class TestLogError(unittest.TestCase):
                 content = f.read()
 
                 frame_type = int.from_bytes(content[:4], "big")
-                self.assertEqual(frame_type, 0xA55A0003)
+                self.assertEqual(frame_type, 0xA55A0017)
 
                 length = int.from_bytes(content[4:8], "big")
                 self.assertEqual(length, len(expected_logged_error))
@@ -1053,7 +1053,7 @@ class TestLogError(unittest.TestCase):
                 content = f.read()
 
                 frame_type = int.from_bytes(content[:4], "big")
-                self.assertEqual(frame_type, 0xA55A0003)
+                self.assertEqual(frame_type, 0xA55A0017)
 
                 length = int.from_bytes(content[4:8], "big")
                 self.assertEqual(length, len(expected_logged_error))
@@ -1179,14 +1179,13 @@ class TestLoggingSetup(unittest.TestCase):
             (LogFormat.JSON, "WARN", logging.WARNING),
             (LogFormat.JSON, "ERROR", logging.ERROR),
             (LogFormat.JSON, "FATAL", logging.CRITICAL),
-            # Log level is set only for Json format
-            (LogFormat.TEXT, "TRACE", logging.NOTSET),
-            (LogFormat.TEXT, "DEBUG", logging.NOTSET),
-            (LogFormat.TEXT, "INFO", logging.NOTSET),
-            (LogFormat.TEXT, "WARN", logging.NOTSET),
-            (LogFormat.TEXT, "ERROR", logging.NOTSET),
-            (LogFormat.TEXT, "FATAL", logging.NOTSET),
-            ("Unknown format", "INFO", logging.NOTSET),
+            (LogFormat.TEXT, "TRACE", logging.DEBUG),
+            (LogFormat.TEXT, "DEBUG", logging.DEBUG),
+            (LogFormat.TEXT, "INFO", logging.INFO),
+            (LogFormat.TEXT, "WARN", logging.WARN),
+            (LogFormat.TEXT, "ERROR", logging.ERROR),
+            (LogFormat.TEXT, "FATAL", logging.CRITICAL),
+            ("Unknown format", "INFO", logging.INFO),
             # if level is unknown fall back to default
             (LogFormat.JSON, "Unknown level", logging.NOTSET),
         ]
@@ -1196,9 +1195,65 @@ class TestLoggingSetup(unittest.TestCase):
                 logging.getLogger().handlers.clear()
                 logging.getLogger().level = logging.NOTSET
 
-                bootstrap._setup_logging(fmt, log_level, bootstrap.StandardLogSink())
+                bootstrap._setup_logging(
+                    fmt,
+                    _get_log_level_from_env_var(log_level),
+                    bootstrap.StandardLogSink(),
+                )
 
                 self.assertEqual(expected_level, logging.getLogger().level)
+
+
+class TestLambdaLoggerHandlerSetup(unittest.TestCase):
+    @classmethod
+    def tearDownClass(cls):
+        importlib.reload(bootstrap)
+        logging.getLogger().handlers.clear()
+        logging.getLogger().level = logging.NOTSET
+
+    def test_handler_setup(self, *_):
+        test_cases = [
+            (62, 0xA55A0003, 46, {}),
+            (133, 0xA55A001A, 117, {"AWS_LAMBDA_LOG_FORMAT": "JSON"}),
+            (62, 0xA55A001B, 46, {"AWS_LAMBDA_LOG_LEVEL": "INFO"}),
+        ]
+
+        for total_length, header, message_length, env_vars in test_cases:
+            with patch.dict(
+                os.environ, env_vars, clear=True
+            ), NamedTemporaryFile() as temp_file:
+                importlib.reload(bootstrap)
+                logging.getLogger().handlers.clear()
+                logging.getLogger().level = logging.NOTSET
+
+                before = int(time.time_ns() / 1000)
+                with bootstrap.FramedTelemetryLogSink(
+                    os.open(temp_file.name, os.O_CREAT | os.O_RDWR)
+                ) as ls:
+                    bootstrap._setup_logging(
+                        bootstrap._AWS_LAMBDA_LOG_FORMAT,
+                        bootstrap._AWS_LAMBDA_LOG_LEVEL,
+                        ls,
+                    )
+                    logger = logging.getLogger()
+                    logger.critical("critical")
+                after = int(time.time_ns() / 1000)
+
+                content = open(temp_file.name, "rb").read()
+                self.assertEqual(len(content), total_length)
+
+                pos = 0
+                frame_type = int.from_bytes(content[pos : pos + 4], "big")
+                self.assertEqual(frame_type, header)
+                pos += 4
+
+                length = int.from_bytes(content[pos : pos + 4], "big")
+                self.assertEqual(length, message_length)
+                pos += 4
+
+                timestamp = int.from_bytes(content[pos : pos + 8], "big")
+                self.assertTrue(before <= timestamp)
+                self.assertTrue(timestamp <= after)
 
 
 class TestLogging(unittest.TestCase):
