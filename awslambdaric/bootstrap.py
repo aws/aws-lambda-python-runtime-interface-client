@@ -26,6 +26,7 @@ from .lambda_runtime_log_utils import (
 from .lambda_runtime_marshaller import to_json
 
 ERROR_LOG_LINE_TERMINATE = "\r"
+WARNING_LOG_LINE_TERMINATE = "\r"
 ERROR_LOG_IDENT = "\u00a0"  # NO-BREAK SPACE U+00A0
 _AWS_LAMBDA_LOG_FORMAT = LogFormat.from_str(os.environ.get("AWS_LAMBDA_LOG_FORMAT"))
 _AWS_LAMBDA_LOG_LEVEL = _get_log_level_from_env_var(
@@ -102,6 +103,19 @@ def make_error(
     return result
 
 
+def make_warning(
+    warning_message,
+    warning_type,
+    invoke_id=None,
+):
+    result = {
+        "warningMessage": warning_message if warning_message else "",
+        "warningType": warning_type if warning_type else "",
+        "requestId": invoke_id if invoke_id is not None else "",
+    }
+    return result
+
+
 def replace_line_indentation(line, indent_char, new_indent_char):
     ident_chars_count = 0
     for c in line:
@@ -113,6 +127,7 @@ def replace_line_indentation(line, indent_char, new_indent_char):
 
 if _AWS_LAMBDA_LOG_FORMAT == LogFormat.JSON:
     _ERROR_FRAME_TYPE = _JSON_FRAME_TYPES[logging.ERROR]
+    _WARNING_FRAME_TYPE = _JSON_FRAME_TYPES[logging.WARNING]
 
     def log_error(error_result, log_sink):
         error_result = {
@@ -126,8 +141,19 @@ if _AWS_LAMBDA_LOG_FORMAT == LogFormat.JSON:
             [to_json(error_result)],
         )
 
+    def log_warning(warning_result, log_sink):
+        warning_result = {
+            "timestamp": time.strftime(
+                _DATETIME_FORMAT, logging.Formatter.converter(time.time())
+            ),
+            "log_level": "WARNING",
+            **warning_result,
+        }
+        log_sink.log_warning([to_json(warning_result)])
+
 else:
     _ERROR_FRAME_TYPE = _TEXT_FRAME_TYPES[logging.ERROR]
+    _WARNING_FRAME_TYPE = _TEXT_FRAME_TYPES[logging.WARNING]
 
     def log_error(error_result, log_sink):
         error_description = "[ERROR]"
@@ -157,6 +183,23 @@ else:
                         ]
 
         log_sink.log_error(error_message_lines)
+
+    def log_warning(warning_result, log_sink):
+        warning_description = "[WARNING]"
+
+        warning_result_type = warning_result.get("warningType")
+        if warning_result_type:
+            warning_description += " " + warning_result_type
+
+        warning_result_message = warning_result.get("warningMessage")
+        if warning_result_message:
+            if warning_result_type:
+                warning_description += ":"
+            warning_description += " " + warning_result_message
+
+        warning_message_lines = [warning_description]
+
+        log_sink.log_error(warning_message_lines)
 
 
 def handle_event_request(
@@ -210,6 +253,11 @@ def handle_event_request(
         )
 
     if error_result is not None:
+        unhandled_exception_lambda_warning_message = "Unhandled exception. The most likely cause is an issue in the function code. However, in rare cases, a Lambda runtime update can cause unexpected function behavior. For functions using managed runtimes, runtime updates can be triggered by a function change, or can be applied automatically. To determine if the runtime has been updated, check the runtime version in the INIT_START log entry. If this error correlates with a change in the runtime version, you may be able to mitigate this error by temporarily rolling back to the previous runtime version. For more information, see https://docs.aws.amazon.com/lambda/latest/dg/runtimes-update.html"
+        warning_result = make_warning(
+            str(unhandled_exception_lambda_warning_message), "LAMBDA_WARNING", invoke_id
+        )
+        log_warning(warning_result, log_sink)
         log_error(error_result, log_sink)
         lambda_runtime_client.post_invocation_error(
             invoke_id, to_json(error_result), to_json(xray_fault)
@@ -364,6 +412,10 @@ class StandardLogSink(object):
         error_message = ERROR_LOG_LINE_TERMINATE.join(message_lines) + "\n"
         sys.stdout.write(error_message)
 
+    def log_warning(self, message_lines):
+        warning_message = WARNING_LOG_LINE_TERMINATE.join(message_lines) + "\n"
+        sys.stdout.write(warning_message)
+
 
 class FramedTelemetryLogSink(object):
     """
@@ -408,6 +460,13 @@ class FramedTelemetryLogSink(object):
         self.log(
             error_message,
             frame_type=_ERROR_FRAME_TYPE,
+        )
+
+    def log_warning(self, message_lines):
+        warning_message = "\n".join(message_lines)
+        self.log(
+            warning_message,
+            frame_type=_WARNING_FRAME_TYPE,
         )
 
 
