@@ -5,6 +5,7 @@ Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 import http
 import http.client
 import sys
+from concurrent.futures import ThreadPoolExecutor
 from awslambdaric import __version__
 
 
@@ -65,7 +66,9 @@ class LambdaRuntimeClient(object):
             raise LambdaRuntimeClientError(endpoint, response.code, response_body)
 
     def wait_next_invocation(self):
-        response_body, headers = runtime_client.next()
+        with ThreadPoolExecutor() as e:
+            fut = e.submit(runtime_client.next)
+        response_body, headers = fut.result()
         return InvocationRequest(
             invoke_id=headers.get("Lambda-Runtime-Aws-Request-Id"),
             x_amzn_trace_id=headers.get("Lambda-Runtime-Trace-Id"),
