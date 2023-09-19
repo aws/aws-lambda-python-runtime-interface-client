@@ -203,7 +203,7 @@ else:
 
         warning_message_lines = [warning_description]
 
-        log_sink.log_error(warning_message_lines)
+        log_sink.log_warning(warning_message_lines)
 
 
 def handle_event_request(
