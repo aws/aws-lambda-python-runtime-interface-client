@@ -24,7 +24,10 @@ from .lambda_runtime_log_utils import (
     _get_log_level_from_env_var,
 )
 from .lambda_runtime_marshaller import to_json
-from .lambda_unhandled_exception_warning_message import lambda_unhandled_exception_warning_message_warning_type, lambda_unhandled_exception_warning_message
+from .lambda_unhandled_exception_warning_message import (
+    lambda_unhandled_exception_warning_message_warning_type,
+    lambda_unhandled_exception_warning_message,
+)
 
 ERROR_LOG_LINE_TERMINATE = "\r"
 WARNING_LOG_LINE_TERMINATE = "\r"
@@ -255,7 +258,9 @@ def handle_event_request(
 
     if error_result is not None:
         warning_result = make_warning(
-            str(lambda_unhandled_exception_warning_message), lambda_unhandled_exception_warning_message_warning_type, invoke_id
+            str(lambda_unhandled_exception_warning_message),
+            lambda_unhandled_exception_warning_message_warning_type,
+            invoke_id,
         )
         log_warning(warning_result, log_sink)
         log_error(error_result, log_sink)
