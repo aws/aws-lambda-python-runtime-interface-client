@@ -20,6 +20,7 @@ import awslambdaric.bootstrap as bootstrap
 from awslambdaric.lambda_runtime_exception import FaultException
 from awslambdaric.lambda_runtime_log_utils import LogFormat, _get_log_level_from_env_var
 from awslambdaric.lambda_runtime_marshaller import LambdaMarshaller
+from awslambdaric.lambda_unhandled_exception_warning_message import lambda_unhandled_exception_warning_test_message
 
 
 class TestUpdateXrayEnv(unittest.TestCase):
@@ -461,7 +462,7 @@ class TestHandleEventRequest(unittest.TestCase):
         )
 
         # NOTE: Indentation characters are NO-BREAK SPACE (U+00A0) not SPACE (U+0020)
-        error_logs = "[ERROR] FaultExceptionType: Fault exception msg\r"
+        error_logs = lambda_unhandled_exception_warning_test_message + "[ERROR] FaultExceptionType: Fault exception msg\r"
         error_logs += "Traceback (most recent call last):\r"
         error_logs += '  File "spam.py", line 3, in <module>\r'
         error_logs += "    spam.eggs()\r"
@@ -492,7 +493,7 @@ class TestHandleEventRequest(unittest.TestCase):
             0,
             bootstrap.StandardLogSink(),
         )
-        error_logs = "[ERROR] FaultExceptionType: Fault exception msg\rTraceback (most recent call last):\n"
+        error_logs = lambda_unhandled_exception_warning_test_message + "[ERROR] FaultExceptionType: Fault exception msg\rTraceback (most recent call last):\n"
 
         self.assertEqual(mock_stdout.getvalue(), error_logs)
 
@@ -518,7 +519,7 @@ class TestHandleEventRequest(unittest.TestCase):
             0,
             bootstrap.StandardLogSink(),
         )
-        error_logs = "[ERROR] FaultExceptionType\rTraceback (most recent call last):\n"
+        error_logs = lambda_unhandled_exception_warning_test_message + "[ERROR] FaultExceptionType\rTraceback (most recent call last):\n"
 
         self.assertEqual(mock_stdout.getvalue(), error_logs)
 
@@ -544,7 +545,7 @@ class TestHandleEventRequest(unittest.TestCase):
             0,
             bootstrap.StandardLogSink(),
         )
-        error_logs = "[ERROR] Fault exception msg\rTraceback (most recent call last):\n"
+        error_logs = lambda_unhandled_exception_warning_test_message + "[ERROR] Fault exception msg\rTraceback (most recent call last):\n"
 
         self.assertEqual(mock_stdout.getvalue(), error_logs)
 
@@ -579,8 +580,7 @@ class TestHandleEventRequest(unittest.TestCase):
             0,
             bootstrap.StandardLogSink(),
         )
-
-        error_logs = "[ERROR]\r"
+        error_logs = lambda_unhandled_exception_warning_test_message + "[ERROR]\r"
         error_logs += "Traceback (most recent call last):\r"
         error_logs += '  File "spam.py", line 3, in <module>\r'
         error_logs += "    spam.eggs()\r"
@@ -615,8 +615,7 @@ class TestHandleEventRequest(unittest.TestCase):
             0,
             bootstrap.StandardLogSink(),
         )
-
-        error_logs = f"[ERROR] Runtime.UserCodeSyntaxError: Syntax error in module 'a': {syntax_error}\r"
+        error_logs = lambda_unhandled_exception_warning_test_message + f"[ERROR] Runtime.UserCodeSyntaxError: Syntax error in module 'a': {syntax_error}\r"
         error_logs += "Traceback (most recent call last):\r"
         error_logs += '  File "<string>" Line 1\r'
         error_logs += "    -\n"

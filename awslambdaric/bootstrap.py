@@ -24,6 +24,7 @@ from .lambda_runtime_log_utils import (
     _get_log_level_from_env_var,
 )
 from .lambda_runtime_marshaller import to_json
+from .lambda_unhandled_exception_warning_message import lambda_unhandled_exception_warning_message_warning_type, lambda_unhandled_exception_warning_message
 
 ERROR_LOG_LINE_TERMINATE = "\r"
 WARNING_LOG_LINE_TERMINATE = "\r"
@@ -253,9 +254,8 @@ def handle_event_request(
         )
 
     if error_result is not None:
-        unhandled_exception_lambda_warning_message = "Unhandled exception. The most likely cause is an issue in the function code. However, in rare cases, a Lambda runtime update can cause unexpected function behavior. For functions using managed runtimes, runtime updates can be triggered by a function change, or can be applied automatically. To determine if the runtime has been updated, check the runtime version in the INIT_START log entry. If this error correlates with a change in the runtime version, you may be able to mitigate this error by temporarily rolling back to the previous runtime version. For more information, see https://docs.aws.amazon.com/lambda/latest/dg/runtimes-update.html"
         warning_result = make_warning(
-            str(unhandled_exception_lambda_warning_message), "LAMBDA_WARNING", invoke_id
+            str(lambda_unhandled_exception_warning_message), lambda_unhandled_exception_warning_message_warning_type, invoke_id
         )
         log_warning(warning_result, log_sink)
         log_error(error_result, log_sink)
