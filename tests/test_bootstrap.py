@@ -20,8 +20,17 @@ import awslambdaric.bootstrap as bootstrap
 from awslambdaric.lambda_runtime_exception import FaultException
 from awslambdaric.lambda_runtime_log_utils import LogFormat, _get_log_level_from_env_var
 from awslambdaric.lambda_runtime_marshaller import LambdaMarshaller
-from awslambdaric.lambda_unhandled_exception_warning_message import (
-    lambda_unhandled_exception_warning_test_message,
+from awslambdaric.lambda_literals import (
+    lambda_warning,
+    lambda_unhandled_exception_warning_message,
+)
+
+lambda_unhandled_exception_warning_test_message = (
+    "[WARNING] "
+    + lambda_warning
+    + ": "
+    + lambda_unhandled_exception_warning_message
+    + "\n"
 )
 
 

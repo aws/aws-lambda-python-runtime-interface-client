@@ -24,10 +24,7 @@ from .lambda_runtime_log_utils import (
     _get_log_level_from_env_var,
 )
 from .lambda_runtime_marshaller import to_json
-from .lambda_unhandled_exception_warning_message import (
-    lambda_unhandled_exception_warning_message_warning_type,
-    lambda_unhandled_exception_warning_message,
-)
+from .lambda_literals import lambda_warning, lambda_unhandled_exception_warning_message
 
 ERROR_LOG_LINE_TERMINATE = "\r"
 WARNING_LOG_LINE_TERMINATE = "\r"
