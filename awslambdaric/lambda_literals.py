@@ -4,6 +4,7 @@ Holds warning message that is emitted when an unhandled exception is raised duri
 """
 lambda_warning = "LAMBDA_WARNING"
 lambda_unhandled_exception_warning_message = str(
+    f"{lambda_warning}: "
     "Unhandled exception. "
     "The most likely cause is an issue in the function code. "
     "However, in rare cases, a Lambda runtime update can cause unexpected function behavior. "

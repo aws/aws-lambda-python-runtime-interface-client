@@ -21,16 +21,7 @@ from awslambdaric.lambda_runtime_exception import FaultException
 from awslambdaric.lambda_runtime_log_utils import LogFormat, _get_log_level_from_env_var
 from awslambdaric.lambda_runtime_marshaller import LambdaMarshaller
 from awslambdaric.lambda_literals import (
-    lambda_warning,
     lambda_unhandled_exception_warning_message,
-)
-
-lambda_unhandled_exception_warning_test_message = (
-    "[WARNING] "
-    + lambda_warning
-    + ": "
-    + lambda_unhandled_exception_warning_message
-    + "\n"
 )
 
 
@@ -474,7 +465,7 @@ class TestHandleEventRequest(unittest.TestCase):
 
         # NOTE: Indentation characters are NO-BREAK SPACE (U+00A0) not SPACE (U+0020)
         error_logs = (
-            lambda_unhandled_exception_warning_test_message
+            lambda_unhandled_exception_warning_message
             + "[ERROR] FaultExceptionType: Fault exception msg\r"
         )
         error_logs += "Traceback (most recent call last):\r"
@@ -508,7 +499,7 @@ class TestHandleEventRequest(unittest.TestCase):
             bootstrap.StandardLogSink(),
         )
         error_logs = (
-            lambda_unhandled_exception_warning_test_message
+            lambda_unhandled_exception_warning_message
             + "[ERROR] FaultExceptionType: Fault exception msg\rTraceback (most recent call last):\n"
         )
 
@@ -537,7 +528,7 @@ class TestHandleEventRequest(unittest.TestCase):
             bootstrap.StandardLogSink(),
         )
         error_logs = (
-            lambda_unhandled_exception_warning_test_message
+            lambda_unhandled_exception_warning_message
             + "[ERROR] FaultExceptionType\rTraceback (most recent call last):\n"
         )
 
@@ -566,7 +557,7 @@ class TestHandleEventRequest(unittest.TestCase):
             bootstrap.StandardLogSink(),
         )
         error_logs = (
-            lambda_unhandled_exception_warning_test_message
+            lambda_unhandled_exception_warning_message
             + "[ERROR] Fault exception msg\rTraceback (most recent call last):\n"
         )
 
@@ -603,7 +594,7 @@ class TestHandleEventRequest(unittest.TestCase):
             0,
             bootstrap.StandardLogSink(),
         )
-        error_logs = lambda_unhandled_exception_warning_test_message + "[ERROR]\r"
+        error_logs = lambda_unhandled_exception_warning_message + "[ERROR]\r"
         error_logs += "Traceback (most recent call last):\r"
         error_logs += '  File "spam.py", line 3, in <module>\r'
         error_logs += "    spam.eggs()\r"
@@ -639,7 +630,7 @@ class TestHandleEventRequest(unittest.TestCase):
             bootstrap.StandardLogSink(),
         )
         error_logs = (
-            lambda_unhandled_exception_warning_test_message
+            lambda_unhandled_exception_warning_message
             + f"[ERROR] Runtime.UserCodeSyntaxError: Syntax error in module 'a': {syntax_error}\r"
         )
         error_logs += "Traceback (most recent call last):\r"

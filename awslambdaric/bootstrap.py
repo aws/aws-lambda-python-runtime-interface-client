@@ -253,13 +253,9 @@ def handle_event_request(
         )
 
     if error_result is not None:
-        from .lambda_literals import lambda_warning, lambda_unhandled_exception_warning_message
-        warning_result = make_warning(
-            str(lambda_unhandled_exception_warning_message),
-            lambda_warning,
-            invoke_id,
-        )
-        log_warning(warning_result, log_sink)
+        from .lambda_literals import lambda_unhandled_exception_warning_message
+
+        log_sink.log(lambda_unhandled_exception_warning_message, _WARNING_FRAME_TYPE)
         log_error(error_result, log_sink)
         lambda_runtime_client.post_invocation_error(
             invoke_id, to_json(error_result), to_json(xray_fault)
@@ -413,10 +409,6 @@ class StandardLogSink(object):
     def log_error(self, message_lines):
         error_message = ERROR_LOG_LINE_TERMINATE.join(message_lines) + "\n"
         sys.stdout.write(error_message)
-
-    def log_warning(self, message_lines):
-        warning_message = WARNING_LOG_LINE_TERMINATE.join(message_lines) + "\n"
-        sys.stdout.write(warning_message)
 
 
 class FramedTelemetryLogSink(object):
