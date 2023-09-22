@@ -26,7 +26,6 @@ from .lambda_runtime_log_utils import (
 from .lambda_runtime_marshaller import to_json
 
 ERROR_LOG_LINE_TERMINATE = "\r"
-WARNING_LOG_LINE_TERMINATE = "\r"
 ERROR_LOG_IDENT = "\u00a0"  # NO-BREAK SPACE U+00A0
 _AWS_LAMBDA_LOG_FORMAT = LogFormat.from_str(os.environ.get("AWS_LAMBDA_LOG_FORMAT"))
 _AWS_LAMBDA_LOG_LEVEL = _get_log_level_from_env_var(
@@ -103,19 +102,6 @@ def make_error(
     return result
 
 
-def make_warning(
-    warning_message,
-    warning_type,
-    invoke_id=None,
-):
-    result = {
-        "warningMessage": warning_message if warning_message else "",
-        "warningType": warning_type if warning_type else "",
-        "requestId": invoke_id if invoke_id is not None else "",
-    }
-    return result
-
-
 def replace_line_indentation(line, indent_char, new_indent_char):
     ident_chars_count = 0
     for c in line:
@@ -140,16 +126,6 @@ if _AWS_LAMBDA_LOG_FORMAT == LogFormat.JSON:
         log_sink.log_error(
             [to_json(error_result)],
         )
-
-    def log_warning(warning_result, log_sink):
-        warning_result = {
-            "timestamp": time.strftime(
-                _DATETIME_FORMAT, logging.Formatter.converter(time.time())
-            ),
-            "log_level": "WARNING",
-            **warning_result,
-        }
-        log_sink.log_warning([to_json(warning_result)])
 
 else:
     _ERROR_FRAME_TYPE = _TEXT_FRAME_TYPES[logging.ERROR]
@@ -183,23 +159,6 @@ else:
                         ]
 
         log_sink.log_error(error_message_lines)
-
-    def log_warning(warning_result, log_sink):
-        warning_description = "[WARNING]"
-
-        warning_result_type = warning_result.get("warningType")
-        if warning_result_type:
-            warning_description += " " + warning_result_type
-
-        warning_result_message = warning_result.get("warningMessage")
-        if warning_result_message:
-            if warning_result_type:
-                warning_description += ":"
-            warning_description += " " + warning_result_message
-
-        warning_message_lines = [warning_description]
-
-        log_sink.log_warning(warning_message_lines)
 
 
 def handle_event_request(
@@ -454,13 +413,6 @@ class FramedTelemetryLogSink(object):
         self.log(
             error_message,
             frame_type=_ERROR_FRAME_TYPE,
-        )
-
-    def log_warning(self, message_lines):
-        warning_message = "\n".join(message_lines)
-        self.log(
-            warning_message,
-            frame_type=_WARNING_FRAME_TYPE,
         )
 
 
