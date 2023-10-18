@@ -2,8 +2,6 @@
 Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 """
 
-import http
-import http.client
 import sys
 from awslambdaric import __version__
 
@@ -54,6 +52,11 @@ class LambdaRuntimeClient(object):
         self.lambda_runtime_address = lambda_runtime_address
 
     def post_init_error(self, error_response_data):
+        # These imports are heavy-weight. They implicitly trigger `import ssl, hashlib`.
+        # Importing them lazily to speed up critical path of a common case.
+        import http
+        import http.client
+
         runtime_connection = http.client.HTTPConnection(self.lambda_runtime_address)
         runtime_connection.connect()
         endpoint = "/2018-06-01/runtime/init/error"
