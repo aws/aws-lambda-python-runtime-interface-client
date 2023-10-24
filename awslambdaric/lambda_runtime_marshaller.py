@@ -8,6 +8,7 @@ import math
 import simplejson as json
 
 from .lambda_runtime_exception import FaultException
+from .lambda_runtime_feature_handler import feature_handler
 
 
 # simplejson's Decimal encoding allows '-NaN' as an output, which is a parse error for json.loads
@@ -15,7 +16,10 @@ from .lambda_runtime_exception import FaultException
 # We also set 'ensure_ascii=False' so that the encoded json contains unicode characters instead of unicode escape sequences
 class Encoder(json.JSONEncoder):
     def __init__(self):
-        super().__init__(use_decimal=False, ensure_ascii=False)
+        if feature_handler.is_feature_enabled("lambda_marshaller_ensure_ascii_false"):
+            super().__init__(use_decimal=False, ensure_ascii=False)
+        else:
+            super().__init__(use_decimal=False)
 
     def default(self, obj):
         if isinstance(obj, decimal.Decimal):
