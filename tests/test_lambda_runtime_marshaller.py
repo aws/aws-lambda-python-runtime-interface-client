@@ -42,4 +42,6 @@ class TestLambdaRuntimeMarshaller(unittest.TestCase):
         response = to_json({"price": "£1.00"})
         self.assertEqual('{"price": "£1.00"}', response)
         self.assertNotEqual('{"price": "\\u00a31.00"}', response)
-        self.assertEqual(19, len(response.encode('utf-8')))  # would be 23 bytes if a unicode escape was returned
+        self.assertEqual(
+            19, len(response.encode("utf-8"))
+        )  # would be 23 bytes if a unicode escape was returned
