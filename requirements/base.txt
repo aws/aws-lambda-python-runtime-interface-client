@@ -1,1 +1,1 @@
-simplejson==3.17.6
+simplejson==3.17.2
