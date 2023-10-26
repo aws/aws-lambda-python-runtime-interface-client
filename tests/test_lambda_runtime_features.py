@@ -23,12 +23,6 @@ execution_envs_is_enabled_lambda_marshaller_ensure_ascii_false = tuple(
 
 
 class TestLambdaRuntimeFeatures(unittest.TestCase):
-    def setUp(self):
-        self.org_os_environ = os.environ
-
-    def tearDown(self):
-        os.environ = self.org_os_environ
-
     @parameterized.expand(feature_names)
     def test_no_execution_env_all_features_enabled(self, feature_name):
         feature_handler = FeatureGate()
@@ -39,7 +33,6 @@ class TestLambdaRuntimeFeatures(unittest.TestCase):
         execution_envs_not_enabled_lambda_marshaller_ensure_ascii_false
     )
     def test_not_enabled_lambda_marshaller_ensure_ascii_false(self, execution_env):
-        os.environ = {"AWS_EXECUTION_ENV": execution_env}
         feature_handler = FeatureGate(execution_env=execution_env)
         is_feature_enabled = feature_handler.is_feature_enabled(
             "lambda_marshaller_ensure_ascii_false"
@@ -51,7 +44,6 @@ class TestLambdaRuntimeFeatures(unittest.TestCase):
         execution_envs_is_enabled_lambda_marshaller_ensure_ascii_false
     )
     def test_is_enabled_lambda_marshaller_ensure_ascii_false(self, execution_env):
-        os.environ = {"AWS_EXECUTION_ENV": execution_env}
         feature_handler = FeatureGate(execution_env=execution_env)
         is_feature_enabled = feature_handler.is_feature_enabled(
             "lambda_marshaller_ensure_ascii_false"
