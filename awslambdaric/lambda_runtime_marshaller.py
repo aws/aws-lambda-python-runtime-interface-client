@@ -4,11 +4,10 @@ Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 
 import decimal
 import math
-
+import os
 import simplejson as json
 
 from .lambda_runtime_exception import FaultException
-from .lambda_runtime_feature_handler import feature_handler
 
 
 # simplejson's Decimal encoding allows '-NaN' as an output, which is a parse error for json.loads
@@ -16,7 +15,7 @@ from .lambda_runtime_feature_handler import feature_handler
 # We also set 'ensure_ascii=False' so that the encoded json contains unicode characters instead of unicode escape sequences
 class Encoder(json.JSONEncoder):
     def __init__(self):
-        if feature_handler.is_feature_enabled("lambda_marshaller_ensure_ascii_false"):
+        if os.environ.get("AWS_EXECUTION_ENV") in {"AWS_Lambda_python3.12"}:
             super().__init__(use_decimal=False, ensure_ascii=False)
         else:
             super().__init__(use_decimal=False)
