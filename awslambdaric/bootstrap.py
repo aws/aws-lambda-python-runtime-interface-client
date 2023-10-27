@@ -462,7 +462,7 @@ def run(app_root, handler, lambda_runtime_api_addr):
     sys.stdout = Unbuffered(sys.stdout)
     sys.stderr = Unbuffered(sys.stderr)
 
-    aws_exec_env = os.environ.get("AWS_EXECUTION_ENV")
+    use_thread_for_polling_next = os.environ.get("AWS_EXECUTION_ENV") == "AWS_Lambda_python3.12"
 
     with create_log_sink() as log_sink:
         lambda_runtime_client = LambdaRuntimeClient(lambda_runtime_api_addr)
@@ -481,7 +481,7 @@ def run(app_root, handler, lambda_runtime_api_addr):
             sys.exit(1)
 
         while True:
-            event_request = lambda_runtime_client.wait_next_invocation(aws_exec_env)
+            event_request = lambda_runtime_client.wait_next_invocation(use_thread_for_polling_next)
 
             _GLOBAL_AWS_REQUEST_ID = event_request.invoke_id
 

@@ -4,9 +4,6 @@ Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 
 import sys
 from awslambdaric import __version__
-from concurrent.futures import ThreadPoolExecutor
-from .lambda_runtime_exception import FaultException
-
 
 def _user_agent():
     py_version = (
@@ -69,19 +66,21 @@ class LambdaRuntimeClient(object):
         if response.code != http.HTTPStatus.ACCEPTED:
             raise LambdaRuntimeClientError(endpoint, response.code, response_body)
 
-    def wait_next_invocation(self, aws_exec_env):
+    def wait_next_invocation(self, use_thread_for_polling_next=False):
         # Calling runtime_client.next() from a separate thread unblocks the main thread,
         # which can then process signals.
-        if not aws_exec_env or aws_exec_env == "AWS_Lambda_python3.12":
+        if use_thread_for_polling_next:
+            from concurrent.futures import ThreadPoolExecutor
+            from .lambda_runtime_exception import FaultException
             try:
                 with ThreadPoolExecutor(max_workers=1) as executor:
                     future = executor.submit(runtime_client.next)
                 response_body, headers = future.result()
-            except Exception as exception:
+            except Exception as e:
                 raise FaultException(
                     FaultException.LAMBDA_RUNTIME_CLIENT_ERROR,
                     "LAMBDA_RUNTIME Failed to get next invocation: {}".format(
-                        str(exception)
+                        str(e)
                     ),
                     None,
                 )

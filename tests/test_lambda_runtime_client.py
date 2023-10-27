@@ -72,8 +72,8 @@ class TestLambdaRuntime(unittest.TestCase):
         mock_runtime_client.next.return_value = response_body, headears
         runtime_client = LambdaRuntimeClient("localhost:1234")
 
-        aws_exec_env = "AWS_Lambda_python3.12"
-        event_request = runtime_client.wait_next_invocation(aws_exec_env)
+        use_thread_for_polling_next = True
+        event_request = runtime_client.wait_next_invocation(use_thread_for_polling_next)
 
         self.assertIsNotNone(event_request)
         self.assertEqual(event_request.invoke_id, "RID1234")
@@ -85,8 +85,9 @@ class TestLambdaRuntime(unittest.TestCase):
         self.assertEqual(event_request.content_type, "application/json")
         self.assertEqual(event_request.event_body, response_body)
 
-        aws_exec_env = "AWS_Lambda_python3.11"
-        event_request = runtime_client.wait_next_invocation(aws_exec_env)
+        #Using ThreadPoolExecutor to polling next()
+        use_thread_for_polling_next = False
+        event_request = runtime_client.wait_next_invocation(use_thread_for_polling_next)
 
         self.assertIsNotNone(event_request)
         self.assertEqual(event_request.invoke_id, "RID1234")
