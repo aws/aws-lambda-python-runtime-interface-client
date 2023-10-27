@@ -15,7 +15,7 @@ from .lambda_runtime_exception import FaultException
 # We also set 'ensure_ascii=False' so that the encoded json contains unicode characters instead of unicode escape sequences
 class Encoder(json.JSONEncoder):
     def __init__(self):
-        if os.environ.get("AWS_EXECUTION_ENV") in {"AWS_Lambda_python3.12"}:
+        if os.environ.get("AWS_EXECUTION_ENV") == "AWS_Lambda_python3.12":
             super().__init__(use_decimal=False, ensure_ascii=False)
         else:
             super().__init__(use_decimal=False)

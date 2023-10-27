@@ -8,23 +8,24 @@ import os
 from parameterized import parameterized
 from awslambdaric.lambda_runtime_marshaller import to_json
 
-execution_envs = (
-    "AWS_Lambda_python3.12",
-    "AWS_Lambda_python3.11",
-    "AWS_Lambda_python3.10",
-    "AWS_Lambda_python3.9",
-)
-envs_is_enabled_lambda_marshaller_ensure_ascii_false = {"AWS_Lambda_python3.12"}
-
-execution_envs_not_enabled_lambda_marshaller_ensure_ascii_false = tuple(
-    set(execution_envs).difference(envs_is_enabled_lambda_marshaller_ensure_ascii_false)
-)
-execution_envs_is_enabled_lambda_marshaller_ensure_ascii_false = tuple(
-    envs_is_enabled_lambda_marshaller_ensure_ascii_false
-)
-
 
 class TestLambdaRuntimeMarshaller(unittest.TestCase):
+    execution_envs = (
+        "AWS_Lambda_python3.12",
+        "AWS_Lambda_python3.11",
+        "AWS_Lambda_python3.10",
+        "AWS_Lambda_python3.9",
+    )
+
+    envs_lambda_marshaller_ensure_ascii_false = {"AWS_Lambda_python3.12"}
+
+    execution_envs_lambda_marshaller_ensure_ascii_true = tuple(
+        set(execution_envs).difference(envs_lambda_marshaller_ensure_ascii_false)
+    )
+    execution_envs_lambda_marshaller_ensure_ascii_false = tuple(
+        envs_lambda_marshaller_ensure_ascii_false
+    )
+
     def setUp(self):
         self.org_os_environ = os.environ
 
@@ -60,9 +61,7 @@ class TestLambdaRuntimeMarshaller(unittest.TestCase):
         self.assertFalse(hasattr(stock_json, "YOLO"))
         self.assertTrue(hasattr(simplejson, "YOLO"))
 
-    @parameterized.expand(
-        execution_envs_is_enabled_lambda_marshaller_ensure_ascii_false
-    )
+    @parameterized.expand(execution_envs_lambda_marshaller_ensure_ascii_false)
     def test_to_json_unicode_not_escaped_encoding(self, execution_env):
         os.environ = {"AWS_EXECUTION_ENV": execution_env}
         response = to_json({"price": "£1.00"})
@@ -72,9 +71,7 @@ class TestLambdaRuntimeMarshaller(unittest.TestCase):
             19, len(response.encode("utf-8"))
         )  # would be 23 bytes if a unicode escape was returned
 
-    @parameterized.expand(
-        execution_envs_not_enabled_lambda_marshaller_ensure_ascii_false
-    )
+    @parameterized.expand(execution_envs_lambda_marshaller_ensure_ascii_true)
     def test_to_json_unicode_is_escaped_encoding(self, execution_env):
         os.environ = {"AWS_EXECUTION_ENV": execution_env}
         response = to_json({"price": "£1.00"})
