@@ -48,8 +48,11 @@ class LambdaRuntimeClient(object):
     and response. It allows for function authors to override the the default implementation, LambdaMarshaller which
     unmarshals and marshals JSON, to an instance of a class that implements the same interface."""
 
-    def __init__(self, lambda_runtime_address):
+    def __init__(self, lambda_runtime_address, use_thread_for_polling_next=False):
         self.lambda_runtime_address = lambda_runtime_address
+        self.use_thread_for_polling_next = use_thread_for_polling_next
+        if self.use_thread_for_polling_next:
+            from concurrent.futures import ThreadPoolExecutor
 
     def post_init_error(self, error_response_data):
         # These imports are heavy-weight. They implicitly trigger `import ssl, hashlib`.
@@ -67,20 +70,19 @@ class LambdaRuntimeClient(object):
         if response.code != http.HTTPStatus.ACCEPTED:
             raise LambdaRuntimeClientError(endpoint, response.code, response_body)
 
-    def wait_next_invocation(self, use_thread_for_polling_next=False):
+    def wait_next_invocation(self):
         # Calling runtime_client.next() from a separate thread unblocks the main thread,
         # which can then process signals.
-        if use_thread_for_polling_next:
-            from concurrent.futures import ThreadPoolExecutor
-            from .lambda_runtime_exception import FaultException
-
+        if self.use_thread_for_polling_next:
             try:
                 with ThreadPoolExecutor(max_workers=1) as executor:
                     future = executor.submit(runtime_client.next)
                 response_body, headers = future.result()
             except Exception as e:
-                raise FaultException(
-                    FaultException.LAMBDA_RUNTIME_CLIENT_ERROR,
+                from .lambda_runtime_exception import FaultExceptions
+
+                raise FaultExceptions(
+                    FaultExceptions.LAMBDA_RUNTIME_CLIENT_ERROR,
                     "LAMBDA_RUNTIME Failed to get next invocation: {}".format(str(e)),
                     None,
                 )

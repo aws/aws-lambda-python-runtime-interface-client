@@ -467,7 +467,9 @@ def run(app_root, handler, lambda_runtime_api_addr):
     )
 
     with create_log_sink() as log_sink:
-        lambda_runtime_client = LambdaRuntimeClient(lambda_runtime_api_addr)
+        lambda_runtime_client = LambdaRuntimeClient(
+            lambda_runtime_api_addr, use_thread_for_polling_next
+        )
 
         try:
             _setup_logging(_AWS_LAMBDA_LOG_FORMAT, _AWS_LAMBDA_LOG_LEVEL, log_sink)
@@ -483,9 +485,7 @@ def run(app_root, handler, lambda_runtime_api_addr):
             sys.exit(1)
 
         while True:
-            event_request = lambda_runtime_client.wait_next_invocation(
-                use_thread_for_polling_next
-            )
+            event_request = lambda_runtime_client.wait_next_invocation()
 
             _GLOBAL_AWS_REQUEST_ID = event_request.invoke_id
 

@@ -72,8 +72,7 @@ class TestLambdaRuntime(unittest.TestCase):
         mock_runtime_client.next.return_value = response_body, headears
         runtime_client = LambdaRuntimeClient("localhost:1234")
 
-        use_thread_for_polling_next = True
-        event_request = runtime_client.wait_next_invocation(use_thread_for_polling_next)
+        event_request = runtime_client.wait_next_invocation()
 
         self.assertIsNotNone(event_request)
         self.assertEqual(event_request.invoke_id, "RID1234")
@@ -86,8 +85,9 @@ class TestLambdaRuntime(unittest.TestCase):
         self.assertEqual(event_request.event_body, response_body)
 
         # Using ThreadPoolExecutor to polling next()
-        use_thread_for_polling_next = False
-        event_request = runtime_client.wait_next_invocation(use_thread_for_polling_next)
+        runtime_client = LambdaRuntimeClient("localhost:1234", True)
+
+        event_request = runtime_client.wait_next_invocation()
 
         self.assertIsNotNone(event_request)
         self.assertEqual(event_request.invoke_id, "RID1234")
