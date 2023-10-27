@@ -72,7 +72,21 @@ class TestLambdaRuntime(unittest.TestCase):
         mock_runtime_client.next.return_value = response_body, headears
         runtime_client = LambdaRuntimeClient("localhost:1234")
 
-        event_request = runtime_client.wait_next_invocation()
+        aws_exec_env = "AWS_Lambda_python3.12"
+        event_request = runtime_client.wait_next_invocation(aws_exec_env)
+
+        self.assertIsNotNone(event_request)
+        self.assertEqual(event_request.invoke_id, "RID1234")
+        self.assertEqual(event_request.x_amzn_trace_id, "TID1234")
+        self.assertEqual(event_request.invoked_function_arn, "FARN1234")
+        self.assertEqual(event_request.deadline_time_in_ms, 12)
+        self.assertEqual(event_request.client_context, "client_context")
+        self.assertEqual(event_request.cognito_identity, "cognito_identity")
+        self.assertEqual(event_request.content_type, "application/json")
+        self.assertEqual(event_request.event_body, response_body)
+
+        aws_exec_env = "AWS_Lambda_python3.11"
+        event_request = runtime_client.wait_next_invocation(aws_exec_env)
 
         self.assertIsNotNone(event_request)
         self.assertEqual(event_request.invoke_id, "RID1234")
