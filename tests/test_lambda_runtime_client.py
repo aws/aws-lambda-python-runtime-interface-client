@@ -85,7 +85,7 @@ class TestLambdaRuntime(unittest.TestCase):
         self.assertEqual(event_request.content_type, "application/json")
         self.assertEqual(event_request.event_body, response_body)
 
-        #Using ThreadPoolExecutor to polling next()
+        # Using ThreadPoolExecutor to polling next()
         use_thread_for_polling_next = False
         event_request = runtime_client.wait_next_invocation(use_thread_for_polling_next)
 
