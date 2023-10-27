@@ -51,8 +51,6 @@ class LambdaRuntimeClient(object):
     def __init__(self, lambda_runtime_address, use_thread_for_polling_next=False):
         self.lambda_runtime_address = lambda_runtime_address
         self.use_thread_for_polling_next = use_thread_for_polling_next
-        if self.use_thread_for_polling_next:
-            from concurrent.futures import ThreadPoolExecutor
 
     def post_init_error(self, error_response_data):
         # These imports are heavy-weight. They implicitly trigger `import ssl, hashlib`.
@@ -74,13 +72,14 @@ class LambdaRuntimeClient(object):
         # Calling runtime_client.next() from a separate thread unblocks the main thread,
         # which can then process signals.
         if self.use_thread_for_polling_next:
+            from concurrent.futures import ThreadPoolExecutor
+            from .lambda_runtime_exception import FaultException
+
             try:
                 with ThreadPoolExecutor(max_workers=1) as executor:
                     future = executor.submit(runtime_client.next)
                 response_body, headers = future.result()
             except Exception as e:
-                from .lambda_runtime_exception import FaultExceptions
-
                 raise FaultExceptions(
                     FaultExceptions.LAMBDA_RUNTIME_CLIENT_ERROR,
                     "LAMBDA_RUNTIME Failed to get next invocation: {}".format(str(e)),
