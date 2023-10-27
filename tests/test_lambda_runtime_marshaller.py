@@ -3,8 +3,8 @@ Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 """
 
 import decimal
-import unittest
 import os
+import unittest
 from parameterized import parameterized
 from awslambdaric.lambda_runtime_marshaller import to_json
 
