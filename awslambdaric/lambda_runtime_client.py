@@ -4,6 +4,7 @@ Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 
 import sys
 from awslambdaric import __version__
+from .lambda_runtime_exception import FaultException
 
 
 def _user_agent():
@@ -72,16 +73,15 @@ class LambdaRuntimeClient(object):
         # Calling runtime_client.next() from a separate thread unblocks the main thread,
         # which can then process signals.
         if self.use_thread_for_polling_next:
-            from concurrent.futures import ThreadPoolExecutor
-            from .lambda_runtime_exception import FaultException
-
             try:
+                from concurrent.futures import ThreadPoolExecutor
+
                 with ThreadPoolExecutor(max_workers=1) as executor:
                     future = executor.submit(runtime_client.next)
                 response_body, headers = future.result()
             except Exception as e:
-                raise FaultExceptions(
-                    FaultExceptions.LAMBDA_RUNTIME_CLIENT_ERROR,
+                raise FaultException(
+                    FaultException.LAMBDA_RUNTIME_CLIENT_ERROR,
                     "LAMBDA_RUNTIME Failed to get next invocation: {}".format(str(e)),
                     None,
                 )
