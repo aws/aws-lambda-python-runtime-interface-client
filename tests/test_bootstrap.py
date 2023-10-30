@@ -589,10 +589,11 @@ class TestHandleEventRequest(unittest.TestCase):
 
         self.assertEqual(mock_stdout.getvalue(), error_logs)
 
-    @patch("sys.stdout", new_callable=StringIO)
+    # The order of patches matter. Using MagicMock resets sys.stdout to the default.
     @patch("importlib.import_module")
+    @patch("sys.stdout", new_callable=StringIO)
     def test_handle_event_request_fault_exception_logging_syntax_error(
-        self, mock_import_module, mock_stdout
+        self, mock_stdout, mock_import_module
     ):
         try:
             eval("-")
