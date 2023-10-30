@@ -52,6 +52,12 @@ class LambdaRuntimeClient(object):
     def __init__(self, lambda_runtime_address, use_thread_for_polling_next=False):
         self.lambda_runtime_address = lambda_runtime_address
         self.use_thread_for_polling_next = use_thread_for_polling_next
+        if self.use_thread_for_polling_next:
+            # Conditionally import only for the case when TPE is used in this class.
+            from concurrent.futures import ThreadPoolExecutor
+
+            # Not defining symbol as global to avoid relying on TPE being imported unconditionally.
+            self.ThreadPoolExecutor = ThreadPoolExecutor
 
     def post_init_error(self, error_response_data):
         # These imports are heavy-weight. They implicitly trigger `import ssl, hashlib`.
@@ -74,9 +80,8 @@ class LambdaRuntimeClient(object):
         # which can then process signals.
         if self.use_thread_for_polling_next:
             try:
-                from concurrent.futures import ThreadPoolExecutor
-
-                with ThreadPoolExecutor(max_workers=1) as executor:
+                # TPE class is supposed to be registered at construction time and be ready to use.
+                with self.ThreadPoolExecutor(max_workers=1) as executor:
                     future = executor.submit(runtime_client.next)
                 response_body, headers = future.result()
             except Exception as e:
