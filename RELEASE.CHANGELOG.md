@@ -1,3 +1,12 @@
+### October 30, 2023
+
+`2.0.8`:
+
+- Onboarded Python3.12 ([#118](https://github.com/aws/aws-lambda-python-runtime-interface-client/pull/118))
+- Fix runtime_client blocking main thread from SIGTERM being handled. Enabled by default only for Python3.12 ([#115](https://github.com/aws/aws-lambda-python-runtime-interface-client/pull/115)) ([#124](https://github.com/aws/aws-lambda-python-runtime-interface-client/pull/124)) ([#125](https://github.com/aws/aws-lambda-python-runtime-interface-client/pull/125))
+- Use unicode chars instead of escape sequences in json encoder output. Enabled by default only for Python3.12 ([#88](https://github.com/aws/aws-lambda-python-runtime-interface-client/pull/88)) ([#122](https://github.com/aws/aws-lambda-python-runtime-interface-client/pull/122))
+- Cold start improvements ([#121](https://github.com/aws/aws-lambda-python-runtime-interface-client/pull/121))
+
 ### August 29, 2023
 
 `2.0.7`:
