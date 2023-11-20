@@ -84,6 +84,21 @@ class TestLambdaRuntime(unittest.TestCase):
         self.assertEqual(event_request.content_type, "application/json")
         self.assertEqual(event_request.event_body, response_body)
 
+        # Using ThreadPoolExecutor to polling next()
+        runtime_client = LambdaRuntimeClient("localhost:1234", True)
+
+        event_request = runtime_client.wait_next_invocation()
+
+        self.assertIsNotNone(event_request)
+        self.assertEqual(event_request.invoke_id, "RID1234")
+        self.assertEqual(event_request.x_amzn_trace_id, "TID1234")
+        self.assertEqual(event_request.invoked_function_arn, "FARN1234")
+        self.assertEqual(event_request.deadline_time_in_ms, 12)
+        self.assertEqual(event_request.client_context, "client_context")
+        self.assertEqual(event_request.cognito_identity, "cognito_identity")
+        self.assertEqual(event_request.content_type, "application/json")
+        self.assertEqual(event_request.event_body, response_body)
+
     @patch("http.client.HTTPConnection", autospec=http.client.HTTPConnection)
     def test_post_init_error(self, MockHTTPConnection):
         mock_conn = MockHTTPConnection.return_value
