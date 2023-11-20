@@ -9,3 +9,8 @@ bandit>=1.6.2
 # Test requirements
 pytest>=3.0.7
 mock>=2.0.0
+
+# 3-party loggers tests
+Logbook==1.6.0
+loguru==0.7.2
+structlog==23.1.0

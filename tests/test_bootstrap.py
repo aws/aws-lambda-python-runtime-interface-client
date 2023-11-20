@@ -1434,6 +1434,193 @@ class TestLogging(unittest.TestCase):
         self.assertEqual(mock_stdout.getvalue(), "")
 
 
+class TestThirdPartyLoggers(unittest.TestCase):
+    def setUp(self) -> None:
+        logging.getLogger().handlers.clear()
+        logging.getLogger().level = logging.NOTSET
+        bootstrap._setup_logging(
+            LogFormat.from_str("JSON"), "INFO", bootstrap.StandardLogSink()
+        )
+
+    @patch("sys.stdout", new_callable=StringIO)
+    @patch("sys.stderr", new_callable=StringIO)
+    def test_structlog(self, stderr, stdout):
+        import structlog
+
+        structlog.configure(
+            processors=[
+                structlog.processors.add_log_level,
+                # Render the final event dict as JSON.
+                structlog.processors.JSONRenderer(),
+            ],
+            cache_logger_on_first_use=True,
+        )
+
+        log = structlog.get_logger()
+
+        log.debug("debug message")
+        log.info("info message")
+        log.warning("warning message")
+        log.error("error message")
+        log.critical("critical message")
+        log.info(
+            "Message with additional arguments",
+            key="value",
+            more_than_strings=[1, 2, 3],
+        )
+
+        self.assertEqual(stderr.getvalue(), "")
+
+        # All the content is rendered straight into stdout
+        messages = [json.loads(line) for line in stdout.getvalue().splitlines()]
+        self.assertEqual(
+            messages,
+            [
+                {"event": "debug message", "level": "debug"},
+                {"event": "info message", "level": "info"},
+                {"event": "warning message", "level": "warning"},
+                {"event": "error message", "level": "error"},
+                {"event": "critical message", "level": "critical"},
+                {
+                    "event": "Message with additional arguments",
+                    "key": "value",
+                    "level": "info",
+                    "more_than_strings": [1, 2, 3],
+                },
+            ],
+        )
+
+    @patch("sys.stdout", new_callable=StringIO)
+    @patch("sys.stderr", new_callable=StringIO)
+    def test_structlog_with_std_logging(self, stderr, stdout):
+        import structlog
+
+        structlog.configure(
+            processors=[
+                # Transform event dict into `logging.Logger` method arguments.
+                structlog.stdlib.render_to_log_kwargs,
+            ],
+            logger_factory=structlog.stdlib.LoggerFactory(),
+        )
+
+        log = structlog.get_logger()
+
+        log.debug("debug message")
+        log.info("info message")
+        log.warning("warning message")
+        log.error("error message")
+        log.critical("critical message")
+        log.info(
+            "Message with additional arguments",
+            key="value",
+            more_than_strings=[1, 2, 3],
+        )
+
+        messages = [json.loads(line) for line in stdout.getvalue().splitlines()]
+        for msg in messages:
+            msg.pop("timestamp")
+
+        self.assertEqual(stderr.getvalue(), "")
+
+        # Debug message is filtered out by std logging
+        self.assertEqual(
+            messages,
+            [
+                {
+                    "level": "INFO",
+                    "logger": "tests.test_bootstrap",
+                    "message": "info message",
+                    "requestId": "",
+                },
+                {
+                    "level": "WARNING",
+                    "logger": "tests.test_bootstrap",
+                    "message": "warning message",
+                    "requestId": "",
+                },
+                {
+                    "level": "ERROR",
+                    "logger": "tests.test_bootstrap",
+                    "message": "error message",
+                    "requestId": "",
+                },
+                {
+                    "level": "CRITICAL",
+                    "logger": "tests.test_bootstrap",
+                    "message": "critical message",
+                    "requestId": "",
+                },
+                {
+                    "key": "value",
+                    "level": "INFO",
+                    "logger": "tests.test_bootstrap",
+                    "message": "Message with additional arguments",
+                    "more_than_strings": [1, 2, 3],
+                    "requestId": "",
+                },
+            ],
+        )
+
+    @patch("sys.stdout", new_callable=StringIO)
+    @patch("sys.stderr", new_callable=StringIO)
+    def test_loguru(self, stderr, stdout):
+        from loguru import logger
+        import sys
+
+        logger.remove()
+        logger.add(sys.stdout, format="{level} - {message}")
+
+        logger.debug("debug")
+        logger.info("info")
+        logger.warning("warning")
+        logger.error("error")
+        logger.critical("critical")
+
+        self.assertEqual(stderr.getvalue(), "")
+
+        # All the content is rendered straight into stdout
+        self.assertEqual(
+            stdout.getvalue().splitlines(),
+            [
+                "DEBUG - debug",
+                "INFO - info",
+                "WARNING - warning",
+                "ERROR - error",
+                "CRITICAL - critical",
+            ],
+        )
+
+    @patch("sys.stdout", new_callable=StringIO)
+    @patch("sys.stderr", new_callable=StringIO)
+    def test_logbook(self, stderr, stdout):
+        from logbook import Logger, StreamHandler
+        import sys
+
+        StreamHandler(
+            sys.stdout,
+            format_string="{record.level_name}: {record.channel}: {record.message}",
+        ).push_application()
+        log = Logger("Logbook")
+
+        log.debug("debug message")
+        log.info("info message")
+        log.warning("warning message")
+        log.error("error message")
+        log.critical("critical message")
+
+        self.assertEqual(stderr.getvalue(), "")
+        self.assertEqual(
+            stdout.getvalue().splitlines(),
+            [
+                "DEBUG: Logbook: debug message",
+                "INFO: Logbook: info message",
+                "WARNING: Logbook: warning message",
+                "ERROR: Logbook: error message",
+                "CRITICAL: Logbook: critical message",
+            ],
+        )
+
+
 class TestBootstrapModule(unittest.TestCase):
     @patch("awslambdaric.bootstrap.handle_event_request")
     @patch("awslambdaric.bootstrap.LambdaRuntimeClient")
