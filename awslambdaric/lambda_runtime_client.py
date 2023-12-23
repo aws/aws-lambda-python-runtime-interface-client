@@ -3,9 +3,15 @@ Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 """
 
 import sys
+import logging
+
 from awslambdaric import __version__
 from .lambda_runtime_exception import FaultException
 
+logging.basicConfig(
+    format="%(asctime)s %(levelname)s %(name)s %(threadName)s : %(message)s",
+    level=logging.INFO,
+)
 
 def _user_agent():
     py_version = (
@@ -19,8 +25,9 @@ try:
     import runtime_client
 
     runtime_client.initialize_client(_user_agent())
-except ImportError:
-    runtime_client = None
+except ImportError as import_error:
+    logging.fatal('Failed to import "runtime_client" module. %s', import_error)
+    raise import_error
 
 from .lambda_runtime_marshaller import LambdaMarshaller
 
