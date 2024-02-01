@@ -12,6 +12,7 @@ class FaultException(Exception):
     BUILT_IN_MODULE_CONFLICT = "Runtime.BuiltInModuleConflict"
     MALFORMED_HANDLER_NAME = "Runtime.MalformedHandlerName"
     LAMBDA_CONTEXT_UNMARSHAL_ERROR = "Runtime.LambdaContextUnmarshalError"
+    LAMBDA_RUNTIME_CLIENT_ERROR = "Runtime.LambdaRuntimeClientError"
 
     def __init__(self, exception_type, msg, trace=None):
         self.msg = msg
