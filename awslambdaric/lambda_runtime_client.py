@@ -108,9 +108,11 @@ class LambdaRuntimeClient(object):
     ):
         runtime_client.post_invocation_result(
             invoke_id,
-            result_data
-            if isinstance(result_data, bytes)
-            else result_data.encode("utf-8"),
+            (
+                result_data
+                if isinstance(result_data, bytes)
+                else result_data.encode("utf-8")
+            ),
             content_type,
         )
 
