@@ -1,3 +1,9 @@
+### February 01, 2024
+
+`2.0.9`:
+
+- Log warning on unhandled exceptions. ([#120](https://github.com/aws/aws-lambda-python-runtime-interface-client/pull/120))
+
 ### October 30, 2023
 
 `2.0.8`:
