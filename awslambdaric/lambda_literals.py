@@ -1,8 +1,10 @@
 """
 Copyright 2023 Amazon.com, Inc. or its affiliates. All Rights Reserved.
-Holds warning message that is emitted when an unhandled exception is raised during function invocation.
 """
+
 lambda_warning = "LAMBDA_WARNING"
+
+# Holds warning message that is emitted when an unhandled exception is raised during function invocation.
 lambda_unhandled_exception_warning_message = str(
     f"{lambda_warning}: "
     "Unhandled exception. "
