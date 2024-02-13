@@ -1,3 +1,9 @@
+### February 13, 2024
+
+`2.0.10`:
+
+- Update format of unhandled exception warning message. ([#132](https://github.com/aws/aws-lambda-python-runtime-interface-client/pull/132))
+
 ### February 01, 2024
 
 `2.0.9`:
