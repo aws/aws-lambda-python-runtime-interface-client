@@ -1478,11 +1478,11 @@ class TestBootstrapModule(unittest.TestCase):
         "awslambdaric.bootstrap.LambdaLoggerHandler",
         Mock(side_effect=Exception("Boom!")),
     )
-    @patch("awslambdaric.bootstrap.build_fault_result", MagicMock())
+    @patch("awslambdaric.bootstrap.build_fault_result")
     @patch("awslambdaric.bootstrap.log_error", MagicMock())
     @patch("awslambdaric.bootstrap.LambdaRuntimeClient", MagicMock())
     @patch("awslambdaric.bootstrap.sys")
-    def test_run_exception(self, mock_sys):
+    def test_run_exception(self, mock_sys, mock_build_fault_result):
         class TestException(Exception):
             pass
 
@@ -1490,6 +1490,7 @@ class TestBootstrapModule(unittest.TestCase):
         expected_handler = "app.my_test_handler"
         expected_lambda_runtime_api_addr = "test_addr"
 
+        mock_build_fault_result.return_value = {}
         mock_sys.exit.side_effect = TestException("Boom!")
 
         with self.assertRaises(TestException):
