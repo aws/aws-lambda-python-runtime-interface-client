@@ -1,3 +1,9 @@
+### March 27, 2024
+
+`2.0.11`:
+
+- Upgrade simplejson to 3.18.4 ([#136](https://github.com/aws/aws-lambda-python-runtime-interface-client/pull/136))
+
 ### February 13, 2024
 
 `2.0.10`:
