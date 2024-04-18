@@ -27,11 +27,11 @@ from .lambda_runtime_marshaller import to_json
 
 ERROR_LOG_LINE_TERMINATE = "\r"
 ERROR_LOG_IDENT = "\u00a0"  # NO-BREAK SPACE U+00A0
+_AWS_LAMBDA_EXCEPTION_WARNING_DISABLE = bool(os.environ.get("AWS_LAMBDA_EXCEPTION_WARNING_DISABLE"))
 _AWS_LAMBDA_LOG_FORMAT = LogFormat.from_str(os.environ.get("AWS_LAMBDA_LOG_FORMAT"))
 _AWS_LAMBDA_LOG_LEVEL = _get_log_level_from_env_var(
     os.environ.get("AWS_LAMBDA_LOG_LEVEL")
 )
-
 
 def _get_handler(handler):
     try:
@@ -212,9 +212,11 @@ def handle_event_request(
         )
 
     if error_result is not None:
-        from .lambda_literals import lambda_unhandled_exception_warning_message
+        if not _AWS_LAMBDA_EXCEPTION_WARNING_DISABLE:
+            from .lambda_literals import lambda_unhandled_exception_warning_message
 
-        log_sink.log(lambda_unhandled_exception_warning_message, _WARNING_FRAME_TYPE)
+            log_sink.log(lambda_unhandled_exception_warning_message, _WARNING_FRAME_TYPE)
+
         log_error(error_result, log_sink)
         lambda_runtime_client.post_invocation_error(
             invoke_id, to_json(error_result), to_json(xray_fault)
