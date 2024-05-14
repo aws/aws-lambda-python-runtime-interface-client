@@ -5,7 +5,7 @@ target:
 
 .PHONY: init
 init:
-	pip3 install -r requirements/base.txt -r requirements/dev.txt
+	pip3 install -r requirements/base.txt -r requirements/dev.txt --use-pep517
 
 .PHONY: test
 test: check-format
@@ -21,7 +21,7 @@ test-smoke: setup-codebuild-agent
 
 .PHONY: test-integ
 test-integ: setup-codebuild-agent
-	CODEBUILD_IMAGE_TAG=codebuild-agent tests/integration/codebuild-local/test_all.sh tests/integration/codebuild/.
+	CODEBUILD_IMAGE_TAG=codebuild-agent DISTRO="$(DISTRO)" tests/integration/codebuild-local/test_all.sh tests/integration/codebuild
 
 .PHONY: check-security
 check-security:

@@ -9,7 +9,6 @@ from subprocess import check_call, check_output
 from setuptools import Extension, find_packages, setup
 from awslambdaric import __version__
 
-
 def get_curl_extra_linker_flags():
     # We do not want to build the dependencies during packaging
     if platform.system() != "Linux" or os.getenv("BUILD") == "true":

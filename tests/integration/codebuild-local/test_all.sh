@@ -54,7 +54,7 @@ main() {
 
     BUILDSPEC_YML_DIR="$1"
     HAS_YML=0
-    for f in "$BUILDSPEC_YML_DIR"/*.yml ; do
+    for f in "$BUILDSPEC_YML_DIR"/*"$DISTRO"*.yml ; do
         [ -f "$f" ] || continue;
         do_one_yaml "$f"
         HAS_YML=1
