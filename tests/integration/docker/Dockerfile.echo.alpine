@@ -14,14 +14,14 @@ RUN apk add --no-cache \
 FROM python-alpine AS build-image
 # Install aws-lambda-cpp build dependencies
 RUN apk add --no-cache \
-        build-base \
-        libtool \
-        autoconf \
-        automake \
-        libexecinfo-dev \
-        make \
-        cmake \
-        libcurl
+    build-base \
+    libtool \
+    autoconf \
+    automake \
+    elfutils-dev \
+    make \
+    cmake \
+    libcurl
 
 # Include global args in this stage of the build
 ARG RIC_BUILD_DIR="/home/build/"
