@@ -16,9 +16,9 @@ from .lambda_runtime_exception import FaultException
 class Encoder(json.JSONEncoder):
     def __init__(self):
         if os.environ.get("AWS_EXECUTION_ENV") == "AWS_Lambda_python3.12":
-            super().__init__(use_decimal=False, ensure_ascii=False)
+            super().__init__(use_decimal=False, ensure_ascii=False, allow_nan=True)
         else:
-            super().__init__(use_decimal=False)
+            super().__init__(use_decimal=False, allow_nan=True)
 
     def default(self, obj):
         if isinstance(obj, decimal.Decimal):
