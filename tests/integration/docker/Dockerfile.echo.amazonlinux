@@ -20,7 +20,15 @@ RUN yum install -y \
   openssl-devel \
   wget \
   libffi-devel \
+  python3-setuptools \
   sqlite-devel
+
+# Python3.10+ requires openssl1.1.1+
+RUN if [[ "${DISTRO_VERSION}" == "2" ]]; then \
+  yum install -y openssl11-devel openssl11 ; \
+else \
+  yum install -y openssl-devel openssl ; \
+fi
 
 RUN RUNTIME_LATEST_VERSION=${RUNTIME_VERSION}.$(curl -s https://www.python.org/ftp/python/ | \
                                                 grep -oE "href=\"$(echo ${RUNTIME_VERSION} | sed "s/\\./\\\./g")\.[0-9]+" | \
@@ -32,8 +40,8 @@ RUN RUNTIME_LATEST_VERSION=${RUNTIME_VERSION}.$(curl -s https://www.python.org/f
                                                 done) \
   && tar -xzf Python-${RUNTIME_LATEST_VERSION}.tgz \
   && cd Python-${RUNTIME_LATEST_VERSION} \
-  && ./configure --prefix=/usr/local --enable-shared \
-  && make \
+  && ./configure --prefix=/usr/local --enable-shared --with-openssl=/usr/ \
+  && make -j $(nproc) \
   && make install \
   && ln -s /usr/local/bin/python${RUNTIME_VERSION} /usr/local/bin/python${RUNTIME_LATEST_VERSION}
 
@@ -78,6 +86,9 @@ RUN mkdir -p ${RIC_BUILD_DIR}
 # Copy function code and Runtime Interface Client .tgz
 WORKDIR ${RIC_BUILD_DIR}
 COPY . .
+RUN if [[ "${RUNTIME_VERSION}" == "3.12" ]]; then \
+  python${RUNTIME_VERSION} -m pip install setuptools ; \
+fi
 RUN make init build test && \
     mv ./dist/awslambdaric-*.tar.gz ./dist/awslambdaric-test.tar.gz
 
