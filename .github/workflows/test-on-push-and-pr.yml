@@ -12,11 +12,45 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-      env:
-        GITHUB_WORKSPACE: /
-    - name: Set up python
-      uses: actions/setup-python@v2
-      with:
-        python-version: '3.8'
     - name: Run 'pr' target
       run: make pr
+
+  alpine:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Run alpine integration tests
+      run: DISTRO=alpine make test-integ
+
+  amazonlinux:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Run amazonlinux integration tests
+      run: DISTRO=amazonlinux make test-integ
+
+  centos:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Run centos integration tests
+      run: DISTRO=centos make test-integ
+
+  debian:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Run debian integration tests
+      run: DISTRO=debian make test-integ
+
+  ubuntu:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Run ubuntu integration tests
+      run: DISTRO=ubuntu make test-integ

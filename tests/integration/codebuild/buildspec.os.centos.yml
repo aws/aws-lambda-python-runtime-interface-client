@@ -17,7 +17,6 @@ batch:
           DISTRO_VERSION:
             - "7"
           RUNTIME_VERSION:
-            - "3.7"
             - "3.8"
             - "3.9"
             - "3.10"
