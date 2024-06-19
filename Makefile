@@ -21,7 +21,7 @@ test-smoke: setup-codebuild-agent
 
 .PHONY: test-integ
 test-integ: setup-codebuild-agent
-	CODEBUILD_IMAGE_TAG=codebuild-agent tests/integration/codebuild-local/test_all.sh tests/integration/codebuild/.
+	CODEBUILD_IMAGE_TAG=codebuild-agent DISTRO="$(DISTRO)" tests/integration/codebuild-local/test_all.sh tests/integration/codebuild/.
 
 .PHONY: check-security
 check-security:
@@ -41,7 +41,9 @@ dev: init test
 
 # Verifications to run before sending a pull request
 .PHONY: pr
-pr: init check-format check-security dev test-smoke
+pr: init check-format check-security dev setup-codebuild-agent
+	CODEBUILD_IMAGE_TAG=codebuild-agent DISTRO="$(DISTRO)" tests/integration/codebuild-local/test_all.sh tests/integration/codebuild
+
 
 .PHONY: clean
 clean:
