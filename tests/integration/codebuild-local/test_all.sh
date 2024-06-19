@@ -5,6 +5,7 @@ set -euo pipefail
 
 CODEBUILD_IMAGE_TAG="${CODEBUILD_IMAGE_TAG:-al2/x86_64/standard/3.0}"
 DRYRUN="${DRYRUN-0}"
+DISTRO="${DISTRO:=""}"
 
 function usage {
     echo "usage: test_all.sh buildspec_yml_dir"
@@ -51,10 +52,12 @@ main() {
         usage
         exit 1
     fi
-
+    
     BUILDSPEC_YML_DIR="$1"
+    echo $DISTRO $BUILDSPEC_YML_DIR
+    ls $BUILDSPEC_YML_DIR
     HAS_YML=0
-    for f in "$BUILDSPEC_YML_DIR"/*.yml ; do
+    for f in "$BUILDSPEC_YML_DIR"/*"$DISTRO"*.yml ; do
         [ -f "$f" ] || continue;
         do_one_yaml "$f"
         HAS_YML=1
