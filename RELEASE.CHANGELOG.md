@@ -1,3 +1,9 @@
+### June 19, 2024
+
+`2.0.12`:
+
+- Relax simplejson dependency and keep it backwards compatible ([#153](https://github.com/aws/aws-lambda-python-runtime-interface-client/pull/152))
+
 ### March 27, 2024
 
 `2.0.11`:
