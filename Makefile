@@ -5,8 +5,7 @@ target:
 
 .PHONY: init
 init:
-    pip3 install --upgrade pip
-	pip3 install -e .
+	pip3 install --user -e .
 .PHONY: test
 test: check-format
 	pytest --cov awslambdaric --cov-report term-missing --cov-fail-under 90 tests
