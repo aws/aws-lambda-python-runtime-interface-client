@@ -5,7 +5,7 @@ target:
 
 .PHONY: init
 init:
-	pip3 install --user -e .
+	pip install --user -e .
 .PHONY: test
 test: check-format
 	pytest --cov awslambdaric --cov-report term-missing --cov-fail-under 90 tests
@@ -51,7 +51,7 @@ clean:
 
 .PHONY: build
 build: clean
-	BUILD=true python3 -m build --sdist --wheel
+	BUILD=true python -m build --sdist --wheel
 
 define HELP_MESSAGE
 
