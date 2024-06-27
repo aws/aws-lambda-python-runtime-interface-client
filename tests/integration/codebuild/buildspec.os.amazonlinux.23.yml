@@ -15,9 +15,8 @@ batch:
       env:
         variables:
           DISTRO_VERSION:
-            - "1"
+            - "2023"
           RUNTIME_VERSION:
-            - "3.7"
             - "3.8"
             - "3.9"
             - "3.10"
@@ -31,12 +30,21 @@ phases:
       - SCRATCH_DIR=".scratch"
       - mkdir "${SCRATCH_DIR}"
       - ARCHITECTURE=$(arch)
-      - tar -xvf tests/integration/resources/aws-lambda-rie.tar.gz --directory "${SCRATCH_DIR}"
+      - >
+        if [[ "$ARCHITECTURE" == "x86_64" ]]; then
+            RIE="aws-lambda-rie"
+        elif [[ "$ARCHITECTURE" == "aarch64" ]]; then
+            RIE="aws-lambda-rie-arm64"
+        else
+            echo "Architecture $ARCHITECTURE is not currently supported."
+            exit 1
+        fi
+      - tar -xvf tests/integration/resources/${RIE}.tar.gz --directory "${SCRATCH_DIR}"
       - >
         cp "tests/integration/docker/Dockerfile.echo.${OS_DISTRIBUTION}" \
           "${SCRATCH_DIR}/Dockerfile.echo.${OS_DISTRIBUTION}.tmp"
       - >
-        echo "COPY ${SCRATCH_DIR}/aws-lambda-rie /usr/bin/aws-lambda-rie" >> \
+        echo "COPY ${SCRATCH_DIR}/${RIE} /usr/bin/${RIE}" >> \
           "${SCRATCH_DIR}/Dockerfile.echo.${OS_DISTRIBUTION}.tmp"
       - >
         if [[ -z "${DOCKERHUB_USERNAME}" && -z "${DOCKERHUB_PASSWORD}" ]];
@@ -62,12 +70,11 @@ phases:
       - >
         docker run \
           --detach \
-          -e "PYTHON_LOCATION=${PYTHON_LOCATION}" \
           --name "${TEST_NAME}-app" \
           --network "${TEST_NAME}-network" \
           --entrypoint="" \
           "${IMAGE_TAG}" \
-          sh -c '/usr/bin/aws-lambda-rie ${PYTHON_LOCATION} -m awslambdaric app.handler'
+          sh -c "/usr/bin/${RIE} ${PYTHON_LOCATION} -m awslambdaric app.handler"
       - sleep 2
       - >
         docker run \
@@ -83,19 +90,20 @@ phases:
         echo "Response: ${actual}"
         if [[ "$actual" != "$expected" ]]; then
           echo "fail! runtime: $RUNTIME - expected output $expected - got $actual"
-          echo "---------Container Logs: ${TEST_NAME}-app----------"
-          echo
-          docker logs "${TEST_NAME}-app" || true
-          echo
-          echo "---------------------------------------------------"
-          echo "--------Container Logs: ${TEST_NAME}-tester--------"
-          echo
-          docker logs "${TEST_NAME}-tester" || true
-          echo
-          echo "---------------------------------------------------"
           exit -1
         fi
     finally:
+      - |
+        echo "---------Container Logs: ${TEST_NAME}-app----------"
+        echo
+        docker logs "${TEST_NAME}-app" || true
+        echo
+        echo "---------------------------------------------------"
+        echo "--------Container Logs: ${TEST_NAME}-tester--------"
+        echo
+        docker logs "${TEST_NAME}-tester" || true
+        echo
+        echo "---------------------------------------------------"
       - echo "Cleaning up..."
       - docker stop "${TEST_NAME}-app" || true
       - docker rm --force "${TEST_NAME}-app" || true
