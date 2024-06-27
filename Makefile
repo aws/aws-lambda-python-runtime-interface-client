@@ -5,6 +5,7 @@ target:
 
 .PHONY: init
 init:
+    pip3 install --upgrade pip
 	pip3 install -e .
 .PHONY: test
 test: check-format

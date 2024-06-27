@@ -31,9 +31,6 @@ classifiers = [
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools.dynamic]
-version = {attr = "awslambdaric.VERSION"}
-
 [project.optional-dependencies]
 dev = [
     "coverage>=4.4.0",
