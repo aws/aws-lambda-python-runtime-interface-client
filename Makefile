@@ -5,8 +5,7 @@ target:
 
 .PHONY: init
 init:
-	pip3 install -r requirements/base.txt -r requirements/dev.txt
-
+	pip3 install -e .
 .PHONY: test
 test: check-format
 	pytest --cov awslambdaric --cov-report term-missing --cov-fail-under 90 tests
@@ -28,11 +27,11 @@ check-security:
 	bandit -r awslambdaric
 
 .PHONY: format
-format:
+format: init
 	black setup.py awslambdaric/ tests/
 
 .PHONY: check-format
-check-format:
+check-format: init
 	black --check setup.py awslambdaric/ tests/
 
 # Command to run everytime you make changes to verify everything works
@@ -52,7 +51,7 @@ clean:
 
 .PHONY: build
 build: clean
-	BUILD=true python3 setup.py sdist
+	BUILD=true python3 -m build --sdist --wheel
 
 define HELP_MESSAGE
 

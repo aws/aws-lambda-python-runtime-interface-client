@@ -1,0 +1,55 @@
+[project]
+name = "awslambdaric"
+version = "2.0.12"
+description = "AWS Lambda Runtime Interface Client for Python"
+authors = [
+    { name = "Amazon Web Services" }
+]
+dependencies = [
+    "simplejson>=3.18.4"
+]
+readme = "README.md"
+requires-python = ">= 3.8"
+
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.6",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.dynamic]
+version = {attr = "awslambdaric.VERSION"}
+
+[project.optional-dependencies]
+dev = [
+    "coverage>=4.4.0",
+    "flake8>=3.3.0",
+    "tox>=2.2.1",
+    "pytest-cov>=2.4.0",
+    "pylint>=1.7.2",
+    "black>=20.8b0",
+    "bandit>=1.6.2",
+
+    # Test requirements
+    "pytest>=3.0.7",
+    "mock>=2.0.0",
+    "parameterized>=0.9.0",
+]
+
+[project.urls]
+Repository = "https://github.com/aws/aws-lambda-python-runtime-interface-client"
+Issues = "https://github.com/aws/aws-lambda-python-runtime-interface-client/issues" 
