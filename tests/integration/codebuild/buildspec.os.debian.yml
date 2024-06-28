@@ -15,7 +15,7 @@ batch:
       env:
         variables:
           DISTRO_VERSION:
-            - "buster"
+            - "bookworm"
             - "bullseye"
           RUNTIME_VERSION:
             - "3.8"

@@ -9,6 +9,9 @@ FROM public.ecr.aws/docker/library/python:${RUNTIME_VERSION}-alpine${DISTRO_VERS
 RUN apk add --no-cache \
     libstdc++
 
+# https://github.com/aws/aws-lambda-python-runtime-interface-client/issues/144
+RUN echo https://dl-cdn.alpinelinux.org/alpine/v3.19/main >> /etc/apk/repositories
+RUN echo https://dl-cdn.alpinelinux.org/alpine/v3.19/community >> /etc/apk/repositories
 
 # Stage 2 - build function and dependencies
 FROM python-alpine AS build-image
@@ -16,7 +19,7 @@ FROM python-alpine AS build-image
 RUN apk add --no-cache \
     build-base \
     libtool \
-    autoconf \
+    autoconf=2.71-r2  \
     automake \
     elfutils-dev \
     make \
