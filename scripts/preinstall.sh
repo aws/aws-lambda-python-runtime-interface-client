@@ -1,6 +1,6 @@
 #!/bin/sh
 # Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
-set -e
+set -xe
 
 ARTIFACTS_DIR=$(pwd)/deps/artifacts
 
