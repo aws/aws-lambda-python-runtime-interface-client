@@ -19,8 +19,6 @@ wget -c https://github.com/awslabs/aws-lambda-cpp/archive/v$AWS_LAMBDA_CPP_RELEA
   cd aws-lambda-cpp-$AWS_LAMBDA_CPP_RELEASE && \
     patch -p1 < ../patches/aws-lambda-cpp-add-xray-response.patch && \
     patch -p1 < ../patches/aws-lambda-cpp-posting-init-errors.patch && \
-    patch -p1 < ../patches/aws-lambda-cpp-make-the-runtime-client-user-agent-overrideable.patch && \
-    patch -p1 < ../patches/aws-lambda-cpp-make-lto-optional.patch && \
     patch -p1 < ../patches/aws-lambda-cpp-add-content-type.patch
 )
 

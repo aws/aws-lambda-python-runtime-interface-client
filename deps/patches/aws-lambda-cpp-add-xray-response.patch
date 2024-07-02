@@ -1,11 +1,11 @@
 diff --git a/include/aws/lambda-runtime/runtime.h b/include/aws/lambda-runtime/runtime.h
-index 0dc292c..be77d93 100644
+index 94e1e22..ee356ff 100644
 --- a/include/aws/lambda-runtime/runtime.h
 +++ b/include/aws/lambda-runtime/runtime.h
 @@ -85,6 +85,11 @@ private:
       */
      bool m_success;
-
+ 
 +    /**
 +     * The serialized XRay response header.
 +     */
@@ -28,7 +28,7 @@ index 0dc292c..be77d93 100644
 +        m_success(success),
 +        m_xray_response(xray_response)
 +        {}
-
+ 
      /**
       * Create a successful invocation response with the given payload and content-type.
 @@ -111,7 +118,7 @@ public:
@@ -37,7 +37,7 @@ index 0dc292c..be77d93 100644
       */
 -    static invocation_response failure(std::string const& error_message, std::string const& error_type);
 +    static invocation_response failure(std::string const& error_message, std::string const& error_type, std::string const& xray_response);
-
+ 
      /**
       * Get the MIME type of the payload.
 @@ -127,6 +134,11 @@ public:
@@ -50,23 +50,23 @@ index 0dc292c..be77d93 100644
 +    */
 +    std::string const& get_xray_response() const { return m_xray_response; }
  };
-
+ 
  struct no_result {
 diff --git a/src/runtime.cpp b/src/runtime.cpp
-index e2ee7cd..d895c4b 100644
+index 9175084..230ce6f 100644
 --- a/src/runtime.cpp
 +++ b/src/runtime.cpp
-@@ -337,6 +337,7 @@ runtime::post_outcome runtime::do_post(
+@@ -333,6 +333,7 @@ runtime::post_outcome runtime::do_post(
          headers = curl_slist_append(headers, ("content-type: " + handler_response.get_content_type()).c_str());
      }
-
+ 
 +    headers = curl_slist_append(headers, ("lambda-runtime-function-xray-error-cause: " + handler_response.get_xray_response()).c_str());
      headers = curl_slist_append(headers, "Expect:");
      headers = curl_slist_append(headers, "transfer-encoding:");
-     headers = curl_slist_append(headers, get_user_agent_header().c_str());
-@@ -511,13 +512,15 @@ invocation_response invocation_response::success(std::string const& payload, std
+     headers = curl_slist_append(headers, m_user_agent_header.c_str());
+@@ -507,13 +508,15 @@ invocation_response invocation_response::success(std::string const& payload, std
  }
-
+ 
  AWS_LAMBDA_RUNTIME_API
 -invocation_response invocation_response::failure(std::string const& error_message, std::string const& error_type)
 +invocation_response invocation_response::failure(std::string const& error_message, std::string const& error_type, std::string const& xray_response)
@@ -80,3 +80,4 @@ index e2ee7cd..d895c4b 100644
 +
      return r;
  }
+ 
