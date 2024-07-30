@@ -208,7 +208,8 @@ def handle_event_request(
 
         xray_fault = make_xray_fault(etype.__name__, str(value), os.getcwd(), tb_tuples)
         error_result = make_error(
-            str(value), etype.__name__, traceback.format_list(tb_tuples), invoke_id
+            '; '.join(str(e) for e in flatten_exceptiongroup(value)),
+            etype.__name__, traceback.format_list(tb_tuples), invoke_id
         )
 
     if error_result is not None:
@@ -290,6 +291,14 @@ def make_xray_fault(ex_type, ex_msg, working_dir, tb_tuples):
         "paths": list(files),
     }
     return xray_fault
+
+
+def flatten_exceptiongroup(e):
+    exceptions = [e]
+    if isinstance(e, BaseExceptionGroup):
+        for sube in e.exceptions:
+            exceptions.extend(flatten_exceptiongroup(sube))
+    return tuple(exceptions)
 
 
 def extract_traceback(tb):
