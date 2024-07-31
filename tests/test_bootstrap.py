@@ -603,43 +603,6 @@ class TestHandleEventRequest(unittest.TestCase):
 
         self.assertEqual(mock_stdout.getvalue(), error_logs)
 
-    # The order of patches matter. Using MagicMock resets sys.stdout to the default.
-    @patch("importlib.import_module")
-    @patch("sys.stdout", new_callable=StringIO)
-    def test_handle_event_request_fault_exception_logging_syntax_error(
-        self, mock_stdout, mock_import_module
-    ):
-        try:
-            eval("-")
-        except SyntaxError as e:
-            syntax_error = e
-
-        mock_import_module.side_effect = syntax_error
-
-        response_handler = bootstrap._get_handler("a.b")
-
-        bootstrap.handle_event_request(
-            self.lambda_runtime,
-            response_handler,
-            "invoke_id",
-            self.event_body,
-            "application/json",
-            {},
-            {},
-            "invoked_function_arn",
-            0,
-            bootstrap.StandardLogSink(),
-        )
-        error_logs = (
-            lambda_unhandled_exception_warning_message
-            + f"[ERROR] Runtime.UserCodeSyntaxError: Syntax error in module 'a': {syntax_error}\r"
-        )
-        error_logs += "Traceback (most recent call last):\r"
-        error_logs += '  File "<string>" Line 1\r'
-        error_logs += "    -\n"
-
-        self.assertEqual(mock_stdout.getvalue(), error_logs)
-
 
 class TestXrayFault(unittest.TestCase):
     def test_make_xray(self):
@@ -717,10 +680,8 @@ class TestGetEventHandler(unittest.TestCase):
 
     def test_get_event_handler_bad_handler(self):
         handler_name = "bad_handler"
-        response_handler = bootstrap._get_handler(handler_name)
         with self.assertRaises(FaultException) as cm:
-            response_handler()
-
+            response_handler = bootstrap._get_handler(handler_name)
         returned_exception = cm.exception
         self.assertEqual(
             self.FaultExceptionMatcher(
@@ -732,9 +693,8 @@ class TestGetEventHandler(unittest.TestCase):
 
     def test_get_event_handler_import_error(self):
         handler_name = "no_module.handler"
-        response_handler = bootstrap._get_handler(handler_name)
         with self.assertRaises(FaultException) as cm:
-            response_handler()
+            response_handler = bootstrap._get_handler(handler_name)
         returned_exception = cm.exception
         self.assertEqual(
             self.FaultExceptionMatcher(
@@ -757,10 +717,9 @@ class TestGetEventHandler(unittest.TestCase):
             filename_w_ext = os.path.basename(tmp_file.name)
             filename, _ = os.path.splitext(filename_w_ext)
             handler_name = "{}.syntax_error".format(filename)
-            response_handler = bootstrap._get_handler(handler_name)
 
             with self.assertRaises(FaultException) as cm:
-                response_handler()
+                response_handler = bootstrap._get_handler(handler_name)
             returned_exception = cm.exception
             self.assertEqual(
                 self.FaultExceptionMatcher(
@@ -782,9 +741,8 @@ class TestGetEventHandler(unittest.TestCase):
             filename_w_ext = os.path.basename(tmp_file.name)
             filename, _ = os.path.splitext(filename_w_ext)
             handler_name = "{}.my_handler".format(filename)
-            response_handler = bootstrap._get_handler(handler_name)
             with self.assertRaises(FaultException) as cm:
-                response_handler()
+                response_handler = bootstrap._get_handler(handler_name)
             returned_exception = cm.exception
             self.assertEqual(
                 self.FaultExceptionMatcher(
@@ -801,9 +759,8 @@ class TestGetEventHandler(unittest.TestCase):
         response_handler()
 
     def test_get_event_handler_build_in_conflict(self):
-        response_handler = bootstrap._get_handler("sys.hello")
         with self.assertRaises(FaultException) as cm:
-            response_handler()
+            response_handler = bootstrap._get_handler("sys.hello")
         returned_exception = cm.exception
         self.assertEqual(
             self.FaultExceptionMatcher(
@@ -1452,9 +1409,8 @@ class TestLogging(unittest.TestCase):
 
 
 class TestBootstrapModule(unittest.TestCase):
-    @patch("awslambdaric.bootstrap.handle_event_request")
     @patch("awslambdaric.bootstrap.LambdaRuntimeClient")
-    def test_run(self, mock_runtime_client, mock_handle_event_request):
+    def test_run(self, mock_runtime_client):
         expected_app_root = "/tmp/test/app_root"
         expected_handler = "app.my_test_handler"
         expected_lambda_runtime_api_addr = "test_addr"
@@ -1467,12 +1423,12 @@ class TestBootstrapModule(unittest.TestCase):
             MagicMock(),
         ]
 
-        with self.assertRaises(TypeError):
+        with self.assertRaises(SystemExit) as cm:
             bootstrap.run(
                 expected_app_root, expected_handler, expected_lambda_runtime_api_addr
             )
 
-        mock_handle_event_request.assert_called_once()
+        self.assertEqual(cm.exception.code, 1)
 
     @patch(
         "awslambdaric.bootstrap.LambdaLoggerHandler",
