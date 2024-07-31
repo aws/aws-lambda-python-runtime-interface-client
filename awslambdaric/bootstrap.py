@@ -37,36 +37,30 @@ def _get_handler(handler):
     try:
         (modname, fname) = handler.rsplit(".", 1)
     except ValueError as e:
-        fault = FaultException(
+        raise FaultException(
             FaultException.MALFORMED_HANDLER_NAME,
             "Bad handler '{}': {}".format(handler, str(e)),
         )
-        return make_fault_handler(fault)
 
     try:
         if modname.split(".")[0] in sys.builtin_module_names:
-            fault = FaultException(
+            raise FaultException(
                 FaultException.BUILT_IN_MODULE_CONFLICT,
                 "Cannot use built-in module {} as a handler module".format(modname),
             )
-            return make_fault_handler(fault)
         m = importlib.import_module(modname.replace("/", "."))
     except ImportError as e:
-        fault = FaultException(
+        raise FaultException(
             FaultException.IMPORT_MODULE_ERROR,
             "Unable to import module '{}': {}".format(modname, str(e)),
         )
-        request_handler = make_fault_handler(fault)
-        return request_handler
     except SyntaxError as e:
         trace = ['  File "%s" Line %s\n    %s' % (e.filename, e.lineno, e.text)]
-        fault = FaultException(
+        raise FaultException(
             FaultException.USER_CODE_SYNTAX_ERROR,
             "Syntax error in module '{}': {}".format(modname, str(e)),
             trace,
         )
-        request_handler = make_fault_handler(fault)
-        return request_handler
 
     try:
         request_handler = getattr(m, fname)
@@ -76,15 +70,8 @@ def _get_handler(handler):
             "Handler '{}' missing on module '{}'".format(fname, modname),
             None,
         )
-        request_handler = make_fault_handler(fault)
-    return request_handler
-
-
-def make_fault_handler(fault):
-    def result(*args):
         raise fault
-
-    return result
+    return request_handler
 
 
 def make_error(
@@ -475,15 +462,23 @@ def run(app_root, handler, lambda_runtime_api_addr):
         lambda_runtime_client = LambdaRuntimeClient(
             lambda_runtime_api_addr, use_thread_for_polling_next
         )
+        error_result = None
 
         try:
             _setup_logging(_AWS_LAMBDA_LOG_FORMAT, _AWS_LAMBDA_LOG_LEVEL, log_sink)
             global _GLOBAL_AWS_REQUEST_ID
 
             request_handler = _get_handler(handler)
+        except FaultException as e:
+            error_result = make_error(
+                e.msg,
+                e.exception_type,
+                e.trace,
+            )
         except Exception:
             error_result = build_fault_result(sys.exc_info(), None)
 
+        if error_result is not None:
             log_error(error_result, log_sink)
             lambda_runtime_client.post_init_error(to_json(error_result))
 
