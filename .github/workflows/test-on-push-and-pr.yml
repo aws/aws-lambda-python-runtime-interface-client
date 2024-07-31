@@ -31,14 +31,6 @@ jobs:
     - name: Run amazonlinux integration tests
       run: DISTRO=amazonlinux make test-integ
 
-  centos:
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v2
-    - name: Run centos integration tests
-      run: DISTRO=centos make test-integ
-
   debian:
     runs-on: ubuntu-latest
 

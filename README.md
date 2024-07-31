@@ -19,7 +19,6 @@ First step is to choose the base image to be used. The supported Linux OS distri
 
  - Amazon Linux 2
  - Alpine
- - CentOS
  - Debian
  - Ubuntu
 

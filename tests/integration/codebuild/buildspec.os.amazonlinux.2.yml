@@ -17,8 +17,6 @@ batch:
           DISTRO_VERSION:
             - "2"
           RUNTIME_VERSION:
-            - "3.7"
-            - "3.8"
             - "3.9"
             - "3.10"
             - "3.11"
@@ -62,7 +60,7 @@ phases:
           -t "${IMAGE_TAG}" \
           --build-arg RUNTIME_VERSION="${RUNTIME_VERSION}" \
           --build-arg DISTRO_VERSION="${DISTRO_VERSION}" \
-          --build-arg ARCHITECTURE="${ARCHITECTURE}"
+          --build-arg ARCHITECTURE="${ARCHITECTURE}" --load
   build:
     commands:
       - set -x
