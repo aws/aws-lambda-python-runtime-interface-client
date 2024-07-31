@@ -1,3 +1,9 @@
+### July 31, 2024
+
+`2.1.0`:
+
+- Raise all init errors in init instead of suppressing them until the first invoke ([#163](https://github.com/aws/aws-lambda-python-runtime-interface-client/pull/163))
+
 ### June 19, 2024
 
 `2.0.12`:
