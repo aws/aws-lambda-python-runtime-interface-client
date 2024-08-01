@@ -56,7 +56,8 @@ phases:
           -f "${SCRATCH_DIR}/Dockerfile.echo.${OS_DISTRIBUTION}.tmp" \
           -t "${IMAGE_TAG}" \
           --build-arg RUNTIME_VERSION="${RUNTIME_VERSION}" \
-          --build-arg DISTRO_VERSION="${DISTRO_VERSION}" --load
+          --build-arg DISTRO_VERSION="${DISTRO_VERSION}" \
+          --load
   build:
     commands:
       - set -x

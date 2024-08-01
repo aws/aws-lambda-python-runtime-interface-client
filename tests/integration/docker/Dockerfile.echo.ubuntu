@@ -9,46 +9,45 @@ ENV DEBIAN_FRONTEND=noninteractive
 ARG RUNTIME_VERSION
 
 # Install python and pip
-RUN apt-get update && \
-  apt-get install -y \
-    software-properties-common
+RUN apt-get update && apt-get install -y software-properties-common
 RUN add-apt-repository ppa:deadsnakes/ppa
 RUN apt-get update && \
-  apt-get install -y \
-    curl \
-    python${RUNTIME_VERSION}
-
-# specific distutils package name for ubuntu24.04
-RUN if [ ${RUNTIME_VERSION} == "3.12" ] && [ ${DISTRO_VERSION} == "24.04" ]; then \
-        apt-get install -y python3-distutils-extra; \
-    else \
-        apt-get install -y python${RUNTIME_VERSION}-distutils; \
-    fi
+    apt-get install -y curl python${RUNTIME_VERSION}
 
 RUN ln -s /usr/bin/python${RUNTIME_VERSION} /usr/local/bin/python3
+
+
+
 
 # Stage 2 - build function and dependencies
 FROM python-image AS python-ubuntu-builder
 
 ARG RUNTIME_VERSION
 
-RUN curl "https://bootstrap.pypa.io/get-pip.py" -o "get-pip.py"
-RUN python${RUNTIME_VERSION} get-pip.py
-
 # Install aws-lambda-cpp build dependencies
 RUN apt-get update && \
-  apt-get install -y \
-    g++ \
-    gcc \
-    tar \
-    gzip \
-    make \
-    cmake \
-    autoconf \
-    automake \
-    libtool \
-    libcurl4-openssl-dev \
-    python${RUNTIME_VERSION}-dev
+    apt-get install -y \
+        g++ \
+        gcc \
+        tar \
+        gzip \
+        make \
+        cmake \
+        autoconf \
+        automake \
+        libtool \
+        libcurl4-openssl-dev \
+        python${RUNTIME_VERSION}-dev
+
+RUN if [ $(echo "${RUNTIME_VERSION}" | cut -d '.' -f 2) -ge 12 ]; then \
+        apt-get install -y python3-setuptools python3-pip python${RUNTIME_VERSION}-venv && \
+        python3 -m venv /home/venv; \
+    else \
+        curl "https://bootstrap.pypa.io/get-pip.py" -o "get-pip.py" && \
+        python${RUNTIME_VERSION} get-pip.py && \
+        pip3 install virtualenv && \
+        virtualenv /home/venv; \
+    fi
 
 # Include global args in this stage of the build
 ARG RIC_BUILD_DIR="/home/build/"
@@ -57,7 +56,9 @@ RUN mkdir -p ${RIC_BUILD_DIR}
 # Copy function code and Runtime Interface Client .tgz
 WORKDIR ${RIC_BUILD_DIR}
 COPY . .
-RUN make init build test && \
+RUN . /home/venv/bin/activate && \
+    pip install setuptools && \
+    make init build test && \
     mv ./dist/awslambdaric-*.tar.gz ./dist/awslambdaric-test.tar.gz
 
 # Include global args in this stage of the build
@@ -71,13 +72,13 @@ RUN cp ./dist/awslambdaric-test.tar.gz ${FUNCTION_DIR}/awslambdaric-test.tar.gz
 
 # Install the function's dependencies
 WORKDIR ${FUNCTION_DIR}
-RUN python${RUNTIME_VERSION} -m pip install \
-        awslambdaric-test.tar.gz \
-        --target ${FUNCTION_DIR} && \
+RUN python${RUNTIME_VERSION} -m pip install awslambdaric-test.tar.gz --target ${FUNCTION_DIR} && \
     rm awslambdaric-test.tar.gz
 
 
-# Stage 4 - final runtime interface client image
+
+
+# Stage 3 - final runtime interface client image
 # Grab a fresh copy of the Python image
 FROM python-image
 
