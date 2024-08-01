@@ -19,11 +19,10 @@ RUN apt-get update && \
     python${RUNTIME_VERSION}
 
 # specific distutils package name for ubuntu24.04
-RUN if [ ${RUNTIME_VERSION} == "3.12" ] && [ ${DISTRO_VERSION} == "24.04" ]; \
-    then \
-        apt-get install -y python3-distutils-extra \
+RUN if [ ${RUNTIME_VERSION} == "3.12" ] && [ ${DISTRO_VERSION} == "24.04" ]; then \
+        apt-get install -y python3-distutils-extra; \
     else \
-        apt-get install -y python${RUNTIME_VERSION}-distutils \
+        apt-get install -y python${RUNTIME_VERSION}-distutils; \
     fi
 
 RUN ln -s /usr/bin/python${RUNTIME_VERSION} /usr/local/bin/python3
