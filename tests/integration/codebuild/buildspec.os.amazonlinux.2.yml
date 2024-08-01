@@ -55,7 +55,8 @@ phases:
           -t "${IMAGE_TAG}" \
           --build-arg RUNTIME_VERSION="${RUNTIME_VERSION}" \
           --build-arg DISTRO_VERSION="${DISTRO_VERSION}" \
-          --build-arg ARCHITECTURE="${ARCHITECTURE}" --load
+          --build-arg ARCHITECTURE="${ARCHITECTURE}" \
+          --load
   build:
     commands:
       - set -x
