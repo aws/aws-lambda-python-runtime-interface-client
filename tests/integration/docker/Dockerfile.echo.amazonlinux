@@ -17,8 +17,10 @@ RUN yum install -y \
   freetype-devel \
   yum-utils \
   findutils \
-  openssl-devel \
   wget \
+  openssl11 \
+  openssl11-devel \
+  bzip2-devel \
   libffi-devel \
   sqlite-devel
 
