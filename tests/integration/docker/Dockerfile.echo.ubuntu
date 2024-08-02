@@ -12,10 +12,17 @@ ARG RUNTIME_VERSION
 RUN apt-get update && apt-get install -y software-properties-common
 RUN add-apt-repository ppa:deadsnakes/ppa
 RUN apt-get update && \
-    apt-get install -y curl python${RUNTIME_VERSION}
+    apt-get install -y \
+        curl \
+        python${RUNTIME_VERSION} \
+        python3-pip \
+        python3-virtualenv
 
-RUN ln -s /usr/bin/python${RUNTIME_VERSION} /usr/local/bin/python3
-
+# python3xx-distutils is needed for python < 3.12
+RUN if [ $(echo ${RUNTIME_VERSION} | cut -d '.' -f 2) -lt 12 ]; then \
+            apt-get install -y python${RUNTIME_VERSION}-distutils; \
+    fi
+RUN virtualenv --python /usr/bin/python${RUNTIME_VERSION} --no-setuptools /home/venv
 
 
 
@@ -25,8 +32,7 @@ FROM python-image AS python-ubuntu-builder
 ARG RUNTIME_VERSION
 
 # Install aws-lambda-cpp build dependencies
-RUN apt-get update && \
-    apt-get install -y \
+RUN apt-get install -y \
         g++ \
         gcc \
         tar \
@@ -38,16 +44,6 @@ RUN apt-get update && \
         libtool \
         libcurl4-openssl-dev \
         python${RUNTIME_VERSION}-dev
-
-RUN if [ $(echo "${RUNTIME_VERSION}" | cut -d '.' -f 2) -ge 12 ]; then \
-        apt-get install -y python3-setuptools python3-pip python${RUNTIME_VERSION}-venv && \
-        python3 -m venv /home/venv; \
-    else \
-        curl "https://bootstrap.pypa.io/get-pip.py" -o "get-pip.py" && \
-        python${RUNTIME_VERSION} get-pip.py && \
-        pip3 install virtualenv && \
-        virtualenv /home/venv; \
-    fi
 
 # Include global args in this stage of the build
 ARG RIC_BUILD_DIR="/home/build/"
@@ -61,19 +57,18 @@ RUN . /home/venv/bin/activate && \
     make init build test && \
     mv ./dist/awslambdaric-*.tar.gz ./dist/awslambdaric-test.tar.gz
 
+
+
 # Include global args in this stage of the build
 ARG FUNCTION_DIR="/home/app/"
 # Create function directory
 RUN mkdir -p ${FUNCTION_DIR}
 # Copy function code
 COPY tests/integration/test-handlers/echo/* ${FUNCTION_DIR}
-# Copy Runtime Interface Client .tgz
-RUN cp ./dist/awslambdaric-test.tar.gz ${FUNCTION_DIR}/awslambdaric-test.tar.gz
-
 # Install the function's dependencies
 WORKDIR ${FUNCTION_DIR}
-RUN python${RUNTIME_VERSION} -m pip install awslambdaric-test.tar.gz --target ${FUNCTION_DIR} && \
-    rm awslambdaric-test.tar.gz
+RUN . /home/venv/bin/activate && \
+    pip install ${RIC_BUILD_DIR}/dist/awslambdaric-test.tar.gz --target ${FUNCTION_DIR}
 
 
 
