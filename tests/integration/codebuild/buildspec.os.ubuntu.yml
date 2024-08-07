@@ -15,7 +15,6 @@ batch:
       env:
         variables:
           DISTRO_VERSION:
-            - "20.04"
             - "22.04"
             - "24.04"
           RUNTIME_VERSION:
