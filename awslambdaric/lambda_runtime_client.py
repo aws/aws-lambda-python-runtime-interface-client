@@ -5,6 +5,9 @@ Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 import sys
 from awslambdaric import __version__
 from .lambda_runtime_exception import FaultException
+from .lambda_runtime_marshaller import to_json
+
+ERROR_TYPE_HEADER = "Lambda-Runtime-Function-Error-Type"
 
 
 def _user_agent():
@@ -68,7 +71,10 @@ class LambdaRuntimeClient(object):
         runtime_connection = http.client.HTTPConnection(self.lambda_runtime_address)
         runtime_connection.connect()
         endpoint = "/2018-06-01/runtime/init/error"
-        runtime_connection.request("POST", endpoint, error_response_data)
+        headers = {ERROR_TYPE_HEADER: error_response_data["errorType"]}
+        runtime_connection.request(
+            "POST", endpoint, to_json(error_response_data), headers=headers
+        )
         response = runtime_connection.getresponse()
         response_body = response.read()
 
