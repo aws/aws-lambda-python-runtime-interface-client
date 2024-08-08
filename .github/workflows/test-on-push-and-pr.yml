@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Run 'pr' target
       run: make pr
 
@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Run alpine integration tests
       run: DISTRO=alpine make test-integ
 
@@ -27,23 +27,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Run amazonlinux integration tests
       run: DISTRO=amazonlinux make test-integ
-
-  centos:
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v2
-    - name: Run centos integration tests
-      run: DISTRO=centos make test-integ
 
   debian:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Run debian integration tests
       run: DISTRO=debian make test-integ
 
@@ -51,6 +43,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Run ubuntu integration tests
       run: DISTRO=ubuntu make test-integ
