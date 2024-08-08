@@ -14,6 +14,7 @@ from awslambdaric.lambda_runtime_client import (
     LambdaRuntimeClientError,
     _user_agent,
 )
+from awslambdaric.lambda_runtime_marshaller import to_json
 
 
 class TestInvocationRequest(unittest.TestCase):
@@ -99,6 +100,15 @@ class TestLambdaRuntime(unittest.TestCase):
         self.assertEqual(event_request.content_type, "application/json")
         self.assertEqual(event_request.event_body, response_body)
 
+    error_result = {
+        "errorMessage": "Dummy message",
+        "errorType": "Runtime.DummyError",
+        "requestId": "",
+        "stackTrace": [],
+    }
+
+    headers = {"Lambda-Runtime-Function-Error-Type": error_result["errorType"]}
+
     @patch("http.client.HTTPConnection", autospec=http.client.HTTPConnection)
     def test_post_init_error(self, MockHTTPConnection):
         mock_conn = MockHTTPConnection.return_value
@@ -108,11 +118,14 @@ class TestLambdaRuntime(unittest.TestCase):
         mock_response.code = http.HTTPStatus.ACCEPTED
 
         runtime_client = LambdaRuntimeClient("localhost:1234")
-        runtime_client.post_init_error("error_data")
+        runtime_client.post_init_error(self.error_result)
 
         MockHTTPConnection.assert_called_with("localhost:1234")
         mock_conn.request.assert_called_once_with(
-            "POST", "/2018-06-01/runtime/init/error", "error_data"
+            "POST",
+            "/2018-06-01/runtime/init/error",
+            to_json(self.error_result),
+            headers=self.headers,
         )
         mock_response.read.assert_called_once()
 
@@ -127,7 +140,7 @@ class TestLambdaRuntime(unittest.TestCase):
         runtime_client = LambdaRuntimeClient("localhost:1234")
 
         with self.assertRaises(LambdaRuntimeClientError) as cm:
-            runtime_client.post_init_error("error_data")
+            runtime_client.post_init_error(self.error_result)
         returned_exception = cm.exception
 
         self.assertEqual(returned_exception.endpoint, "/2018-06-01/runtime/init/error")
@@ -215,12 +228,12 @@ class TestLambdaRuntime(unittest.TestCase):
     def test_connection_refused(self):
         with self.assertRaises(ConnectionRefusedError):
             runtime_client = LambdaRuntimeClient("127.0.0.1:1")
-            runtime_client.post_init_error("error")
+            runtime_client.post_init_error(self.error_result)
 
     def test_invalid_addr(self):
         with self.assertRaises(OSError):
             runtime_client = LambdaRuntimeClient("::::")
-            runtime_client.post_init_error("error")
+            runtime_client.post_init_error(self.error_result)
 
     def test_lambdaric_version(self):
         self.assertTrue(_user_agent().endswith(__version__))

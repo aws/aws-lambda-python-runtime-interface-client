@@ -480,7 +480,7 @@ def run(app_root, handler, lambda_runtime_api_addr):
 
         if error_result is not None:
             log_error(error_result, log_sink)
-            lambda_runtime_client.post_init_error(to_json(error_result))
+            lambda_runtime_client.post_init_error(error_result)
 
             sys.exit(1)
 
