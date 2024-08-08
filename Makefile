@@ -41,9 +41,10 @@ dev: init test
 
 # Verifications to run before sending a pull request
 .PHONY: pr
-pr: init check-format check-security dev setup-codebuild-agent
-	CODEBUILD_IMAGE_TAG=codebuild-agent DISTRO="$(DISTRO)" tests/integration/codebuild-local/test_all.sh tests/integration/codebuild
+pr: init check-format check-security dev
 
+codebuild: setup-codebuild-agent
+	CODEBUILD_IMAGE_TAG=codebuild-agent DISTRO="$(DISTRO)" tests/integration/codebuild-local/test_all.sh tests/integration/codebuild
 
 .PHONY: clean
 clean:

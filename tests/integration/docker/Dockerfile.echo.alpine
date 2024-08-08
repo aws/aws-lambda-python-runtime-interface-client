@@ -7,7 +7,8 @@ ARG DISTRO_VERSION
 FROM public.ecr.aws/docker/library/python:${RUNTIME_VERSION}-alpine${DISTRO_VERSION} AS python-alpine
 # Install libstdc++
 RUN apk add --no-cache \
-    libstdc++
+    libstdc++ \
+    binutils
 
 
 # Stage 2 - build function and dependencies
@@ -39,15 +40,12 @@ ARG FUNCTION_DIR="/home/app/"
 RUN mkdir -p ${FUNCTION_DIR}
 # Copy function code
 COPY tests/integration/test-handlers/echo/* ${FUNCTION_DIR}
-# Copy Runtime Interface Client .tgz
-RUN cp ./dist/awslambdaric-test.tar.gz ${FUNCTION_DIR}/awslambdaric-test.tar.gz
 
 # Install the function's dependencies
 WORKDIR ${FUNCTION_DIR}
 RUN python${RUNTIME_VERSION} -m pip install \
-        awslambdaric-test.tar.gz \
-        --target ${FUNCTION_DIR} && \
-    rm awslambdaric-test.tar.gz
+        ${RIC_BUILD_DIR}/dist/awslambdaric-test.tar.gz \
+        --target ${FUNCTION_DIR}
 
 
 # Stage 3 - final runtime interface client image

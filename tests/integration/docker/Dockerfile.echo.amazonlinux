@@ -17,8 +17,10 @@ RUN yum install -y \
   freetype-devel \
   yum-utils \
   findutils \
-  openssl-devel \
   wget \
+  openssl11 \
+  openssl11-devel \
+  bzip2-devel \
   libffi-devel \
   sqlite-devel
 
@@ -78,6 +80,11 @@ RUN mkdir -p ${RIC_BUILD_DIR}
 # Copy function code and Runtime Interface Client .tgz
 WORKDIR ${RIC_BUILD_DIR}
 COPY . .
+
+# distutils no longer available in python3.12 and later
+#   https://docs.python.org/3/whatsnew/3.12.html
+#   https://peps.python.org/pep-0632/
+RUN if [ $(cut -d '.' -f 2 <<< ${RUNTIME_VERSION}) -ge 12 ]; then pip3 install setuptools; fi
 RUN make init build test && \
     mv ./dist/awslambdaric-*.tar.gz ./dist/awslambdaric-test.tar.gz
 
