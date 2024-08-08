@@ -1,6 +1,6 @@
-### July 31, 2024
+### August 8, 2024
 
-`2.1.1`:
+`2.2.0`:
 
 - Propogate error type in header when reporting init error to RAPID ([#166](https://github.com/aws/aws-lambda-python-runtime-interface-client/pull/166))
 
