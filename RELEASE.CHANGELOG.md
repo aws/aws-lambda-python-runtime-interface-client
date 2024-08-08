@@ -1,5 +1,11 @@
 ### July 31, 2024
 
+`2.1.1`:
+
+- Propogate error type in header when reporting init error to RAPID ([#166](https://github.com/aws/aws-lambda-python-runtime-interface-client/pull/166))
+
+### July 31, 2024
+
 `2.1.0`:
 
 - Raise all init errors in init instead of suppressing them until the first invoke ([#163](https://github.com/aws/aws-lambda-python-runtime-interface-client/pull/163))
