@@ -355,6 +355,46 @@ class TestHandleEventRequest(unittest.TestCase):
         self.assertEqual(len(xray_fault["paths"]), 1)
         self.assertTrue(xray_fault["paths"][0].endswith(os.path.relpath(__file__)))
 
+    def test_handle_event_request_exception_group(self):
+        def raise_exception_handler(json_input, lambda_context):
+            try:
+                raise RuntimeError("Oops")
+            except Exception as e:
+                raise ExceptionGroup("We have nested exceptions", (e,))
+
+        file_path = os.path.relpath(__file__)
+        expected_response = {
+            "errorType": "ExceptionGroup",
+            "errorMessage": "We have nested exceptions (1 sub-exception); Oops",
+            "requestId": "invoke_id",
+            "stackTrace": [
+                f'  File "{file_path}", line _, in raise_exception_handler\n'
+                '    raise ExceptionGroup("We have nested exceptions", (e,))\n'
+            ],
+        }
+        bootstrap.handle_event_request(
+            self.lambda_runtime,
+            raise_exception_handler,
+            "invoke_id",
+            self.event_body,
+            "application/json",
+            {},
+            {},
+            "invoked_function_arn",
+            0,
+            bootstrap.StandardLogSink(),
+        )
+        args, _ = self.lambda_runtime.post_invocation_error.call_args
+        error_response = json.loads(args[1])
+        self.assertEqual(args[0], "invoke_id")
+        error_response["stackTrace"] = [
+            re.sub(fr'".*/{file_path}"', f'"{file_path}"',
+                re.sub(r" line \d+,", " line _,", line)
+            )
+            for line in error_response["stackTrace"]
+        ]
+        self.assertEqual(error_response.items(), expected_response.items())
+
     def test_handle_event_request_no_module(self):
         def unable_to_import_module(json_input, lambda_context):
             import invalid_module  # noqa: F401
