@@ -148,3 +148,8 @@ cython_debug/
 
 # Test files generated
 tmp*.py
+
+# dependencies
+deps/artifacts/
+deps/aws-lambda-cpp-*/
+deps/curl-*/

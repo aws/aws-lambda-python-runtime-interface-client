@@ -22,8 +22,8 @@ RUN apk add --no-cache \
     elfutils-dev \
     make \
     cmake \
-    libcurl
-
+    libcurl\
+    git
 # Include global args in this stage of the build
 ARG RIC_BUILD_DIR="/home/build/"
 # Create function directory
@@ -31,7 +31,8 @@ RUN mkdir -p ${RIC_BUILD_DIR}
 # Copy function code and Runtime Interface Client .tgz
 WORKDIR ${RIC_BUILD_DIR}
 COPY . .
-RUN make init build test && \
+RUN make init patch-libcurl-configure-template && \
+    make build test && \
     mv ./dist/awslambdaric-*.tar.gz ./dist/awslambdaric-test.tar.gz
 
 # Include global args in this stage of the build

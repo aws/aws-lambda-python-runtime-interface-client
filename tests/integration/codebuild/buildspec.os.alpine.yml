@@ -15,9 +15,8 @@ batch:
       env:
         variables:
           DISTRO_VERSION:
-            - "3.17"
-            - "3.18"
             - "3.19"
+            - "3.20"
           RUNTIME_VERSION:
             - "3.9"
             - "3.10"

@@ -7,6 +7,10 @@ target:
 init:
 	pip3 install -r requirements/base.txt -r requirements/dev.txt
 
+.PHONY: patch-libcurl-configure-template
+patch-libcurl-configure-template: 
+	sh ./scripts/patch_libcurl_config.sh
+
 .PHONY: test
 test: check-format
 	pytest --cov awslambdaric --cov-report term-missing --cov-fail-under 90 tests
