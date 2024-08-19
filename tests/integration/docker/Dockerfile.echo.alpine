@@ -22,8 +22,8 @@ RUN apk add --no-cache \
     elfutils-dev \
     make \
     cmake \
-    libcurl\
-    git
+    libcurl
+
 # Include global args in this stage of the build
 ARG RIC_BUILD_DIR="/home/build/"
 # Create function directory
