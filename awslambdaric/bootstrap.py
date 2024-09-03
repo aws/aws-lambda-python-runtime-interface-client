@@ -478,11 +478,11 @@ def run(app_root, handler, lambda_runtime_api_addr):
         except Exception:
             error_result = build_fault_result(sys.exc_info(), None)
 
-        if error_result is not None:
-            log_error(error_result, log_sink)
-            lambda_runtime_client.post_init_error(error_result)
+            if error_result is not None:
+                log_error(error_result, log_sink)
+                lambda_runtime_client.post_init_error(error_result)
 
-            sys.exit(1)
+                sys.exit(1)
 
         while True:
             event_request = lambda_runtime_client.wait_next_invocation()
