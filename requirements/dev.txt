@@ -5,6 +5,7 @@ pytest-cov>=2.4.0
 pylint>=1.7.2
 black>=20.8b0
 bandit>=1.6.2
+setuptools
 
 # Test requirements
 pytest>=3.0.7
