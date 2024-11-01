@@ -6,7 +6,7 @@ FROM public.ecr.aws/amazonlinux/amazonlinux:${DISTRO_VERSION} AS python-amazonli
 ARG RUNTIME_VERSION
 
 # Install apt dependencies
-RUN yum install -y \
+RUN dnf install -y \
   gcc \
   gcc-c++ \
   tar \
@@ -18,8 +18,8 @@ RUN yum install -y \
   yum-utils \
   findutils \
   wget \
-  openssl11 \
-  openssl11-devel \
+  openssl \
+  openssl-devel \
   bzip2-devel \
   libffi-devel \
   sqlite-devel
@@ -41,7 +41,7 @@ RUN RUNTIME_LATEST_VERSION=${RUNTIME_VERSION}.$(curl -s https://www.python.org/f
 
 # Stage 2 - clean python build dependencies
 FROM public.ecr.aws/amazonlinux/amazonlinux:${DISTRO_VERSION} AS python-amazonlinux
-RUN yum install -y \
+RUN dnf install -y \
   libffi-devel
 
 # Copy the compiled python to /usr/local
@@ -54,7 +54,7 @@ ARG RUNTIME_VERSION
 ARG ARCHITECTURE
 
 # Install aws-lambda-cpp build dependencies
-RUN yum install -y \
+RUN dnf install -y \
   tar \
   gzip \
   make \
@@ -63,7 +63,8 @@ RUN yum install -y \
   libtool \
   libcurl-devel \
   gcc-c++ \
-  wget
+  wget \
+  sqlite-devel
 
 # Install a modern CMake
 RUN wget --quiet -O cmake-install https://github.com/Kitware/CMake/releases/download/v3.20.0/cmake-3.20.0-linux-${ARCHITECTURE}.sh && \
@@ -84,9 +85,15 @@ COPY . .
 # distutils no longer available in python3.12 and later
 #   https://docs.python.org/3/whatsnew/3.12.html
 #   https://peps.python.org/pep-0632/
-RUN if [ $(cut -d '.' -f 2 <<< ${RUNTIME_VERSION}) -ge 12 ]; then pip3 install setuptools; fi
-RUN make init build test && \
-    mv ./dist/awslambdaric-*.tar.gz ./dist/awslambdaric-test.tar.gz
+RUN pip3 install setuptools
+RUN make init build 
+
+RUN mv ./dist/awslambdaric-*.tar.gz ./dist/awslambdaric-test.tar.gz
+RUN python${RUNTIME_VERSION} -m pip install \
+      ./dist/awslambdaric-test.tar.gz \
+      --target ${RIC_BUILD_DIR}
+
+RUN make test
 
 # Include global args in this stage of the build
 ARG FUNCTION_DIR="/home/app/"
@@ -108,7 +115,7 @@ RUN python${RUNTIME_VERSION} -m pip install \
 # Stage 4 - final runtime interface client image
 # Grab a fresh copy of the Python image
 FROM python-amazonlinux
-
+RUN dnf install -y brotli
 # Include global arg in this stage of the build
 ARG FUNCTION_DIR="/home/app/"
 # Set working directory to function root directory
