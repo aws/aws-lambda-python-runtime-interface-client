@@ -2,7 +2,7 @@ version: 0.2
 
 env:
   variables:
-    OS_DISTRIBUTION: amazonlinux2
+    OS_DISTRIBUTION: amazonlinux2023
     PYTHON_LOCATION: "/usr/local/bin/python3"
     TEST_NAME: "aws-lambda-python-rtc-amazonlinux-test"
 batch:
@@ -15,11 +15,10 @@ batch:
       env:
         variables:
           DISTRO_VERSION:
-            - "2"
+            - "2023"
           RUNTIME_VERSION:
-            - "3.9"
-            - "3.10"
-            - "3.11"
+            - "3.12"
+            - "3.13"
 phases:
   pre_build:
     commands:
