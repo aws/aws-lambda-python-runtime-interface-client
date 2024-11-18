@@ -14,7 +14,7 @@ import traceback
 import unittest
 from io import StringIO
 from tempfile import NamedTemporaryFile
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, Mock, patch, ANY
 
 import awslambdaric.bootstrap as bootstrap
 from awslambdaric.lambda_runtime_exception import FaultException
@@ -23,6 +23,7 @@ from awslambdaric.lambda_runtime_marshaller import LambdaMarshaller
 from awslambdaric.lambda_literals import (
     lambda_unhandled_exception_warning_message,
 )
+import snapshot_restore_py
 
 
 class TestUpdateXrayEnv(unittest.TestCase):
@@ -1455,6 +1456,54 @@ class TestBootstrapModule(unittest.TestCase):
             )
 
         mock_sys.exit.assert_called_once_with(1)
+
+
+class TestOnInitComplete(unittest.TestCase):
+    def tearDown(self):
+        # We are accessing private filed for cleaning up
+        snapshot_restore_py._before_snapshot_registry = []
+        snapshot_restore_py._after_restore_registry = []
+
+    # We are using ANY over here as the main thing we want to test is teh errorType propogation and stack trace generation
+    error_result = {
+        "errorMessage": "This is a Dummy type error",
+        "errorType": "TypeError",
+        "requestId": "",
+        "stackTrace": ANY,
+    }
+
+    def raise_type_error(self):
+        raise TypeError("This is a Dummy type error")
+
+    @patch("awslambdaric.bootstrap.LambdaRuntimeClient")
+    def test_before_snapshot_exception(self, mock_runtime_client):
+        snapshot_restore_py.register_before_snapshot(self.raise_type_error)
+
+        with self.assertRaises(SystemExit) as cm:
+            bootstrap.on_init_complete(
+                mock_runtime_client, log_sink=bootstrap.StandardLogSink()
+            )
+
+        self.assertEqual(cm.exception.code, 64)
+        mock_runtime_client.post_init_error.assert_called_once_with(
+            self.error_result,
+            FaultException.BEFORE_SNAPSHOT_ERROR,
+        )
+
+    @patch("awslambdaric.bootstrap.LambdaRuntimeClient")
+    def test_after_restore_exception(self, mock_runtime_client):
+        snapshot_restore_py.register_after_restore(self.raise_type_error)
+
+        with self.assertRaises(SystemExit) as cm:
+            bootstrap.on_init_complete(
+                mock_runtime_client, log_sink=bootstrap.StandardLogSink()
+            )
+
+        self.assertEqual(cm.exception.code, 65)
+        mock_runtime_client.restore_next.assert_called_once()
+        mock_runtime_client.report_restore_error.assert_called_once_with(
+            self.error_result
+        )
 
 
 if __name__ == "__main__":

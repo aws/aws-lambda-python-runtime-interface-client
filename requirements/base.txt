@@ -1,1 +1,2 @@
 simplejson>=3.18.4
+snapshot-restore-py>=1.0.0
