@@ -31,6 +31,8 @@ _AWS_LAMBDA_LOG_FORMAT = LogFormat.from_str(os.environ.get("AWS_LAMBDA_LOG_FORMA
 _AWS_LAMBDA_LOG_LEVEL = _get_log_level_from_env_var(
     os.environ.get("AWS_LAMBDA_LOG_LEVEL")
 )
+AWS_LAMBDA_INITIALIZATION_TYPE = "AWS_LAMBDA_INITIALIZATION_TYPE"
+INIT_TYPE_SNAP_START = "snap-start"
 
 
 def _get_handler(handler):
@@ -286,6 +288,29 @@ def extract_traceback(tb):
     ]
 
 
+def on_init_complete(lambda_runtime_client, log_sink):
+    from . import lambda_runtime_hooks_runner
+
+    try:
+        lambda_runtime_hooks_runner.run_before_snapshot()
+        lambda_runtime_client.restore_next()
+    except:
+        error_result = build_fault_result(sys.exc_info(), None)
+        log_error(error_result, log_sink)
+        lambda_runtime_client.post_init_error(
+            error_result, FaultException.BEFORE_SNAPSHOT_ERROR
+        )
+        sys.exit(64)
+
+    try:
+        lambda_runtime_hooks_runner.run_after_restore()
+    except:
+        error_result = build_fault_result(sys.exc_info(), None)
+        log_error(error_result, log_sink)
+        lambda_runtime_client.report_restore_error(error_result)
+        sys.exit(65)
+
+
 class LambdaLoggerHandler(logging.Handler):
     def __init__(self, log_sink):
         logging.Handler.__init__(self)
@@ -454,10 +479,10 @@ def run(app_root, handler, lambda_runtime_api_addr):
     sys.stdout = Unbuffered(sys.stdout)
     sys.stderr = Unbuffered(sys.stderr)
 
-    use_thread_for_polling_next = os.environ.get("AWS_EXECUTION_ENV") in [
+    use_thread_for_polling_next = os.environ.get("AWS_EXECUTION_ENV") in {
         "AWS_Lambda_python3.12",
         "AWS_Lambda_python3.13",
-    ]
+    }
 
     with create_log_sink() as log_sink:
         lambda_runtime_client = LambdaRuntimeClient(
@@ -484,6 +509,9 @@ def run(app_root, handler, lambda_runtime_api_addr):
             lambda_runtime_client.post_init_error(error_result)
 
             sys.exit(1)
+
+        if os.environ.get(AWS_LAMBDA_INITIALIZATION_TYPE) == INIT_TYPE_SNAP_START:
+            on_init_complete(lambda_runtime_client, log_sink)
 
         while True:
             event_request = lambda_runtime_client.wait_next_invocation()

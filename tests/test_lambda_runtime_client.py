@@ -109,6 +109,21 @@ class TestLambdaRuntime(unittest.TestCase):
 
     headers = {"Lambda-Runtime-Function-Error-Type": error_result["errorType"]}
 
+    restore_error_result = {
+        "errorMessage": "Dummy Restore error",
+        "errorType": "Runtime.DummyRestoreError",
+        "requestId": "",
+        "stackTrace": [],
+    }
+
+    restore_error_header = {
+        "Lambda-Runtime-Function-Error-Type": "Runtime.AfterRestoreError"
+    }
+
+    before_snapshot_error_header = {
+        "Lambda-Runtime-Function-Error-Type": "Runtime.BeforeSnapshotError"
+    }
+
     @patch("http.client.HTTPConnection", autospec=http.client.HTTPConnection)
     def test_post_init_error(self, MockHTTPConnection):
         mock_conn = MockHTTPConnection.return_value
@@ -224,6 +239,64 @@ class TestLambdaRuntime(unittest.TestCase):
         mock_runtime_client.post_error.assert_called_once_with(
             invoke_id, error_data, ""
         )
+
+    @patch("http.client.HTTPConnection", autospec=http.client.HTTPConnection)
+    def test_restore_next(self, MockHTTPConnection):
+        mock_conn = MockHTTPConnection.return_value
+        mock_response = MagicMock(autospec=http.client.HTTPResponse)
+        mock_conn.getresponse.return_value = mock_response
+        mock_response.read.return_value = b""
+        mock_response.code = http.HTTPStatus.OK
+
+        runtime_client = LambdaRuntimeClient("localhost:1234")
+        runtime_client.restore_next()
+
+        MockHTTPConnection.assert_called_with("localhost:1234")
+        mock_conn.request.assert_called_once_with(
+            "GET",
+            "/2018-06-01/runtime/restore/next",
+        )
+        mock_response.read.assert_called_once()
+
+    @patch("http.client.HTTPConnection", autospec=http.client.HTTPConnection)
+    def test_restore_error(self, MockHTTPConnection):
+        mock_conn = MockHTTPConnection.return_value
+        mock_response = MagicMock(autospec=http.client.HTTPResponse)
+        mock_conn.getresponse.return_value = mock_response
+        mock_response.read.return_value = b""
+        mock_response.code = http.HTTPStatus.ACCEPTED
+
+        runtime_client = LambdaRuntimeClient("localhost:1234")
+        runtime_client.report_restore_error(self.restore_error_result)
+
+        MockHTTPConnection.assert_called_with("localhost:1234")
+        mock_conn.request.assert_called_once_with(
+            "POST",
+            "/2018-06-01/runtime/restore/error",
+            to_json(self.restore_error_result),
+            headers=self.restore_error_header,
+        )
+        mock_response.read.assert_called_once()
+
+    @patch("http.client.HTTPConnection", autospec=http.client.HTTPConnection)
+    def test_init_before_snapshot_error(self, MockHTTPConnection):
+        mock_conn = MockHTTPConnection.return_value
+        mock_response = MagicMock(autospec=http.client.HTTPResponse)
+        mock_conn.getresponse.return_value = mock_response
+        mock_response.read.return_value = b""
+        mock_response.code = http.HTTPStatus.ACCEPTED
+
+        runtime_client = LambdaRuntimeClient("localhost:1234")
+        runtime_client.post_init_error(self.error_result, "Runtime.BeforeSnapshotError")
+
+        MockHTTPConnection.assert_called_with("localhost:1234")
+        mock_conn.request.assert_called_once_with(
+            "POST",
+            "/2018-06-01/runtime/init/error",
+            to_json(self.error_result),
+            headers=self.before_snapshot_error_header,
+        )
+        mock_response.read.assert_called_once()
 
     def test_connection_refused(self):
         with self.assertRaises(ConnectionRefusedError):

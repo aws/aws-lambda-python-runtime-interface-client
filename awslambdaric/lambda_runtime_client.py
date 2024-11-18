@@ -62,24 +62,56 @@ class LambdaRuntimeClient(object):
             # Not defining symbol as global to avoid relying on TPE being imported unconditionally.
             self.ThreadPoolExecutor = ThreadPoolExecutor
 
-    def post_init_error(self, error_response_data):
+    def call_rapid(
+        self, http_method, endpoint, expected_http_code, payload=None, headers=None
+    ):
         # These imports are heavy-weight. They implicitly trigger `import ssl, hashlib`.
         # Importing them lazily to speed up critical path of a common case.
-        import http
         import http.client
 
         runtime_connection = http.client.HTTPConnection(self.lambda_runtime_address)
         runtime_connection.connect()
-        endpoint = "/2018-06-01/runtime/init/error"
-        headers = {ERROR_TYPE_HEADER: error_response_data["errorType"]}
-        runtime_connection.request(
-            "POST", endpoint, to_json(error_response_data), headers=headers
-        )
+        if http_method == "GET":
+            runtime_connection.request(http_method, endpoint)
+        else:
+            runtime_connection.request(
+                http_method, endpoint, to_json(payload), headers=headers
+            )
+
         response = runtime_connection.getresponse()
         response_body = response.read()
-
-        if response.code != http.HTTPStatus.ACCEPTED:
+        if response.code != expected_http_code:
             raise LambdaRuntimeClientError(endpoint, response.code, response_body)
+
+    def post_init_error(self, error_response_data, error_type_override=None):
+        import http
+
+        endpoint = "/2018-06-01/runtime/init/error"
+        headers = {
+            ERROR_TYPE_HEADER: (
+                error_type_override
+                if error_type_override
+                else error_response_data["errorType"]
+            )
+        }
+        self.call_rapid(
+            "POST", endpoint, http.HTTPStatus.ACCEPTED, error_response_data, headers
+        )
+
+    def restore_next(self):
+        import http
+
+        endpoint = "/2018-06-01/runtime/restore/next"
+        self.call_rapid("GET", endpoint, http.HTTPStatus.OK)
+
+    def report_restore_error(self, restore_error_data):
+        import http
+
+        endpoint = "/2018-06-01/runtime/restore/error"
+        headers = {ERROR_TYPE_HEADER: FaultException.AFTER_RESTORE_ERROR}
+        self.call_rapid(
+            "POST", endpoint, http.HTTPStatus.ACCEPTED, restore_error_data, headers
+        )
 
     def wait_next_invocation(self):
         # Calling runtime_client.next() from a separate thread unblocks the main thread,

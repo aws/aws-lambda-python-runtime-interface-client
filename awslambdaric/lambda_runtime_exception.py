@@ -11,6 +11,8 @@ class FaultException(Exception):
     IMPORT_MODULE_ERROR = "Runtime.ImportModuleError"
     BUILT_IN_MODULE_CONFLICT = "Runtime.BuiltInModuleConflict"
     MALFORMED_HANDLER_NAME = "Runtime.MalformedHandlerName"
+    BEFORE_SNAPSHOT_ERROR = "Runtime.BeforeSnapshotError"
+    AFTER_RESTORE_ERROR = "Runtime.AfterRestoreError"
     LAMBDA_CONTEXT_UNMARSHAL_ERROR = "Runtime.LambdaContextUnmarshalError"
     LAMBDA_RUNTIME_CLIENT_ERROR = "Runtime.LambdaRuntimeClientError"
 
