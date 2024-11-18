@@ -1,3 +1,7 @@
+### November 18, 2024
+`3.0.0`
+- Add support for snapstart runtime hooks ([#176](https://github.com/aws/aws-lambda-python-runtime-interface-client/pull/176))
+
 ### August 23, 2024
 `2.2.1`:
 - Patch libcurl configure.ac to work with later versions of autoconf ([#166](https://github.com/aws/aws-lambda-python-runtime-interface-client/pull/168))
