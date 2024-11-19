@@ -1,5 +1,6 @@
-### November 18, 2024
+### November 19, 2024
 `3.0.0`
+- Drop support for deprecated python versions ([#179](https://github.com/aws/aws-lambda-python-runtime-interface-client/pull/179))
 - Add support for snapstart runtime hooks ([#176](https://github.com/aws/aws-lambda-python-runtime-interface-client/pull/176))
 
 ### August 23, 2024
