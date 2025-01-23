@@ -102,7 +102,6 @@ def replace_line_indentation(line, indent_char, new_indent_char):
 
 if _AWS_LAMBDA_LOG_FORMAT == LogFormat.JSON:
     _ERROR_FRAME_TYPE = _JSON_FRAME_TYPES[logging.ERROR]
-    _WARNING_FRAME_TYPE = _JSON_FRAME_TYPES[logging.WARNING]
 
     def log_error(error_result, log_sink):
         error_result = {
@@ -118,7 +117,6 @@ if _AWS_LAMBDA_LOG_FORMAT == LogFormat.JSON:
 
 else:
     _ERROR_FRAME_TYPE = _TEXT_FRAME_TYPES[logging.ERROR]
-    _WARNING_FRAME_TYPE = _TEXT_FRAME_TYPES[logging.WARNING]
 
     def log_error(error_result, log_sink):
         error_description = "[ERROR]"
@@ -203,7 +201,7 @@ def handle_event_request(
     if error_result is not None:
         from .lambda_literals import lambda_unhandled_exception_warning_message
 
-        log_sink.log(lambda_unhandled_exception_warning_message, _WARNING_FRAME_TYPE)
+        logging.warning(lambda_unhandled_exception_warning_message)
         log_error(error_result, log_sink)
         lambda_runtime_client.post_invocation_error(
             invoke_id, to_json(error_result), to_json(xray_fault)
