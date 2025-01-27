@@ -1,3 +1,7 @@
+### January 27, 2024
+`3.0.0`
+- Don't enforce text format on uncaught exception warning message ([#182](https://github.com/aws/aws-lambda-python-runtime-interface-client/pull/182))
+
 ### November 19, 2024
 `3.0.0`
 - Drop support for deprecated python versions ([#179](https://github.com/aws/aws-lambda-python-runtime-interface-client/pull/179))
