@@ -7,7 +7,6 @@
 
 #define NULL_IF_EMPTY(v) (((v) == NULL || (v)[0] == 0) ? NULL : (v))
 
-static const std::string ENDPOINT(getenv("AWS_LAMBDA_RUNTIME_API") ? getenv("AWS_LAMBDA_RUNTIME_API") : "127.0.0.1:9001");
 static aws::lambda_runtime::runtime *CLIENT;
 
 static PyObject *method_initialize_client(PyObject *self, PyObject *args) {
@@ -17,15 +16,18 @@ static PyObject *method_initialize_client(PyObject *self, PyObject *args) {
         return NULL;
     }
 
-    const std::string user_agent = std::string(user_agent_arg);
+    const std::string user_agent(user_agent_arg);
+    const char* endpoint(getenv("AWS_LAMBDA_RUNTIME_API"));
+    if (endpoint == nullptr) {
+        endpoint = "127.0.0.1:9001";
+    }
 
-    CLIENT = new aws::lambda_runtime::runtime(ENDPOINT, user_agent);
+    CLIENT = new aws::lambda_runtime::runtime(endpoint, user_agent);
     Py_INCREF(Py_None);
     return Py_None;
 }
 
 static PyObject *method_next(PyObject *self) {
-    aws::lambda_runtime::invocation_request response;
 
     // Release GIL and save thread state
     // ref: https://docs.python.org/3/c-api/init.html#thread-state-and-the-global-interpreter-lock
@@ -40,11 +42,10 @@ static PyObject *method_next(PyObject *self) {
         return NULL;
     }
 
-    response = outcome.get_result();
+    const aws::lambda_runtime::invocation_request& response = outcome.get_result();
     // Reacquire GIL before constructing return object
     PyEval_RestoreThread(_save);
 
-    auto payload = response.payload;
     auto request_id = response.request_id.c_str();
     auto trace_id = response.xray_trace_id.c_str();
     auto function_arn = response.function_arn.c_str();
@@ -53,7 +54,7 @@ static PyObject *method_next(PyObject *self) {
     auto content_type = response.content_type.c_str();
     auto cognito_id = response.cognito_identity.c_str();
 
-    PyObject *payload_bytes = PyBytes_FromStringAndSize(payload.c_str(), payload.length());
+    PyObject *payload_bytes = PyBytes_FromStringAndSize(response.payload.c_str(), response.payload.length());
     PyObject *result = Py_BuildValue("(O,{s:s,s:s,s:s,s:l,s:s,s:s,s:s})",
                          payload_bytes,  //Py_BuildValue() increments reference counter
                          "Lambda-Runtime-Aws-Request-Id", request_id,
