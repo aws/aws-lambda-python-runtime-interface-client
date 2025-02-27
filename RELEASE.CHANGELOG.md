@@ -1,5 +1,9 @@
+### February 27, 2024
+`3.0.2`
+- Update `simplejson` to `3.20.1`([#184](https://github.com/aws/aws-lambda-python-runtime-interface-client/pull/184))
+
 ### January 27, 2024
-`3.0.0`
+`3.0.1`
 - Don't enforce text format on uncaught exception warning message ([#182](https://github.com/aws/aws-lambda-python-runtime-interface-client/pull/182))
 
 ### November 19, 2024
