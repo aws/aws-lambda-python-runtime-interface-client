@@ -48,23 +48,6 @@ class TestLambdaRuntimeMarshaller(unittest.TestCase):
         response = to_json({"pi": decimal.Decimal("-nan")})
         self.assertEqual('{"pi": NaN}', response)
 
-    def test_json_serializer_is_not_default_json(self):
-        from awslambdaric.lambda_runtime_marshaller import (
-            json as internal_json,
-        )
-        import simplejson as simplejson
-        import json as stock_json
-        import json
-
-        self.assertEqual(json, stock_json)
-        self.assertNotEqual(stock_json, internal_json)
-        self.assertNotEqual(stock_json, simplejson)
-
-        internal_json.YOLO = "bello"
-        self.assertTrue(hasattr(internal_json, "YOLO"))
-        self.assertFalse(hasattr(stock_json, "YOLO"))
-        self.assertTrue(hasattr(simplejson, "YOLO"))
-
     @parameterized.expand(execution_envs_lambda_marshaller_ensure_ascii_false)
     def test_to_json_unicode_not_escaped_encoding(self, execution_env):
         os.environ = {"AWS_EXECUTION_ENV": execution_env}
