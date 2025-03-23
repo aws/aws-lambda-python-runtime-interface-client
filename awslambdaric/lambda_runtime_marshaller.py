@@ -5,29 +5,37 @@ Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 import decimal
 import math
 import os
-import simplejson as json
+import json
 
 from .lambda_runtime_exception import FaultException
 
 
-# simplejson's Decimal encoding allows '-NaN' as an output, which is a parse error for json.loads
-# to get the good parts of Decimal support, we'll special-case NaN decimals and otherwise duplicate the encoding for decimals the same way simplejson does
-# We also set 'ensure_ascii=False' so that the encoded json contains unicode characters instead of unicode escape sequences
+# We force a serialization of a Decimal's string as raw instead of wrapped by quotes
+# by mocking a float, and overriding the __repr__ method to return the string
+class DecimalStr(float):
+    def __init__(self, value: decimal.Decimal):
+        self._value = value
+    def __repr__(self):
+        return str(self._value)
+
 class Encoder(json.JSONEncoder):
     def __init__(self):
         if os.environ.get("AWS_EXECUTION_ENV") in {
             "AWS_Lambda_python3.12",
             "AWS_Lambda_python3.13",
         }:
-            super().__init__(use_decimal=False, ensure_ascii=False, allow_nan=True)
+            # We also set 'ensure_ascii=False' so that the encoded json contains unicode characters instead of unicode escape sequences
+            super().__init__(ensure_ascii=False, allow_nan=True)
         else:
-            super().__init__(use_decimal=False, allow_nan=True)
+            super().__init__(allow_nan=True)
 
+    # simplejson's Decimal encoding allows '-NaN' as an output, which is a parse error for json.loads
+    # to get the good parts of Decimal support, we'll special-case NaN decimals and otherwise duplicate the encoding for decimals the same way simplejson does
     def default(self, obj):
         if isinstance(obj, decimal.Decimal):
             if obj.is_nan():
                 return math.nan
-            return json.raw_json.RawJSON(str(obj))
+            return DecimalStr(obj)
         return super().default(obj)
 
 
