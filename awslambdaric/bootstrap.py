@@ -158,6 +158,7 @@ def handle_event_request(
     cognito_identity_json,
     invoked_function_arn,
     epoch_deadline_time_in_ms,
+    tenant_id,
     log_sink,
 ):
     error_result = None
@@ -168,6 +169,7 @@ def handle_event_request(
             epoch_deadline_time_in_ms,
             invoke_id,
             invoked_function_arn,
+            tenant_id,
         )
         event = lambda_runtime_client.marshaller.unmarshal_request(
             event_body, content_type
@@ -229,6 +231,7 @@ def create_lambda_context(
     epoch_deadline_time_in_ms,
     invoke_id,
     invoked_function_arn,
+    tenant_id,
 ):
     client_context = None
     if client_context_json:
@@ -243,6 +246,7 @@ def create_lambda_context(
         cognito_identity,
         epoch_deadline_time_in_ms,
         invoked_function_arn,
+        tenant_id,
     )
 
 
@@ -528,5 +532,6 @@ def run(app_root, handler, lambda_runtime_api_addr):
                 event_request.cognito_identity,
                 event_request.invoked_function_arn,
                 event_request.deadline_time_in_ms,
+                event_request.tenant_id,
                 log_sink,
             )

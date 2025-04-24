@@ -52,6 +52,7 @@ static PyObject *method_next(PyObject *self) {
     auto client_context = response.client_context.c_str();
     auto content_type = response.content_type.c_str();
     auto cognito_id = response.cognito_identity.c_str();
+    auto tenant_id = response.tenant_id.c_str();
 
     PyObject *payload_bytes = PyBytes_FromStringAndSize(payload.c_str(), payload.length());
     PyObject *result = Py_BuildValue("(O,{s:s,s:s,s:s,s:l,s:s,s:s,s:s})",
@@ -62,7 +63,8 @@ static PyObject *method_next(PyObject *self) {
                          "Lambda-Runtime-Deadline-Ms", deadline,
                          "Lambda-Runtime-Client-Context", NULL_IF_EMPTY(client_context),
                          "Content-Type", NULL_IF_EMPTY(content_type),
-                         "Lambda-Runtime-Cognito-Identity", NULL_IF_EMPTY(cognito_id)
+                         "Lambda-Runtime-Cognito-Identity", NULL_IF_EMPTY(cognito_id),
+                         "Lambda-Runtime-Aws-Tenant-Id", NULL_IF_EMPTY(tenant_id)
     );
 
     Py_XDECREF(payload_bytes);
