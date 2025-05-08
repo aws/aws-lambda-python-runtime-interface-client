@@ -30,6 +30,7 @@ _RESERVED_FIELDS = {
     "processName",
     "process",
     "aws_request_id",
+    "tenant_id",
     "_frame_type",
 }
 
@@ -124,6 +125,9 @@ class JsonFormatter(logging.Formatter):
             "requestId": getattr(record, "aws_request_id", None),
             "location": self.__format_location(record),
         }
+        if hasattr(record, "tenant_id") and record.tenant_id is not None:
+            result["tenantId"] = record.tenant_id
+
         result.update(
             (key, value)
             for key, value in record.__dict__.items()

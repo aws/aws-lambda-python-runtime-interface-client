@@ -1376,6 +1376,31 @@ class TestLogging(unittest.TestCase):
                     )
         self.assertEqual(mock_stderr.getvalue(), "")
 
+    @patch("awslambdaric.bootstrap._GLOBAL_TENANT_ID", "test-tenant-id")
+    @patch("sys.stderr", new_callable=StringIO)
+    def test_json_formatter_with_tenant_id(self, mock_stderr):
+        logger = logging.getLogger("a.b")
+        level = logging.INFO
+        message = "Test json formatting with tenant id"
+        expected = {
+            "level": "INFO",
+            "logger": "a.b",
+            "message": message,
+            "requestId": "",
+            "tenantId": "test-tenant-id",
+        }
+
+        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
+            logger.log(level, message)
+
+            data = json.loads(mock_stdout.getvalue())
+            data.pop("timestamp")
+            self.assertEqual(
+                data,
+                expected,
+            )
+        self.assertEqual(mock_stderr.getvalue(), "")
+
     @patch("sys.stdout", new_callable=StringIO)
     @patch("sys.stderr", new_callable=StringIO)
     def test_exception(self, mock_stderr, mock_stdout):

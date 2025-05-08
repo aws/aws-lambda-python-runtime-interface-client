@@ -341,6 +341,7 @@ class LambdaLoggerHandlerWithFrameType(logging.Handler):
 class LambdaLoggerFilter(logging.Filter):
     def filter(self, record):
         record.aws_request_id = _GLOBAL_AWS_REQUEST_ID or ""
+        record.tenant_id = _GLOBAL_TENANT_ID
         return True
 
 
@@ -449,6 +450,7 @@ def create_log_sink():
 
 
 _GLOBAL_AWS_REQUEST_ID = None
+_GLOBAL_TENANT_ID = None
 
 
 def _setup_logging(log_format, log_level, log_sink):
@@ -494,7 +496,7 @@ def run(app_root, handler, lambda_runtime_api_addr):
 
         try:
             _setup_logging(_AWS_LAMBDA_LOG_FORMAT, _AWS_LAMBDA_LOG_LEVEL, log_sink)
-            global _GLOBAL_AWS_REQUEST_ID
+            global _GLOBAL_AWS_REQUEST_ID, _GLOBAL_TENANT_ID
 
             request_handler = _get_handler(handler)
         except FaultException as e:
@@ -519,6 +521,7 @@ def run(app_root, handler, lambda_runtime_api_addr):
             event_request = lambda_runtime_client.wait_next_invocation()
 
             _GLOBAL_AWS_REQUEST_ID = event_request.invoke_id
+            _GLOBAL_TENANT_ID = event_request.tenant_id
 
             update_xray_env_variable(event_request.x_amzn_trace_id)
 
