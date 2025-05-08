@@ -55,7 +55,7 @@ static PyObject *method_next(PyObject *self) {
     auto tenant_id = response.tenant_id.c_str();
 
     PyObject *payload_bytes = PyBytes_FromStringAndSize(payload.c_str(), payload.length());
-    PyObject *result = Py_BuildValue("(O,{s:s,s:s,s:s,s:l,s:s,s:s,s:s})",
+    PyObject *result = Py_BuildValue("(O,{s:s,s:s,s:s,s:l,s:s,s:s,s:s,s:s})",
                          payload_bytes,  //Py_BuildValue() increments reference counter
                          "Lambda-Runtime-Aws-Request-Id", request_id,
                          "Lambda-Runtime-Trace-Id", NULL_IF_EMPTY(trace_id),
