@@ -30,7 +30,8 @@ wget -c https://github.com/awslabs/aws-lambda-cpp/archive/v$AWS_LAMBDA_CPP_RELEA
     patch -p1 < ../patches/aws-lambda-cpp-posting-init-errors.patch && \
     patch -p1 < ../patches/aws-lambda-cpp-make-the-runtime-client-user-agent-overrideable.patch && \
     patch -p1 < ../patches/aws-lambda-cpp-make-lto-optional.patch && \
-    patch -p1 < ../patches/aws-lambda-cpp-add-content-type.patch
+    patch -p1 < ../patches/aws-lambda-cpp-add-content-type.patch && \
+    patch -p1 < ../patches/aws-lambda-cpp-add-tenant-id.patch
 )
 
 ## Pack again and remove the folder

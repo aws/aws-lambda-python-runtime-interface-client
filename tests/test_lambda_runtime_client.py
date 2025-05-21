@@ -26,6 +26,7 @@ class TestInvocationRequest(unittest.TestCase):
             deadline_time_in_ms="Lambda-Runtime-Deadline-Ms",
             client_context="Lambda-Runtime-Client-Context",
             cognito_identity="Lambda-Runtime-Cognito-Identity",
+            tenant_id="Lambda-Runtime-Aws-Tenant-Id",
             content_type="Content-Type",
             event_body="response_body",
         )
@@ -37,6 +38,7 @@ class TestInvocationRequest(unittest.TestCase):
             deadline_time_in_ms="Lambda-Runtime-Deadline-Ms",
             client_context="Lambda-Runtime-Client-Context",
             cognito_identity="Lambda-Runtime-Cognito-Identity",
+            tenant_id="Lambda-Runtime-Aws-Tenant-Id",
             content_type="Content-Type",
             event_body="response_body",
         )
@@ -48,6 +50,7 @@ class TestInvocationRequest(unittest.TestCase):
             deadline_time_in_ms="Lambda-Runtime-Deadline-Ms",
             client_context="Lambda-Runtime-Client-Context",
             cognito_identity="Lambda-Runtime-Cognito-Identity",
+            tenant_id="Lambda-Runtime-Aws-Tenant-Id",
             content_type="Content-Type",
             event_body="another_response_body",
         )
@@ -68,6 +71,7 @@ class TestLambdaRuntime(unittest.TestCase):
             "Lambda-Runtime-Deadline-Ms": 12,
             "Lambda-Runtime-Client-Context": "client_context",
             "Lambda-Runtime-Cognito-Identity": "cognito_identity",
+            "Lambda-Runtime-Aws-Tenant-Id": "tenant_id",
             "Content-Type": "application/json",
         }
         mock_runtime_client.next.return_value = response_body, headears
@@ -82,6 +86,7 @@ class TestLambdaRuntime(unittest.TestCase):
         self.assertEqual(event_request.deadline_time_in_ms, 12)
         self.assertEqual(event_request.client_context, "client_context")
         self.assertEqual(event_request.cognito_identity, "cognito_identity")
+        self.assertEqual(event_request.tenant_id, "tenant_id")
         self.assertEqual(event_request.content_type, "application/json")
         self.assertEqual(event_request.event_body, response_body)
 
@@ -97,7 +102,75 @@ class TestLambdaRuntime(unittest.TestCase):
         self.assertEqual(event_request.deadline_time_in_ms, 12)
         self.assertEqual(event_request.client_context, "client_context")
         self.assertEqual(event_request.cognito_identity, "cognito_identity")
+        self.assertEqual(event_request.tenant_id, "tenant_id")
         self.assertEqual(event_request.content_type, "application/json")
+        self.assertEqual(event_request.event_body, response_body)
+
+    @patch("awslambdaric.lambda_runtime_client.runtime_client")
+    def test_wait_next_invocation_without_tenant_id_header(self, mock_runtime_client):
+        response_body = b"{}"
+        headers = {
+            "Lambda-Runtime-Aws-Request-Id": "RID1234",
+            "Lambda-Runtime-Trace-Id": "TID1234",
+            "Lambda-Runtime-Invoked-Function-Arn": "FARN1234",
+            "Lambda-Runtime-Deadline-Ms": 12,
+            "Lambda-Runtime-Client-Context": "client_context",
+            "Lambda-Runtime-Cognito-Identity": "cognito_identity",
+            "Content-Type": "application/json",
+        }
+        mock_runtime_client.next.return_value = response_body, headers
+        runtime_client = LambdaRuntimeClient("localhost:1234")
+
+        event_request = runtime_client.wait_next_invocation()
+
+        self.assertIsNotNone(event_request)
+        self.assertIsNone(event_request.tenant_id)
+        self.assertEqual(event_request.event_body, response_body)
+
+    @patch("awslambdaric.lambda_runtime_client.runtime_client")
+    def test_wait_next_invocation_with_null_tenant_id_header(self, mock_runtime_client):
+        response_body = b"{}"
+        headers = {
+            "Lambda-Runtime-Aws-Request-Id": "RID1234",
+            "Lambda-Runtime-Trace-Id": "TID1234",
+            "Lambda-Runtime-Invoked-Function-Arn": "FARN1234",
+            "Lambda-Runtime-Deadline-Ms": 12,
+            "Lambda-Runtime-Client-Context": "client_context",
+            "Lambda-Runtime-Cognito-Identity": "cognito_identity",
+            "Lambda-Runtime-Aws-Tenant-Id": None,
+            "Content-Type": "application/json",
+        }
+        mock_runtime_client.next.return_value = response_body, headers
+        runtime_client = LambdaRuntimeClient("localhost:1234")
+
+        event_request = runtime_client.wait_next_invocation()
+
+        self.assertIsNotNone(event_request)
+        self.assertIsNone(event_request.tenant_id)
+        self.assertEqual(event_request.event_body, response_body)
+
+    @patch("awslambdaric.lambda_runtime_client.runtime_client")
+    def test_wait_next_invocation_with_empty_tenant_id_header(
+        self, mock_runtime_client
+    ):
+        response_body = b"{}"
+        headers = {
+            "Lambda-Runtime-Aws-Request-Id": "RID1234",
+            "Lambda-Runtime-Trace-Id": "TID1234",
+            "Lambda-Runtime-Invoked-Function-Arn": "FARN1234",
+            "Lambda-Runtime-Deadline-Ms": 12,
+            "Lambda-Runtime-Client-Context": "client_context",
+            "Lambda-Runtime-Cognito-Identity": "cognito_identity",
+            "Lambda-Runtime-Aws-Tenant-Id": "",
+            "Content-Type": "application/json",
+        }
+        mock_runtime_client.next.return_value = response_body, headers
+        runtime_client = LambdaRuntimeClient("localhost:1234")
+
+        event_request = runtime_client.wait_next_invocation()
+
+        self.assertIsNotNone(event_request)
+        self.assertEqual(event_request.tenant_id, "")
         self.assertEqual(event_request.event_body, response_body)
 
     error_result = {

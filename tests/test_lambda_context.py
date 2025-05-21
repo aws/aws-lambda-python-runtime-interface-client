@@ -37,6 +37,7 @@ class TestLambdaContext(unittest.TestCase):
         self.assertEqual(context.memory_limit_in_mb, "1234")
         self.assertEqual(context.function_version, "version1")
         self.assertEqual(context.invoked_function_arn, "arn:test1")
+        self.assertEqual(context.tenant_id, None)
         self.assertEqual(context.identity.cognito_identity_id, None)
         self.assertEqual(context.identity.cognito_identity_pool_id, None)
         self.assertEqual(context.client_context.client.installation_id, None)
@@ -73,6 +74,21 @@ class TestLambdaContext(unittest.TestCase):
 
         self.assertEqual(context.identity.cognito_identity_id, "id1")
         self.assertEqual(context.identity.cognito_identity_pool_id, "poolid1")
+
+    def test_init_tenant_id(self):
+        client_context = {}
+        cognito_identity = {}
+        tenant_id = "blue"
+
+        context = LambdaContext(
+            "invoke-id1",
+            client_context,
+            cognito_identity,
+            1415836801000,
+            "arn:test",
+            tenant_id,
+        )
+        self.assertEqual(context.tenant_id, "blue")
 
     def test_init_client_context(self):
         client_context = {

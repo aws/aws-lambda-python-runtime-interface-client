@@ -16,6 +16,7 @@ class LambdaContext(object):
         cognito_identity,
         epoch_deadline_time_in_ms,
         invoked_function_arn=None,
+        tenant_id=None,
     ):
         self.aws_request_id = invoke_id
         self.log_group_name = os.environ.get("AWS_LAMBDA_LOG_GROUP_NAME")
@@ -24,6 +25,7 @@ class LambdaContext(object):
         self.memory_limit_in_mb = os.environ.get("AWS_LAMBDA_FUNCTION_MEMORY_SIZE")
         self.function_version = os.environ.get("AWS_LAMBDA_FUNCTION_VERSION")
         self.invoked_function_arn = invoked_function_arn
+        self.tenant_id = tenant_id
 
         self.client_context = make_obj_from_dict(ClientContext, client_context)
         if self.client_context is not None:
@@ -65,7 +67,8 @@ class LambdaContext(object):
             f"function_version={self.function_version},"
             f"invoked_function_arn={self.invoked_function_arn},"
             f"client_context={self.client_context},"
-            f"identity={self.identity}"
+            f"identity={self.identity},"
+            f"tenant_id={self.tenant_id}"
             "])"
         )
 

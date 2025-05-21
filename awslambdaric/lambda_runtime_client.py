@@ -137,6 +137,7 @@ class LambdaRuntimeClient(object):
             deadline_time_in_ms=headers.get("Lambda-Runtime-Deadline-Ms"),
             client_context=headers.get("Lambda-Runtime-Client-Context"),
             cognito_identity=headers.get("Lambda-Runtime-Cognito-Identity"),
+            tenant_id=headers.get("Lambda-Runtime-Aws-Tenant-Id"),
             content_type=headers.get("Content-Type"),
             event_body=response_body,
         )

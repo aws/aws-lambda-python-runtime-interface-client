@@ -88,6 +88,7 @@ class TestHandleEventRequest(unittest.TestCase):
             {},
             "invoked_function_arn",
             0,
+            "tenant_id",
             bootstrap.StandardLogSink(),
         )
         self.lambda_runtime.post_invocation_result.assert_called_once_with(
@@ -111,6 +112,7 @@ class TestHandleEventRequest(unittest.TestCase):
             {},
             "invoked_function_arn",
             0,
+            "tenant_id",
             bootstrap.StandardLogSink(),
         )
         args, _ = self.lambda_runtime.post_invocation_error.call_args
@@ -152,6 +154,7 @@ class TestHandleEventRequest(unittest.TestCase):
             "invalid_cognito_identity",
             "invoked_function_arn",
             0,
+            "tenant_id",
             bootstrap.StandardLogSink(),
         )
         args, _ = self.lambda_runtime.post_invocation_error.call_args
@@ -194,6 +197,7 @@ class TestHandleEventRequest(unittest.TestCase):
             {},
             "invoked_function_arn",
             0,
+            "tenant_id",
             bootstrap.StandardLogSink(),
         )
         args, _ = self.lambda_runtime.post_invocation_error.call_args
@@ -238,6 +242,7 @@ class TestHandleEventRequest(unittest.TestCase):
             {},
             "invoked_function_arn",
             0,
+            "tenant_id",
             bootstrap.StandardLogSink(),
         )
         args, _ = self.lambda_runtime.post_invocation_error.call_args
@@ -283,6 +288,7 @@ class TestHandleEventRequest(unittest.TestCase):
             {},
             "invoked_function_arn",
             0,
+            "tenant_id",
             bootstrap.StandardLogSink(),
         )
         args, _ = self.lambda_runtime.post_invocation_error.call_args
@@ -335,6 +341,7 @@ class TestHandleEventRequest(unittest.TestCase):
             {},
             "invoked_function_arn",
             0,
+            "tenant_id",
             bootstrap.StandardLogSink(),
         )
         args, _ = self.lambda_runtime.post_invocation_error.call_args
@@ -386,6 +393,7 @@ class TestHandleEventRequest(unittest.TestCase):
             {},
             "invoked_function_arn",
             0,
+            "tenant_id",
             bootstrap.StandardLogSink(),
         )
         args, _ = self.lambda_runtime.post_invocation_error.call_args
@@ -425,6 +433,7 @@ class TestHandleEventRequest(unittest.TestCase):
             {},
             "invoked_function_arn",
             0,
+            "tenant_id",
             bootstrap.StandardLogSink(),
         )
         args, _ = self.lambda_runtime.post_invocation_error.call_args
@@ -475,6 +484,7 @@ class TestHandleEventRequest(unittest.TestCase):
             {},
             "invoked_function_arn",
             0,
+            "tenant_id",
             bootstrap.StandardLogSink(),
         )
 
@@ -514,6 +524,7 @@ class TestHandleEventRequest(unittest.TestCase):
             {},
             "invoked_function_arn",
             0,
+            "tenant_id",
             bootstrap.StandardLogSink(),
         )
         error_logs = (
@@ -546,6 +557,7 @@ class TestHandleEventRequest(unittest.TestCase):
             {},
             "invoked_function_arn",
             0,
+            "tenant_id",
             bootstrap.StandardLogSink(),
         )
         error_logs = (
@@ -578,6 +590,7 @@ class TestHandleEventRequest(unittest.TestCase):
             {},
             "invoked_function_arn",
             0,
+            "tenant_id",
             bootstrap.StandardLogSink(),
         )
         error_logs = (
@@ -619,6 +632,7 @@ class TestHandleEventRequest(unittest.TestCase):
             {},
             "invoked_function_arn",
             0,
+            "tenant_id",
             bootstrap.StandardLogSink(),
         )
         error_logs = lambda_unhandled_exception_warning_message + "\n[ERROR]\r"
@@ -652,6 +666,7 @@ class TestHandleEventRequest(unittest.TestCase):
             {},
             "invoked_function_arn",
             0,
+            "tenant_id",
             bootstrap.StandardLogSink(),
         )
 
@@ -868,6 +883,7 @@ class TestContentType(unittest.TestCase):
             cognito_identity_json=None,
             invoked_function_arn="invocation-arn",
             epoch_deadline_time_in_ms=1415836801003,
+            tenant_id=None,
             log_sink=bootstrap.StandardLogSink(),
         )
 
@@ -887,6 +903,7 @@ class TestContentType(unittest.TestCase):
             cognito_identity_json=None,
             invoked_function_arn="invocation-arn",
             epoch_deadline_time_in_ms=1415836801003,
+            tenant_id=None,
             log_sink=bootstrap.StandardLogSink(),
         )
 
@@ -906,6 +923,7 @@ class TestContentType(unittest.TestCase):
             cognito_identity_json=None,
             invoked_function_arn="invocation-arn",
             epoch_deadline_time_in_ms=1415836801003,
+            tenant_id=None,
             log_sink=bootstrap.StandardLogSink(),
         )
 
@@ -924,6 +942,7 @@ class TestContentType(unittest.TestCase):
             cognito_identity_json=None,
             invoked_function_arn="invocation-arn",
             epoch_deadline_time_in_ms=1415836801003,
+            tenant_id=None,
             log_sink=bootstrap.StandardLogSink(),
         )
 
@@ -1355,6 +1374,31 @@ class TestLogging(unittest.TestCase):
                         data,
                         expected,
                     )
+        self.assertEqual(mock_stderr.getvalue(), "")
+
+    @patch("awslambdaric.bootstrap._GLOBAL_TENANT_ID", "test-tenant-id")
+    @patch("sys.stderr", new_callable=StringIO)
+    def test_json_formatter_with_tenant_id(self, mock_stderr):
+        logger = logging.getLogger("a.b")
+        level = logging.INFO
+        message = "Test json formatting with tenant id"
+        expected = {
+            "level": "INFO",
+            "logger": "a.b",
+            "message": message,
+            "requestId": "",
+            "tenantId": "test-tenant-id",
+        }
+
+        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
+            logger.log(level, message)
+
+            data = json.loads(mock_stdout.getvalue())
+            data.pop("timestamp")
+            self.assertEqual(
+                data,
+                expected,
+            )
         self.assertEqual(mock_stderr.getvalue(), "")
 
     @patch("sys.stdout", new_callable=StringIO)
