@@ -1,3 +1,7 @@
+### May 21, 2025
+`3.1.0`
+- Add support for multi tenancy ([#187](https://github.com/aws/aws-lambda-python-runtime-interface-client/pull/187))
+
 ### February 27, 2024
 `3.0.2`
 - Update `simplejson` to `3.20.1`([#184](https://github.com/aws/aws-lambda-python-runtime-interface-client/pull/184))
