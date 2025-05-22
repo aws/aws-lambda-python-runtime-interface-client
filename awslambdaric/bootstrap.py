@@ -201,9 +201,7 @@ def handle_event_request(
         )
 
     if error_result is not None:
-        from .lambda_literals import lambda_unhandled_exception_warning_message
 
-        logging.warning(lambda_unhandled_exception_warning_message)
         log_error(error_result, log_sink)
         lambda_runtime_client.post_invocation_error(
             invoke_id, to_json(error_result), to_json(xray_fault)
@@ -509,6 +507,9 @@ def run(app_root, handler, lambda_runtime_api_addr):
             error_result = build_fault_result(sys.exc_info(), None)
 
         if error_result is not None:
+            from .lambda_literals import lambda_unhandled_exception_warning_message
+
+            logging.warning(lambda_unhandled_exception_warning_message)
             log_error(error_result, log_sink)
             lambda_runtime_client.post_init_error(error_result)
 

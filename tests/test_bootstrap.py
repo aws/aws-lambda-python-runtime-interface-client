@@ -489,11 +489,7 @@ class TestHandleEventRequest(unittest.TestCase):
         )
 
         # NOTE: Indentation characters are NO-BREAK SPACE (U+00A0) not SPACE (U+0020)
-        error_logs = (
-            lambda_unhandled_exception_warning_message
-            + "\n"
-            + "[ERROR] FaultExceptionType: Fault exception msg\r"
-        )
+        error_logs = "[ERROR] FaultExceptionType: Fault exception msg\r"
         error_logs += "Traceback (most recent call last):\r"
         error_logs += '  File "spam.py", line 3, in <module>\r'
         error_logs += "    spam.eggs()\r"
@@ -527,11 +523,7 @@ class TestHandleEventRequest(unittest.TestCase):
             "tenant_id",
             bootstrap.StandardLogSink(),
         )
-        error_logs = (
-            lambda_unhandled_exception_warning_message
-            + "\n"
-            + "[ERROR] FaultExceptionType: Fault exception msg\rTraceback (most recent call last):\n"
-        )
+        error_logs = "[ERROR] FaultExceptionType: Fault exception msg\rTraceback (most recent call last):\n"
 
         self.assertEqual(mock_stdout.getvalue(), error_logs)
 
@@ -560,11 +552,7 @@ class TestHandleEventRequest(unittest.TestCase):
             "tenant_id",
             bootstrap.StandardLogSink(),
         )
-        error_logs = (
-            lambda_unhandled_exception_warning_message
-            + "\n"
-            + "[ERROR] FaultExceptionType\rTraceback (most recent call last):\n"
-        )
+        error_logs = "[ERROR] FaultExceptionType\rTraceback (most recent call last):\n"
 
         self.assertEqual(mock_stdout.getvalue(), error_logs)
 
@@ -593,11 +581,7 @@ class TestHandleEventRequest(unittest.TestCase):
             "tenant_id",
             bootstrap.StandardLogSink(),
         )
-        error_logs = (
-            lambda_unhandled_exception_warning_message
-            + "\n"
-            + "[ERROR] Fault exception msg\rTraceback (most recent call last):\n"
-        )
+        error_logs = "[ERROR] Fault exception msg\rTraceback (most recent call last):\n"
 
         self.assertEqual(mock_stdout.getvalue(), error_logs)
 
@@ -635,7 +619,7 @@ class TestHandleEventRequest(unittest.TestCase):
             "tenant_id",
             bootstrap.StandardLogSink(),
         )
-        error_logs = lambda_unhandled_exception_warning_message + "\n[ERROR]\r"
+        error_logs = "[ERROR]\r"
         error_logs += "Traceback (most recent call last):\r"
         error_logs += '  File "spam.py", line 3, in <module>\r'
         error_logs += "    spam.eggs()\r"
@@ -671,21 +655,11 @@ class TestHandleEventRequest(unittest.TestCase):
         )
 
         stdout_value = mock_stdout.getvalue()
-        received_warning = stdout_value.split("\n")[0]
-        received_rest = stdout_value[len(received_warning) + 1 :]
-
-        warning = json.loads(received_warning)
-        self.assertEqual(warning["level"], "WARNING")
-        self.assertEqual(warning["message"], lambda_unhandled_exception_warning_message)
-        self.assertEqual(warning["logger"], "root")
-        self.assertIn("timestamp", warning)
 
         # this line is not in json because of the way the test runtime is bootstrapped
-        error_logs = (
-            "\n[ERROR] FaultExceptionType\rTraceback (most recent call last):\n"
-        )
+        error_logs = "[ERROR] FaultExceptionType\rTraceback (most recent call last):\n"
 
-        self.assertEqual(received_rest, error_logs)
+        self.assertEqual(stdout_value, error_logs)
 
 
 class TestXrayFault(unittest.TestCase):
