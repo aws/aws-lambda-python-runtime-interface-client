@@ -508,11 +508,11 @@ def run(app_root, handler, lambda_runtime_api_addr):
         except Exception:
             error_result = build_fault_result(sys.exc_info(), None)
 
-        if error_result is not None:
-            log_error(error_result, log_sink)
-            lambda_runtime_client.post_init_error(error_result)
+            if error_result is not None:
+                log_error(error_result, log_sink)
+                lambda_runtime_client.post_init_error(error_result)
 
-            sys.exit(1)
+                sys.exit(1)
 
         if os.environ.get(AWS_LAMBDA_INITIALIZATION_TYPE) == INIT_TYPE_SNAP_START:
             on_init_complete(lambda_runtime_client, log_sink)
