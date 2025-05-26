@@ -1,3 +1,7 @@
+### May 26, 2025
+`3.1.1`
+- Move unhandled exception warning message to init errors. ([#189](https://github.com/aws/aws-lambda-python-runtime-interface-client/pull/189))
+
 ### May 21, 2025
 `3.1.0`
 - Add support for multi tenancy ([#187](https://github.com/aws/aws-lambda-python-runtime-interface-client/pull/187))
