@@ -11,7 +11,6 @@ import time
 import traceback
 
 from .lambda_context import LambdaContext
-from .lambda_runtime_client import LambdaRuntimeClient
 from .lambda_runtime_exception import FaultException
 from .lambda_runtime_log_utils import (
     _DATETIME_FORMAT,
@@ -487,9 +486,6 @@ def run(app_root, handler, lambda_runtime_api_addr):
     }
 
     with create_log_sink() as log_sink:
-        lambda_runtime_client = LambdaRuntimeClient(
-            lambda_runtime_api_addr, use_thread_for_polling_next
-        )
         error_result = None
 
         try:
@@ -497,6 +493,8 @@ def run(app_root, handler, lambda_runtime_api_addr):
             global _GLOBAL_AWS_REQUEST_ID, _GLOBAL_TENANT_ID
 
             request_handler = _get_handler(handler)
+            from .lambda_runtime_client import LambdaRuntimeClient
+            lambda_runtime_client = LambdaRuntimeClient(lambda_runtime_api_addr, use_thread_for_polling_next)
         except FaultException as e:
             error_result = make_error(
                 e.msg,
