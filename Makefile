@@ -5,11 +5,11 @@ target:
 
 .PHONY: init
 init:
-	pip3 install -r requirements/base.txt -r requirements/dev.txt
+	poetry install
 
 .PHONY: test
 test: check-format
-	pytest --cov awslambdaric --cov-report term-missing --cov-fail-under 90 tests
+	poetry run pytest --cov awslambdaric --cov-report term-missing --cov-fail-under 90 tests
 
 .PHONY: setup-codebuild-agent
 setup-codebuild-agent:
@@ -25,24 +25,23 @@ test-integ: setup-codebuild-agent
 
 .PHONY: check-security
 check-security:
-	bandit -r awslambdaric
+	poetry run bandit -r awslambdaric
 
 .PHONY: format
 format:
-	black setup.py awslambdaric/ tests/
+	poetry run black awslambdaric/ tests/
 
 .PHONY: check-format
 check-format:
-	black --check setup.py awslambdaric/ tests/
+	poetry run black --check awslambdaric/ tests/
 
-# Command to run everytime you make changes to verify everything works
 .PHONY: dev
 dev: init test
 
-# Verifications to run before sending a pull request
 .PHONY: pr
 pr: init check-format check-security dev
 
+.PHONY: codebuild
 codebuild: setup-codebuild-agent
 	CODEBUILD_IMAGE_TAG=codebuild-agent DISTRO="$(DISTRO)" tests/integration/codebuild-local/test_all.sh tests/integration/codebuild
 
@@ -50,10 +49,11 @@ codebuild: setup-codebuild-agent
 clean:
 	rm -rf dist
 	rm -rf awslambdaric.egg-info
+	find . -type d -name "__pycache__" -exec rm -r {} +
 
 .PHONY: build
 build: clean
-	BUILD=true python3 setup.py sdist
+	poetry build
 
 define HELP_MESSAGE
 
@@ -61,12 +61,14 @@ Usage: $ make [TARGETS]
 
 TARGETS
 	check-security	Run bandit to find security issues.
-	format       	Run black to automatically update your code to match our formatting.
-	build       	Builds the package.
+	format       	Run black to automatically update your code to match formatting.
+	build       	Builds the package with poetry.
 	clean       	Cleans the working directory by removing built artifacts.
 	dev         	Run all development tests after a change.
-	init        	Initialize and install the requirements and dev-requirements for this project.
+	init        	Install dependencies via Poetry.
 	pr          	Perform all checks before submitting a Pull Request.
-	test        	Run the Unit tests.
+	test        	Run the unit tests.
+	test-smoke  	Run smoke tests inside Docker.
+	test-integ  	Run all integration tests.
 
 endef
