@@ -5,11 +5,23 @@ target:
 
 .PHONY: init
 init:
-	poetry install
+	python scripts/dev.py init
 
 .PHONY: test
-test: check-format
-	poetry run pytest --cov awslambdaric --cov-report term-missing --cov-fail-under 90 tests
+test:
+	python scripts/dev.py test
+
+.PHONY: lint
+lint:
+	python scripts/dev.py lint
+
+.PHONY: clean
+clean:
+	python scripts/dev.py clean
+
+.PHONY: build
+build:
+	python scripts/dev.py build
 
 .PHONY: setup-codebuild-agent
 setup-codebuild-agent:
@@ -45,16 +57,6 @@ pr: init check-format check-security dev
 codebuild: setup-codebuild-agent
 	CODEBUILD_IMAGE_TAG=codebuild-agent DISTRO="$(DISTRO)" tests/integration/codebuild-local/test_all.sh tests/integration/codebuild
 
-.PHONY: clean
-clean:
-	rm -rf dist
-	rm -rf awslambdaric.egg-info
-	find . -type d -name "__pycache__" -exec rm -r {} +
-
-.PHONY: build
-build: clean
-	poetry build
-
 define HELP_MESSAGE
 
 Usage: $ make [TARGETS]
@@ -62,12 +64,13 @@ Usage: $ make [TARGETS]
 TARGETS
 	check-security	Run bandit to find security issues.
 	format       	Run black to automatically update your code to match formatting.
-	build       	Builds the package with poetry.
-	clean       	Cleans the working directory by removing built artifacts.
-	dev         	Run all development tests after a change.
-	init        	Install dependencies via Poetry.
+	build       	Build the package using scripts/dev.py.
+	clean       	Cleans the working directory using scripts/dev.py.
+	dev         	Run all development tests using scripts/dev.py.
+	init        	Install dependencies via scripts/dev.py.
 	pr          	Perform all checks before submitting a Pull Request.
-	test        	Run the unit tests.
+	test        	Run unit tests using scripts/dev.py.
+	lint        	Run all linters via scripts/dev.py.
 	test-smoke  	Run smoke tests inside Docker.
 	test-integ  	Run all integration tests.
 
