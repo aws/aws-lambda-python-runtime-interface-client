@@ -1,13 +1,11 @@
 [tool.poetry]
-name = "private-aws-lambda-python-runtime-interface-client-staging"
-version = "0.1.0"
-description = ""
-authors = ["AntoniaSzecsi <lszecsi@amazon.com>"]
+name = "awslambdaric"
+version = "3.0.2"
+description = "AWS Lambda Runtime Interface Client for Python"
+authors = ["Amazon Web Services"]
 license = "Apache-2.0"
 readme = "README.md"
-packages = [
-    { include = "awslambdaric" }
-]
+packages = [{ include = "awslambdaric" }]
 
 [tool.poetry.dependencies]
 python = ">=3.9"
@@ -16,16 +14,10 @@ snapshot-restore-py = ">=1.0.0"
 
 [tool.poetry.group.dev.dependencies]
 coverage = ">=4.4.0"
-flake8 = ">=3.3.0"
-tox = ">=2.2.1"
-pytest-cov = ">=2.4.0"
-pylint = ">=1.7.2"
-black = ">=20.8b0"
-bandit = ">=1.6.2"
 pytest = ">=3.0.7"
 mock = ">=2.0.0"
 parameterized = ">=0.9.0"
 
 [build-system]
-requires = ["poetry-core>=2.0.0,<3.0.0"]
+requires = ["poetry-core>=2.0.0,<3.0.0", "setuptools>=68", "wheel"]
 build-backend = "poetry.core.masonry.api"

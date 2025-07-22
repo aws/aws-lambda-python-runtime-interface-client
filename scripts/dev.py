@@ -3,14 +3,14 @@ import argparse
 import subprocess
 import shutil
 import sys
+import os
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 
-
-def run(cmd, check=True):
+def run(cmd, check=True, env=None):
     print(f"\n$ {' '.join(cmd) if isinstance(cmd, list) else cmd}")
-    result = subprocess.run(cmd, shell=isinstance(cmd, str), check=check)
+    result = subprocess.run(cmd, shell=isinstance(cmd, str), check=check, env=env)
     if result.returncode != 0 and check:
         sys.exit(result.returncode)
 
@@ -42,12 +42,18 @@ def clean():
                 shutil.rmtree(path)
             elif path.is_file():
                 path.unlink()
-
+                                
+    for folder in ["dist", "build", "awslambdaric.egg-info"]:
+        dir_path = ROOT / folder
+        if dir_path.exists():
+            shutil.rmtree(dir_path)
 
 def build():
     print("Building package")
-    run(["poetry", "build"])
-
+    env = os.environ.copy()
+    if sys.platform.startswith("linux"):
+        env["BUILD"] = "true"
+    run([sys.executable, "setup.py", "sdist", "bdist_wheel"], env=env)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Development command-line tool")
