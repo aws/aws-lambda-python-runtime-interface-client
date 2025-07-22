@@ -42,7 +42,7 @@ def clean():
                 shutil.rmtree(path)
             elif path.is_file():
                 path.unlink()
-                                
+
     for folder in ["dist", "build", "awslambdaric.egg-info"]:
         dir_path = ROOT / folder
         if dir_path.exists():
@@ -55,9 +55,22 @@ def build():
         env["BUILD"] = "true"
     run([sys.executable, "setup.py", "sdist", "bdist_wheel"], env=env)
 
+def local_test():
+    print("Running local tests")
+    # will be implemented later using RIE
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Development command-line tool")
-    parser.add_argument("command", choices=["init", "test", "lint", "clean", "build"])
+    parser.add_argument("command", choices=["init", "test", "lint", "clean", "build", "local-test"])
     args = parser.parse_args()
+    commands = {
+    "init": init,
+    "test": test,
+    "lint": lint,
+    "clean": clean,
+    "build": build,
+    "local-test": local_test,
+}
 
-    globals()[args.command]()
+commands[args.command]()
+
