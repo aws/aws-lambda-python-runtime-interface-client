@@ -54,8 +54,11 @@ WORKDIR ${RIC_BUILD_DIR}
 COPY . .
 RUN . /home/venv/bin/activate && \
     pip install setuptools && \
-    make init build test && \
-    mv ./dist/awslambdaric-*.tar.gz ./dist/awslambdaric-test.tar.gz
+    curl -sSL https://install.python-poetry.org | python3 - && \
+    ln -s /root/.local/bin/poetry /usr/local/bin/poetry && \
+    make init build
+
+RUN ls -la ./dist/
 
 
 
@@ -68,7 +71,7 @@ COPY tests/integration/test-handlers/echo/* ${FUNCTION_DIR}
 # Install the function's dependencies
 WORKDIR ${FUNCTION_DIR}
 RUN . /home/venv/bin/activate && \
-    pip install ${RIC_BUILD_DIR}/dist/awslambdaric-test.tar.gz --target ${FUNCTION_DIR}
+    pip install ${RIC_BUILD_DIR}/dist/*.whl --target ${FUNCTION_DIR}
 
 
 

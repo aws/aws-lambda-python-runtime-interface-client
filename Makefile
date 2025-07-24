@@ -5,31 +5,27 @@ target:
 
 .PHONY: init
 init:
-	python scripts/dev.py init
+	python3 scripts/dev.py init
 
 .PHONY: test
 test:
-	python scripts/dev.py test
+	python3 scripts/dev.py test
 
 .PHONY: lint
 lint:
-	python scripts/dev.py lint
+	python3 scripts/dev.py lint
 
 .PHONY: clean
 clean:
-	python scripts/dev.py clean
+	python3 scripts/dev.py clean
 
 .PHONY: build
 build: clean
 ifeq ($(shell uname),Linux)
-	BUILD=true python scripts/dev.py build
+	BUILD=true python3 scripts/dev.py build
 else
-	python scripts/dev.py build
+	python3 scripts/dev.py build
 endif
-
-.PHONY: local-test
-local-test:
-	python scripts/dev.py local-test
 
 .PHONY: setup-codebuild-agent
 setup-codebuild-agent:
@@ -81,6 +77,4 @@ TARGETS
 	lint        	Run all linters via scripts/dev.py.
 	test-smoke  	Run smoke tests inside Docker.
 	test-integ  	Run all integration tests.
-	local-test		Run the Lambda handler locally using AWS RIE.
-
 endef
