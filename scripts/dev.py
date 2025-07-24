@@ -51,7 +51,8 @@ def clean():
 def build():
     print("Building package")
     env = os.environ.copy()
-    env["BUILD"] = "true"
+    if os.getenv("BUILD") == "true":
+        env["BUILD"] = "true"
     run([sys.executable, "setup.py", "sdist", "bdist_wheel"], env=env)
 
 
@@ -70,6 +71,7 @@ def main():
         "format": format_code,
         "clean": clean,
         "build": build,
+
     }
     
     command_map[args.command]()
