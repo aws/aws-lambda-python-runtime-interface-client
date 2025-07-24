@@ -93,7 +93,7 @@ RUN /usr/local/bin/python${RUNTIME_VERSION} -m pip install setuptools wheel poet
 
 # Configure poetry to use the correct python version
 RUN poetry config virtualenvs.create false
-RUN poetry env use python3
+
 RUN make init build 
 
 RUN ls -la ./dist/
