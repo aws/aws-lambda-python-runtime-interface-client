@@ -21,11 +21,7 @@ clean:
 
 .PHONY: build
 build: clean
-ifeq ($(shell uname),Linux)
-	BUILD=true python3 scripts/dev.py build
-else
 	python3 scripts/dev.py build
-endif
 
 .PHONY: setup-codebuild-agent
 setup-codebuild-agent:
