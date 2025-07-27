@@ -32,7 +32,7 @@ def lint():
 
 def format_code():
     print("Formatting code")
-    run(["poetry", "run", "black", "awslambdaric/", "tests/"])
+    run(["poetry", "run", "ruff", "format", "awslambdaric/", "tests/"])
 
 
 def clean():

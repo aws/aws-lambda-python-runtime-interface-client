@@ -949,10 +949,13 @@ class TestContentType(unittest.TestCase):
         self.lambda_runtime.post_invocation_error.assert_called_once()
 
         (
-            invoke_id,
-            error_result,
-            xray_fault,
-        ), _ = self.lambda_runtime.post_invocation_error.call_args
+            (
+                invoke_id,
+                error_result,
+                xray_fault,
+            ),
+            _,
+        ) = self.lambda_runtime.post_invocation_error.call_args
         error_dict = json.loads(error_result)
 
         self.assertEqual("invoke-id", invoke_id)

@@ -45,11 +45,11 @@ check-security:
 
 .PHONY: format
 format:
-	poetry run black awslambdaric/ tests/
+	poetry run ruff format awslambdaric/ tests/
 
 .PHONY: check-format
 check-format:
-	poetry run black --check awslambdaric/ tests/
+	poetry run ruff format --check awslambdaric/ tests/
 
 .PHONY: dev
 dev: init test
