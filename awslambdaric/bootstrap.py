@@ -415,7 +415,7 @@ class StandardLogSink(object):
 
 class FramedTelemetryLogSink(object):
     """FramedTelemetryLogSink implements the logging contract between runtimes and the platform.
-    
+
     It implements a simple framing protocol so message boundaries can be determined. Each frame can be visualized as follows:
      <pre>
     {@code
