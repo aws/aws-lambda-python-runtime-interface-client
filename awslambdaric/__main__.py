@@ -1,6 +1,4 @@
-"""
-Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
-"""
+"""Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved."""
 
 import os
 import sys
@@ -9,6 +7,7 @@ from . import bootstrap
 
 
 def main(args):
+    """Run the Lambda runtime main entry point."""
     app_root = os.getcwd()
 
     try:

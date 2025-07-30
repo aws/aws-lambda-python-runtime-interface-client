@@ -1,6 +1,4 @@
-"""
-Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
-"""
+"""Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved."""
 
 import decimal
 import math
@@ -14,7 +12,10 @@ from .lambda_runtime_exception import FaultException
 # to get the good parts of Decimal support, we'll special-case NaN decimals and otherwise duplicate the encoding for decimals the same way simplejson does
 # We also set 'ensure_ascii=False' so that the encoded json contains unicode characters instead of unicode escape sequences
 class Encoder(json.JSONEncoder):
+    """Custom JSON encoder for Lambda responses."""
+
     def __init__(self):
+        """Initialize the encoder."""
         if os.environ.get("AWS_EXECUTION_ENV") in {
             "AWS_Lambda_python3.12",
             "AWS_Lambda_python3.13",
@@ -24,6 +25,7 @@ class Encoder(json.JSONEncoder):
             super().__init__(use_decimal=False, allow_nan=True)
 
     def default(self, obj):
+        """Handle special object types during encoding."""
         if isinstance(obj, decimal.Decimal):
             if obj.is_nan():
                 return math.nan
@@ -32,14 +34,19 @@ class Encoder(json.JSONEncoder):
 
 
 def to_json(obj):
+    """Convert object to JSON string."""
     return Encoder().encode(obj)
 
 
 class LambdaMarshaller:
+    """Marshaller for Lambda requests and responses."""
+
     def __init__(self):
+        """Initialize the marshaller."""
         self.jsonEncoder = Encoder()
 
     def unmarshal_request(self, request, content_type="application/json"):
+        """Unmarshal incoming request."""
         if content_type != "application/json":
             return request
         try:
@@ -52,6 +59,7 @@ class LambdaMarshaller:
             )
 
     def marshal_response(self, response):
+        """Marshal response for Lambda."""
         if isinstance(response, bytes):
             return response, "application/unknown"
 

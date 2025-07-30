@@ -1,9 +1,9 @@
-"""
-Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
-"""
+"""Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved."""
 
 
 class FaultException(Exception):
+    """Exception class for Lambda runtime faults."""
+
     MARSHAL_ERROR = "Runtime.MarshalError"
     UNMARSHAL_ERROR = "Runtime.UnmarshalError"
     USER_CODE_SYNTAX_ERROR = "Runtime.UserCodeSyntaxError"
@@ -17,6 +17,7 @@ class FaultException(Exception):
     LAMBDA_RUNTIME_CLIENT_ERROR = "Runtime.LambdaRuntimeClientError"
 
     def __init__(self, exception_type, msg, trace=None):
+        """Initialize FaultException."""
         self.msg = msg
         self.exception_type = exception_type
         self.trace = trace

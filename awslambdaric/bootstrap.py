@@ -1,6 +1,4 @@
-"""
-Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
-"""
+"""Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved."""
 
 import importlib
 import json
@@ -36,6 +34,7 @@ INIT_TYPE_SNAP_START = "snap-start"
 
 
 def _get_handler(handler):
+    """Get handler function from module."""
     try:
         (modname, fname) = handler.rsplit(".", 1)
     except ValueError as e:
@@ -82,6 +81,7 @@ def make_error(
     stack_trace,
     invoke_id=None,
 ):
+    """Create error response."""
     result = {
         "errorMessage": error_message if error_message else "",
         "errorType": error_type if error_type else "",
@@ -92,6 +92,7 @@ def make_error(
 
 
 def replace_line_indentation(line, indent_char, new_indent_char):
+    """Replace line indentation characters."""
     ident_chars_count = 0
     for c in line:
         if c != indent_char:
@@ -104,6 +105,7 @@ if _AWS_LAMBDA_LOG_FORMAT == LogFormat.JSON:
     _ERROR_FRAME_TYPE = _JSON_FRAME_TYPES[logging.ERROR]
 
     def log_error(error_result, log_sink):
+        """Log error in JSON format."""
         error_result = {
             "timestamp": time.strftime(
                 _DATETIME_FORMAT, logging.Formatter.converter(time.time())
@@ -119,6 +121,7 @@ else:
     _ERROR_FRAME_TYPE = _TEXT_FRAME_TYPES[logging.ERROR]
 
     def log_error(error_result, log_sink):
+        """Log error in text format."""
         error_description = "[ERROR]"
 
         error_result_type = error_result.get("errorType")
@@ -161,6 +164,7 @@ def handle_event_request(
     tenant_id,
     log_sink,
 ):
+    """Handle Lambda event request."""
     error_result = None
     try:
         lambda_context = create_lambda_context(
@@ -212,6 +216,7 @@ def handle_event_request(
 
 
 def parse_json_header(header, name):
+    """Parse JSON header."""
     try:
         return json.loads(header)
     except Exception as e:
@@ -230,6 +235,7 @@ def create_lambda_context(
     invoked_function_arn,
     tenant_id,
 ):
+    """Create Lambda context object."""
     client_context = None
     if client_context_json:
         client_context = parse_json_header(client_context_json, "Client Context")
@@ -248,6 +254,7 @@ def create_lambda_context(
 
 
 def build_fault_result(exc_info, msg):
+    """Build fault result from exception info."""
     etype, value, tb = exc_info
     tb_tuples = extract_traceback(tb)
     for i in range(len(tb_tuples)):
@@ -263,6 +270,7 @@ def build_fault_result(exc_info, msg):
 
 
 def make_xray_fault(ex_type, ex_msg, working_dir, tb_tuples):
+    """Create X-Ray fault object."""
     stack = []
     files = set()
     for t in tb_tuples:
@@ -281,6 +289,7 @@ def make_xray_fault(ex_type, ex_msg, working_dir, tb_tuples):
 
 
 def extract_traceback(tb):
+    """Extract traceback information."""
     return [
         (frame.filename, frame.lineno, frame.name, frame.line)
         for frame in traceback.extract_tb(tb)
@@ -288,6 +297,7 @@ def extract_traceback(tb):
 
 
 def on_init_complete(lambda_runtime_client, log_sink):
+    """Handle initialization completion."""
     from . import lambda_runtime_hooks_runner
 
     try:
@@ -311,21 +321,29 @@ def on_init_complete(lambda_runtime_client, log_sink):
 
 
 class LambdaLoggerHandler(logging.Handler):
+    """Lambda logger handler."""
+
     def __init__(self, log_sink):
+        """Initialize logger handler."""
         logging.Handler.__init__(self)
         self.log_sink = log_sink
 
     def emit(self, record):
+        """Emit log record."""
         msg = self.format(record)
         self.log_sink.log(msg)
 
 
 class LambdaLoggerHandlerWithFrameType(logging.Handler):
+    """Lambda logger handler with frame type."""
+
     def __init__(self, log_sink):
+        """Initialize logger handler."""
         super().__init__()
         self.log_sink = log_sink
 
     def emit(self, record):
+        """Emit log record with frame type."""
         self.log_sink.log(
             self.format(record),
             frame_type=(
@@ -336,14 +354,20 @@ class LambdaLoggerHandlerWithFrameType(logging.Handler):
 
 
 class LambdaLoggerFilter(logging.Filter):
+    """Lambda logger filter."""
+
     def filter(self, record):
+        """Filter log record."""
         record.aws_request_id = _GLOBAL_AWS_REQUEST_ID or ""
         record.tenant_id = _GLOBAL_TENANT_ID
         return True
 
 
 class Unbuffered(object):
+    """Unbuffered stream wrapper."""
+
     def __init__(self, stream):
+        """Initialize unbuffered stream."""
         self.stream = stream
 
     def __enter__(self):
@@ -356,16 +380,21 @@ class Unbuffered(object):
         return getattr(self.stream, attr)
 
     def write(self, msg):
+        """Write message to stream."""
         self.stream.write(msg)
         self.stream.flush()
 
     def writelines(self, msgs):
+        """Write multiple lines to stream."""
         self.stream.writelines(msgs)
         self.stream.flush()
 
 
 class StandardLogSink(object):
+    """Standard log sink."""
+
     def __init__(self):
+        """Initialize standard log sink."""
         pass
 
     def __enter__(self):
@@ -375,17 +404,19 @@ class StandardLogSink(object):
         pass
 
     def log(self, msg, frame_type=None):
+        """Log message to stdout."""
         sys.stdout.write(msg)
 
     def log_error(self, message_lines):
+        """Log error message to stdout."""
         error_message = ERROR_LOG_LINE_TERMINATE.join(message_lines) + "\n"
         sys.stdout.write(error_message)
 
 
 class FramedTelemetryLogSink(object):
-    """
-    FramedTelemetryLogSink implements the logging contract between runtimes and the platform. It implements a simple
-    framing protocol so message boundaries can be determined. Each frame can be visualized as follows:
+    """FramedTelemetryLogSink implements the logging contract between runtimes and the platform.
+    
+    It implements a simple framing protocol so message boundaries can be determined. Each frame can be visualized as follows:
      <pre>
     {@code
     +----------------------+------------------------+---------------------+-----------------------+
@@ -399,6 +430,7 @@ class FramedTelemetryLogSink(object):
     """
 
     def __init__(self, fd):
+        """Initialize framed telemetry log sink."""
         self.fd = int(fd)
 
     def __enter__(self):
@@ -409,6 +441,7 @@ class FramedTelemetryLogSink(object):
         self.file.close()
 
     def log(self, msg, frame_type=None):
+        """Log message with frame type."""
         encoded_msg = msg.encode("utf8")
 
         timestamp = int(time.time_ns() / 1000)  # UNIX timestamp in microseconds
@@ -421,6 +454,7 @@ class FramedTelemetryLogSink(object):
         self.file.write(log_msg)
 
     def log_error(self, message_lines):
+        """Log error message."""
         error_message = "\n".join(message_lines)
         self.log(
             error_message,
@@ -429,6 +463,7 @@ class FramedTelemetryLogSink(object):
 
 
 def update_xray_env_variable(xray_trace_id):
+    """Update X-Ray trace ID environment variable."""
     if xray_trace_id is not None:
         os.environ["_X_AMZN_TRACE_ID"] = xray_trace_id
     else:
@@ -437,6 +472,7 @@ def update_xray_env_variable(xray_trace_id):
 
 
 def create_log_sink():
+    """Create appropriate log sink."""
     if "_LAMBDA_TELEMETRY_LOG_FD" in os.environ:
         fd = os.environ["_LAMBDA_TELEMETRY_LOG_FD"]
         del os.environ["_LAMBDA_TELEMETRY_LOG_FD"]
@@ -451,6 +487,7 @@ _GLOBAL_TENANT_ID = None
 
 
 def _setup_logging(log_format, log_level, log_sink):
+    """Set up logging configuration."""
     logging.Formatter.converter = time.gmtime
     logger = logging.getLogger()
 
@@ -477,6 +514,7 @@ def _setup_logging(log_format, log_level, log_sink):
 
 
 def run(app_root, handler, lambda_runtime_api_addr):
+    """Run Lambda runtime."""
     sys.stdout = Unbuffered(sys.stdout)
     sys.stderr = Unbuffered(sys.stderr)
 

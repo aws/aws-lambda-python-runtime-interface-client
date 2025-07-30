@@ -29,8 +29,7 @@ lint = "scripts.dev:lint"
 format = "scripts.dev:format_code"
 clean = "scripts.dev:clean"
 build = "scripts.dev:build"
-build-container = "scripts.dev:build_container"
-test-rie = "scripts.dev:test_rie"
+local-test = "scripts.dev:local_test"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0", "setuptools>=68", "wheel"]

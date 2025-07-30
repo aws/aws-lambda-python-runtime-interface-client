@@ -65,6 +65,10 @@ build-container:
 test-rie:
 	./scripts/test-rie.sh
 
+.PHONY: check-docstr
+check-docstr:
+	poetry run ruff check --select D --ignore D105 awslambdaric/
+
 define HELP_MESSAGE
 
 Usage: $ make [TARGETS]
@@ -83,4 +87,5 @@ TARGETS
 	lint        	Run all linters via scripts/dev.py.
 	test-smoke  	Run smoke tests inside Docker.
 	test-integ  	Run all integration tests.
+	check-docstr	Check docstrings in project using ruff format check.
 endef
