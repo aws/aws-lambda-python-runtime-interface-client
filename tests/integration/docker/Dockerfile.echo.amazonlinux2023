@@ -6,7 +6,7 @@ FROM public.ecr.aws/amazonlinux/amazonlinux:${DISTRO_VERSION} AS python-amazonli
 ARG RUNTIME_VERSION
 
 # Install apt dependencies
-RUN dnf install -y \
+RUN dnf install -y --allowerasing \
   gcc \
   gcc-c++ \
   tar \
@@ -22,7 +22,8 @@ RUN dnf install -y \
   openssl-devel \
   bzip2-devel \
   libffi-devel \
-  sqlite-devel
+  sqlite-devel \
+  curl
 
 RUN RUNTIME_LATEST_VERSION=${RUNTIME_VERSION}.$(curl -s https://www.python.org/ftp/python/ | \
                                                 grep -oE "href=\"$(echo ${RUNTIME_VERSION} | sed "s/\\./\\\./g")\.[0-9]+" | \
@@ -73,6 +74,9 @@ RUN wget --quiet -O cmake-install https://github.com/Kitware/CMake/releases/down
 ENV PATH=/usr/local/bin:$PATH
 ENV LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
 
+# Create symlinks for consistent python usage
+RUN ln -sf /usr/local/bin/python${RUNTIME_VERSION} /usr/local/bin/python3 && \
+    ln -sf /usr/local/bin/python${RUNTIME_VERSION} /usr/local/bin/python
 
 # Include global args in this stage of the build
 ARG RIC_BUILD_DIR="/home/build/"
@@ -85,15 +89,14 @@ COPY . .
 # distutils no longer available in python3.12 and later
 #   https://docs.python.org/3/whatsnew/3.12.html
 #   https://peps.python.org/pep-0632/
-RUN pip3 install setuptools
+RUN /usr/local/bin/python${RUNTIME_VERSION} -m pip install setuptools wheel poetry
+
+# Configure poetry to use the correct python version
+RUN poetry config virtualenvs.create false
+
 RUN make init build 
 
-RUN mv ./dist/awslambdaric-*.tar.gz ./dist/awslambdaric-test.tar.gz
-RUN python${RUNTIME_VERSION} -m pip install \
-      ./dist/awslambdaric-test.tar.gz \
-      --target ${RIC_BUILD_DIR}
-
-RUN make test
+RUN ls -la ./dist/
 
 # Include global args in this stage of the build
 ARG FUNCTION_DIR="/home/app/"
@@ -101,15 +104,12 @@ ARG FUNCTION_DIR="/home/app/"
 RUN mkdir -p ${FUNCTION_DIR}
 # Copy function code
 COPY tests/integration/test-handlers/echo/* ${FUNCTION_DIR}
-# Copy Runtime Interface Client .tgz
-RUN cp ./dist/awslambdaric-test.tar.gz ${FUNCTION_DIR}/awslambdaric-test.tar.gz
 
 # Install the function's dependencies
 WORKDIR ${FUNCTION_DIR}
 RUN python${RUNTIME_VERSION} -m pip install \
-        awslambdaric-test.tar.gz \
-        --target ${FUNCTION_DIR} && \
-    rm awslambdaric-test.tar.gz
+        ${RIC_BUILD_DIR}/dist/*.whl \
+        --target ${FUNCTION_DIR}
 
 
 # Stage 4 - final runtime interface client image

@@ -1,7 +1,13 @@
 repos:
-  - repo: https://github.com/python/black
-    rev: 19.3b0
+  - repo: local
     hooks:
-      - id: black
-        language_version: python3.9
-        exclude_types: ['markdown', 'ini', 'toml', 'rst']
+      - id: ruff-check
+        name: ruff
+        entry: poetry run ruff check --fix
+        language: system
+        types: [python]
+      - id: ruff-format
+        name: ruff format
+        entry: poetry run ruff format
+        language: system
+        types: [python]

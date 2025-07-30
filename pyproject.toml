@@ -1,0 +1,64 @@
+[tool.poetry]
+name = "awslambdaric"
+version = "3.0.2"
+description = "AWS Lambda Runtime Interface Client for Python"
+authors = ["Amazon Web Services"]
+license = "Apache-2.0"
+readme = "README.md"
+packages = [{ include = "awslambdaric" }]
+
+[tool.poetry.dependencies]
+python = ">=3.9"
+simplejson = ">=3.20.1"
+snapshot-restore-py = ">=1.0.0"
+
+[tool.poetry.group.dev.dependencies]
+coverage = ">=4.4.0"
+pytest = ">=3.0.7"
+mock = ">=2.0.0"
+parameterized = ">=0.9.0"
+ruff = "^0.1.0"
+bandit = "^1.7.5"
+pre-commit = "^3.0.0"
+
+# Development scripts
+[tool.poetry.scripts]
+init = "scripts.dev:init"
+test = "scripts.dev:test"
+lint = "scripts.dev:lint"
+format = "scripts.dev:format_code"
+clean = "scripts.dev:clean"
+build = "scripts.dev:build"
+local-test = "scripts.dev:local_test"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0", "setuptools>=68", "wheel"]
+build-backend = "poetry.core.masonry.api"
+
+# Ruff configuration
+[tool.ruff]
+target-version = "py39"
+line-length = 88
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings  
+    "F",   # pyflakes
+    "I",   # isort
+    "UP",  # pyupgrade
+    "C90", # mccabe complexity
+]
+
+# Ignore rules that are too strict for existing codebases
+ignore = [
+    "E501",    # Line too long (handled by formatter)
+    "PLR0913", # Too many arguments
+    "E722",    # Bare except 
+    "PLW0603", # Global statement 
+    "UP031",   # % formatting vs f-strings
+    "E402",    # Module import not at top
+]
+
+[tool.ruff.format]
+quote-style = "double"

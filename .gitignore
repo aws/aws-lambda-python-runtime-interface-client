@@ -153,3 +153,6 @@ tmp*.py
 deps/artifacts/
 deps/aws-lambda-cpp-*/
 deps/curl-*/
+
+# local caches
+.DS_Store

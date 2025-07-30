@@ -88,7 +88,6 @@ class TestHandleEventRequest(unittest.TestCase):
             {},
             "invoked_function_arn",
             0,
-            "tenant_id",
             bootstrap.StandardLogSink(),
         )
         self.lambda_runtime.post_invocation_result.assert_called_once_with(
@@ -112,7 +111,6 @@ class TestHandleEventRequest(unittest.TestCase):
             {},
             "invoked_function_arn",
             0,
-            "tenant_id",
             bootstrap.StandardLogSink(),
         )
         args, _ = self.lambda_runtime.post_invocation_error.call_args
@@ -154,7 +152,6 @@ class TestHandleEventRequest(unittest.TestCase):
             "invalid_cognito_identity",
             "invoked_function_arn",
             0,
-            "tenant_id",
             bootstrap.StandardLogSink(),
         )
         args, _ = self.lambda_runtime.post_invocation_error.call_args
@@ -197,7 +194,6 @@ class TestHandleEventRequest(unittest.TestCase):
             {},
             "invoked_function_arn",
             0,
-            "tenant_id",
             bootstrap.StandardLogSink(),
         )
         args, _ = self.lambda_runtime.post_invocation_error.call_args
@@ -242,7 +238,6 @@ class TestHandleEventRequest(unittest.TestCase):
             {},
             "invoked_function_arn",
             0,
-            "tenant_id",
             bootstrap.StandardLogSink(),
         )
         args, _ = self.lambda_runtime.post_invocation_error.call_args
@@ -288,7 +283,6 @@ class TestHandleEventRequest(unittest.TestCase):
             {},
             "invoked_function_arn",
             0,
-            "tenant_id",
             bootstrap.StandardLogSink(),
         )
         args, _ = self.lambda_runtime.post_invocation_error.call_args
@@ -341,7 +335,6 @@ class TestHandleEventRequest(unittest.TestCase):
             {},
             "invoked_function_arn",
             0,
-            "tenant_id",
             bootstrap.StandardLogSink(),
         )
         args, _ = self.lambda_runtime.post_invocation_error.call_args
@@ -393,7 +386,6 @@ class TestHandleEventRequest(unittest.TestCase):
             {},
             "invoked_function_arn",
             0,
-            "tenant_id",
             bootstrap.StandardLogSink(),
         )
         args, _ = self.lambda_runtime.post_invocation_error.call_args
@@ -433,7 +425,6 @@ class TestHandleEventRequest(unittest.TestCase):
             {},
             "invoked_function_arn",
             0,
-            "tenant_id",
             bootstrap.StandardLogSink(),
         )
         args, _ = self.lambda_runtime.post_invocation_error.call_args
@@ -484,12 +475,15 @@ class TestHandleEventRequest(unittest.TestCase):
             {},
             "invoked_function_arn",
             0,
-            "tenant_id",
             bootstrap.StandardLogSink(),
         )
 
         # NOTE: Indentation characters are NO-BREAK SPACE (U+00A0) not SPACE (U+0020)
-        error_logs = "[ERROR] FaultExceptionType: Fault exception msg\r"
+        error_logs = (
+            lambda_unhandled_exception_warning_message
+            + "\n"
+            + "[ERROR] FaultExceptionType: Fault exception msg\r"
+        )
         error_logs += "Traceback (most recent call last):\r"
         error_logs += '  File "spam.py", line 3, in <module>\r'
         error_logs += "    spam.eggs()\r"
@@ -520,10 +514,13 @@ class TestHandleEventRequest(unittest.TestCase):
             {},
             "invoked_function_arn",
             0,
-            "tenant_id",
             bootstrap.StandardLogSink(),
         )
-        error_logs = "[ERROR] FaultExceptionType: Fault exception msg\rTraceback (most recent call last):\n"
+        error_logs = (
+            lambda_unhandled_exception_warning_message
+            + "\n"
+            + "[ERROR] FaultExceptionType: Fault exception msg\rTraceback (most recent call last):\n"
+        )
 
         self.assertEqual(mock_stdout.getvalue(), error_logs)
 
@@ -549,10 +546,13 @@ class TestHandleEventRequest(unittest.TestCase):
             {},
             "invoked_function_arn",
             0,
-            "tenant_id",
             bootstrap.StandardLogSink(),
         )
-        error_logs = "[ERROR] FaultExceptionType\rTraceback (most recent call last):\n"
+        error_logs = (
+            lambda_unhandled_exception_warning_message
+            + "\n"
+            + "[ERROR] FaultExceptionType\rTraceback (most recent call last):\n"
+        )
 
         self.assertEqual(mock_stdout.getvalue(), error_logs)
 
@@ -578,10 +578,13 @@ class TestHandleEventRequest(unittest.TestCase):
             {},
             "invoked_function_arn",
             0,
-            "tenant_id",
             bootstrap.StandardLogSink(),
         )
-        error_logs = "[ERROR] Fault exception msg\rTraceback (most recent call last):\n"
+        error_logs = (
+            lambda_unhandled_exception_warning_message
+            + "\n"
+            + "[ERROR] Fault exception msg\rTraceback (most recent call last):\n"
+        )
 
         self.assertEqual(mock_stdout.getvalue(), error_logs)
 
@@ -616,10 +619,9 @@ class TestHandleEventRequest(unittest.TestCase):
             {},
             "invoked_function_arn",
             0,
-            "tenant_id",
             bootstrap.StandardLogSink(),
         )
-        error_logs = "[ERROR]\r"
+        error_logs = lambda_unhandled_exception_warning_message + "\n[ERROR]\r"
         error_logs += "Traceback (most recent call last):\r"
         error_logs += '  File "spam.py", line 3, in <module>\r'
         error_logs += "    spam.eggs()\r"
@@ -650,16 +652,25 @@ class TestHandleEventRequest(unittest.TestCase):
             {},
             "invoked_function_arn",
             0,
-            "tenant_id",
             bootstrap.StandardLogSink(),
         )
 
         stdout_value = mock_stdout.getvalue()
+        received_warning = stdout_value.split("\n")[0]
+        received_rest = stdout_value[len(received_warning) + 1 :]
+
+        warning = json.loads(received_warning)
+        self.assertEqual(warning["level"], "WARNING")
+        self.assertEqual(warning["message"], lambda_unhandled_exception_warning_message)
+        self.assertEqual(warning["logger"], "root")
+        self.assertIn("timestamp", warning)
 
         # this line is not in json because of the way the test runtime is bootstrapped
-        error_logs = "[ERROR] FaultExceptionType\rTraceback (most recent call last):\n"
+        error_logs = (
+            "\n[ERROR] FaultExceptionType\rTraceback (most recent call last):\n"
+        )
 
-        self.assertEqual(stdout_value, error_logs)
+        self.assertEqual(received_rest, error_logs)
 
 
 class TestXrayFault(unittest.TestCase):
@@ -857,7 +868,6 @@ class TestContentType(unittest.TestCase):
             cognito_identity_json=None,
             invoked_function_arn="invocation-arn",
             epoch_deadline_time_in_ms=1415836801003,
-            tenant_id=None,
             log_sink=bootstrap.StandardLogSink(),
         )
 
@@ -877,7 +887,6 @@ class TestContentType(unittest.TestCase):
             cognito_identity_json=None,
             invoked_function_arn="invocation-arn",
             epoch_deadline_time_in_ms=1415836801003,
-            tenant_id=None,
             log_sink=bootstrap.StandardLogSink(),
         )
 
@@ -897,7 +906,6 @@ class TestContentType(unittest.TestCase):
             cognito_identity_json=None,
             invoked_function_arn="invocation-arn",
             epoch_deadline_time_in_ms=1415836801003,
-            tenant_id=None,
             log_sink=bootstrap.StandardLogSink(),
         )
 
@@ -916,7 +924,6 @@ class TestContentType(unittest.TestCase):
             cognito_identity_json=None,
             invoked_function_arn="invocation-arn",
             epoch_deadline_time_in_ms=1415836801003,
-            tenant_id=None,
             log_sink=bootstrap.StandardLogSink(),
         )
 
@@ -924,10 +931,13 @@ class TestContentType(unittest.TestCase):
         self.lambda_runtime.post_invocation_error.assert_called_once()
 
         (
-            invoke_id,
-            error_result,
-            xray_fault,
-        ), _ = self.lambda_runtime.post_invocation_error.call_args
+            (
+                invoke_id,
+                error_result,
+                xray_fault,
+            ),
+            _,
+        ) = self.lambda_runtime.post_invocation_error.call_args
         error_dict = json.loads(error_result)
 
         self.assertEqual("invoke-id", invoke_id)
@@ -1348,31 +1358,6 @@ class TestLogging(unittest.TestCase):
                         data,
                         expected,
                     )
-        self.assertEqual(mock_stderr.getvalue(), "")
-
-    @patch("awslambdaric.bootstrap._GLOBAL_TENANT_ID", "test-tenant-id")
-    @patch("sys.stderr", new_callable=StringIO)
-    def test_json_formatter_with_tenant_id(self, mock_stderr):
-        logger = logging.getLogger("a.b")
-        level = logging.INFO
-        message = "Test json formatting with tenant id"
-        expected = {
-            "level": "INFO",
-            "logger": "a.b",
-            "message": message,
-            "requestId": "",
-            "tenantId": "test-tenant-id",
-        }
-
-        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
-            logger.log(level, message)
-
-            data = json.loads(mock_stdout.getvalue())
-            data.pop("timestamp")
-            self.assertEqual(
-                data,
-                expected,
-            )
         self.assertEqual(mock_stderr.getvalue(), "")
 
     @patch("sys.stdout", new_callable=StringIO)

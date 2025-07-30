@@ -10,7 +10,8 @@ RUN apt-get update && \
         g++ \
         make \
         cmake \
-        libcurl4-openssl-dev
+        libcurl4-openssl-dev \
+        curl
 
 # Include global args in this stage of the build
 ARG RIC_BUILD_DIR="/home/build/"
@@ -20,8 +21,13 @@ RUN mkdir -p ${RIC_BUILD_DIR}
 WORKDIR ${RIC_BUILD_DIR}
 COPY . .
 RUN pip3 install setuptools
-RUN make init build test && \
-    mv ./dist/awslambdaric-*.tar.gz ./dist/awslambdaric-test.tar.gz
+# Install Poetry
+RUN curl -sSL https://install.python-poetry.org | python3 - && \
+    ln -s /root/.local/bin/poetry /usr/local/bin/poetry
+
+RUN make init build
+
+RUN ls -la ./dist/
 
 # Include global args in this stage of the build
 ARG FUNCTION_DIR="/home/app/"
@@ -29,15 +35,12 @@ ARG FUNCTION_DIR="/home/app/"
 RUN mkdir -p ${FUNCTION_DIR}
 # Copy function code
 COPY tests/integration/test-handlers/echo/* ${FUNCTION_DIR}
-# Copy Runtime Interface Client .tgz
-RUN cp ./dist/awslambdaric-test.tar.gz ${FUNCTION_DIR}/awslambdaric-test.tar.gz
 
 # Install the function's dependencies
 WORKDIR ${FUNCTION_DIR}
 RUN pip install \
-        awslambdaric-test.tar.gz \
-        --target ${FUNCTION_DIR} && \
-    rm awslambdaric-test.tar.gz
+        ${RIC_BUILD_DIR}/dist/*.whl \
+        --target ${FUNCTION_DIR}
 
 
 # Stage 2 - final runtime interface client image

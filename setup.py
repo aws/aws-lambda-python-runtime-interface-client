@@ -1,43 +1,51 @@
-"""
-Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
-"""
-
-import io
 import os
 import platform
+import sys
 from subprocess import check_call, check_output
-from setuptools import Extension, find_packages, setup
-from awslambdaric import __version__
+from setuptools import Extension, setup, find_packages
 
+if sys.version_info >= (3, 11):
+    import tomllib
+else:
+    try:
+        import tomli as tomllib
+    except ImportError:
+        import subprocess
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "tomli"])
+        import tomli as tomllib
+
+def get_metadata():
+    with open("pyproject.toml", "rb") as f:
+        pyproject = tomllib.load(f)
+    
+    poetry_config = pyproject["tool"]["poetry"]
+    return {
+        "name": poetry_config["name"],
+        "version": poetry_config["version"],
+        "description": poetry_config["description"],
+        "author": poetry_config["authors"][0] if poetry_config["authors"] else "",
+        "license": poetry_config["license"],
+        "python_requires": poetry_config["dependencies"]["python"],
+        "install_requires": [
+            f"{pkg}{version}" if not version.startswith("^") and not version.startswith("~") else f"{pkg}>={version[1:]}"
+            for pkg, version in poetry_config["dependencies"].items()
+            if pkg != "python"
+        ]
+    }
 
 def get_curl_extra_linker_flags():
-    # We do not want to build the dependencies during packaging
-    if platform.system() != "Linux" or os.getenv("BUILD") == "true":
+    if platform.system() != "Linux" or os.getenv("BUILD") != "true":
         return []
-
-    # Build the dependencies
     check_call(["./scripts/preinstall.sh"])
-
-    # call curl-config to get the required linker flags
     cmd = ["./deps/artifacts/bin/curl-config", "--static-libs"]
-    curl_config = check_output(cmd).decode("utf-8").replace("\n", "")
-
-    # It is expected that the result of the curl-config call is similar to
-    # "/tmp/pip-req-build-g9dlug7g/deps/artifacts/lib/libcurl.a -lidn2"
-    # we want to return just the extra flags
-    flags = curl_config.split(" ")[1:]
-
-    return flags
-
+    curl_config = check_output(cmd).decode("utf-8").strip()
+    return curl_config.split(" ")[1:]
 
 def get_runtime_client_extension():
     if platform.system() != "Linux" and os.getenv("BUILD") != "true":
-        print(
-            "The native runtime_client only builds on Linux. Skipping its compilation."
-        )
+        print("Native extension build skipped on non-Linux.")
         return []
-
-    runtime_client = Extension(
+    return [Extension(
         "runtime_client",
         ["awslambdaric/runtime_client.cpp"],
         extra_compile_args=["--std=c++11"],
@@ -45,54 +53,18 @@ def get_runtime_client_extension():
         libraries=["aws-lambda-runtime", "curl"],
         extra_link_args=get_curl_extra_linker_flags(),
         include_dirs=["deps/artifacts/include"],
-    )
+    )]
 
-    return [runtime_client]
-
-
-def read(*filenames, **kwargs):
-    encoding = kwargs.get("encoding", "utf-8")
-    sep = kwargs.get("sep", os.linesep)
-    buf = []
-    for filename in filenames:
-        with io.open(filename, encoding=encoding) as f:
-            buf.append(f.read())
-    return sep.join(buf)
-
-
-def read_requirements(req="base.txt"):
-    content = read(os.path.join("requirements", req))
-    return [
-        line for line in content.split(os.linesep) if not line.strip().startswith("#")
-    ]
-
+metadata = get_metadata()
 
 setup(
-    name="awslambdaric",
-    version=__version__,
-    author="Amazon Web Services",
-    description="AWS Lambda Runtime Interface Client for Python",
-    long_description=read("README.md"),
-    long_description_content_type="text/markdown",
-    url="https://github.com/aws/aws-lambda-python-runtime-interface-client",
-    packages=find_packages(
-        exclude=("tests", "tests.*", "docs", "examples", "versions")
-    ),
-    install_requires=read_requirements("base.txt"),
-    classifiers=[
-        "Development Status :: 5 - Production/Stable",
-        "Intended Audience :: Developers",
-        "Natural Language :: English",
-        "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.9",
-        "Programming Language :: Python :: 3.10",
-        "Programming Language :: Python :: 3.11",
-        "Programming Language :: Python :: 3.12",
-        "Programming Language :: Python :: 3.13",
-        "License :: OSI Approved :: Apache Software License",
-        "Operating System :: OS Independent",
-    ],
-    python_requires=">=3.9",
+    name=metadata["name"],
+    version=metadata["version"],
+    description=metadata["description"],
+    author=metadata["author"],
+    license=metadata["license"],
+    packages=find_packages(),
+    python_requires=metadata["python_requires"],
+    install_requires=metadata["install_requires"],
     ext_modules=get_runtime_client_extension(),
-    test_suite="tests",
 )

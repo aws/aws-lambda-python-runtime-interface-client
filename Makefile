@@ -5,11 +5,23 @@ target:
 
 .PHONY: init
 init:
-	pip3 install -r requirements/base.txt -r requirements/dev.txt
+	python3 scripts/dev.py init
 
 .PHONY: test
-test: check-format
-	pytest --cov awslambdaric --cov-report term-missing --cov-fail-under 90 tests
+test:
+	python3 scripts/dev.py test
+
+.PHONY: lint
+lint:
+	python3 scripts/dev.py lint
+
+.PHONY: clean
+clean:
+	python3 scripts/dev.py clean
+
+.PHONY: build
+build: clean
+	python3 scripts/dev.py build
 
 .PHONY: setup-codebuild-agent
 setup-codebuild-agent:
@@ -25,35 +37,25 @@ test-integ: setup-codebuild-agent
 
 .PHONY: check-security
 check-security:
-	bandit -r awslambdaric
+	poetry run bandit -r awslambdaric
 
 .PHONY: format
 format:
-	black setup.py awslambdaric/ tests/
+	poetry run ruff format awslambdaric/ tests/
 
 .PHONY: check-format
 check-format:
-	black --check setup.py awslambdaric/ tests/
+	poetry run ruff format --check awslambdaric/ tests/
 
-# Command to run everytime you make changes to verify everything works
 .PHONY: dev
 dev: init test
 
-# Verifications to run before sending a pull request
 .PHONY: pr
 pr: init check-format check-security dev
 
+.PHONY: codebuild
 codebuild: setup-codebuild-agent
 	CODEBUILD_IMAGE_TAG=codebuild-agent DISTRO="$(DISTRO)" tests/integration/codebuild-local/test_all.sh tests/integration/codebuild
-
-.PHONY: clean
-clean:
-	rm -rf dist
-	rm -rf awslambdaric.egg-info
-
-.PHONY: build
-build: clean
-	BUILD=true python3 setup.py sdist
 
 define HELP_MESSAGE
 
@@ -61,12 +63,14 @@ Usage: $ make [TARGETS]
 
 TARGETS
 	check-security	Run bandit to find security issues.
-	format       	Run black to automatically update your code to match our formatting.
-	build       	Builds the package.
-	clean       	Cleans the working directory by removing built artifacts.
-	dev         	Run all development tests after a change.
-	init        	Initialize and install the requirements and dev-requirements for this project.
+	format       	Run black to automatically update your code to match formatting.
+	build       	Build the package using scripts/dev.py.
+	clean       	Cleans the working directory using scripts/dev.py.
+	dev         	Run all development tests using scripts/dev.py.
+	init        	Install dependencies via scripts/dev.py.
 	pr          	Perform all checks before submitting a Pull Request.
-	test        	Run the Unit tests.
-
+	test        	Run unit tests using scripts/dev.py.
+	lint        	Run all linters via scripts/dev.py.
+	test-smoke  	Run smoke tests inside Docker.
+	test-integ  	Run all integration tests.
 endef
