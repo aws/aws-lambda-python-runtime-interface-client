@@ -156,3 +156,6 @@ deps/curl-*/
 
 # local caches
 .DS_Store
+
+# local build artifacts
+build-artifacts

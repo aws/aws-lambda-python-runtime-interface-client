@@ -62,10 +62,20 @@ def build():
     run([sys.executable, "setup.py", "sdist", "bdist_wheel"], env=env)
 
 
+def build_container():
+    print("Building awslambdaric wheel in container")
+    run(["./scripts/build-container.sh"])
+
+
+def test_rie():
+    print("Testing with RIE using pre-built wheel")
+    run(["./scripts/test-rie.sh"])
+
+
 def main():
     parser = argparse.ArgumentParser(description="Development scripts")
     parser.add_argument("command", choices=[
-        "init", "test", "lint", "format", "clean", "build"
+        "init", "test", "lint", "format", "clean", "build", "build-container", "test-rie"
     ])
     
     args = parser.parse_args()
@@ -77,7 +87,8 @@ def main():
         "format": format_code,
         "clean": clean,
         "build": build,
-
+        "build-container": build_container,
+        "test-rie": test_rie,
     }
     
     command_map[args.command]()

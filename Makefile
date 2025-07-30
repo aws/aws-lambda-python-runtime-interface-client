@@ -57,6 +57,14 @@ pr: init check-format check-security dev
 codebuild: setup-codebuild-agent
 	CODEBUILD_IMAGE_TAG=codebuild-agent DISTRO="$(DISTRO)" tests/integration/codebuild-local/test_all.sh tests/integration/codebuild
 
+.PHONY: build-container
+build-container:
+	./scripts/build-container.sh
+
+.PHONY: test-rie
+test-rie:
+	./scripts/test-rie.sh
+
 define HELP_MESSAGE
 
 Usage: $ make [TARGETS]
@@ -68,6 +76,8 @@ TARGETS
 	clean       	Cleans the working directory using scripts/dev.py.
 	dev         	Run all development tests using scripts/dev.py.
 	init        	Install dependencies via scripts/dev.py.
+	build-container	Build awslambdaric wheel in isolated container.
+	test-rie    	Test with RIE using pre-built wheel (run build-container first).
 	pr          	Perform all checks before submitting a Pull Request.
 	test        	Run unit tests using scripts/dev.py.
 	lint        	Run all linters via scripts/dev.py.

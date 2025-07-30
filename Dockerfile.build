@@ -1,0 +1,28 @@
+FROM python:3.9-alpine AS build-image
+
+# Install build dependencies
+RUN apk add --no-cache \
+    build-base \
+    libtool \
+    autoconf \
+    automake \
+    elfutils-dev \
+    make \
+    cmake \
+    libcurl \
+    curl \
+    libstdc++ \
+    binutils
+
+# Build awslambdaric
+ARG RIC_BUILD_DIR="/home/build/"
+RUN mkdir -p ${RIC_BUILD_DIR}
+WORKDIR ${RIC_BUILD_DIR}
+COPY . .
+RUN pip install setuptools
+RUN curl -sSL https://install.python-poetry.org | python3 - && \
+    ln -s /root/.local/bin/poetry /usr/local/bin/poetry
+RUN make init build
+
+# Keep the built wheel accessible
+CMD ["sh", "-c", "echo 'Build complete. Wheel available in /home/build/dist/'"]

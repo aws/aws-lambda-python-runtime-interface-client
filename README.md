@@ -14,6 +14,26 @@ The Python Runtime Interface Client package currently supports Python versions:
 
 ## Usage
 
+### Container-Based Builds
+
+For development or when you need to build awslambdaric from source, you can use container-based builds to ensure consistent compilation across different platforms, and native dependencies linking.
+
+```shell script
+# Build awslambdaric wheel in a Linux container
+make build-container
+# Or with poetry (run 'poetry install' first):
+poetry run build-container
+
+# Test with RIE using the built wheel
+make test-rie
+# Or with poetry:
+poetry run test-rie
+```
+
+This approach builds the C++ extensions in a Linux environment, ensuring compatibility with Lambda's runtime environment regardless of your host OS.
+
+**Note**: Running `make build` (or `poetry run build`) on non-Linux machines will not properly link the native C++ dependencies, resulting in a non-functional runtime client. Always use container-based builds for development.
+
 ### Creating a Docker Image for Lambda with the Runtime Interface Client
 First step is to choose the base image to be used. The supported Linux OS distributions are:
 
@@ -103,38 +123,23 @@ def handler(event, context):
 
 ### Local Testing
 
-To make it easy to locally test Lambda functions packaged as container images we open-sourced a lightweight web-server, Lambda Runtime Interface Emulator (RIE), which allows your function packaged as a container image to accept HTTP requests. You can install the [AWS Lambda Runtime Interface Emulator](https://github.com/aws/aws-lambda-runtime-interface-emulator) on your local machine to test your function. Then when you run the image function, you set the entrypoint to be the emulator.
-
-*To install the emulator and test your Lambda function*
-
-1) From your project directory, run the following command to download the RIE from GitHub and install it on your local machine.
+To test Lambda functions with the Runtime Interface Client, use the [AWS Lambda Runtime Interface Emulator (RIE)](https://github.com/aws/aws-lambda-runtime-interface-emulator). To test your local changes with RIE (Runtime Interface Emulator):
 
 ```shell script
-mkdir -p ~/.aws-lambda-rie && \
-    curl -Lo ~/.aws-lambda-rie/aws-lambda-rie https://github.com/aws/aws-lambda-runtime-interface-emulator/releases/latest/download/aws-lambda-rie && \
-    chmod +x ~/.aws-lambda-rie/aws-lambda-rie
+# Build your current code (do this when you make changes) 
+# We build on a linux machine to ensure native build dependencies are met
+make build-container
+# Or with poetry:
+poetry run build-container
+
+# Test with RIE (fast, repeatable)
+make test-rie
+# Or with poetry:
+poetry run test-rie
+
+# Test the function
+curl -XPOST "http://localhost:9000/2015-03-31/functions/function/invocations" -d '{"message":"test"}'
 ```
-2) Run your Lambda image function using the docker run command.
-
-```shell script
-docker run -d -v ~/.aws-lambda-rie:/aws-lambda -p 9000:8080 \
-    --entrypoint /aws-lambda/aws-lambda-rie \
-    myfunction:latest \
-        /usr/local/bin/python -m awslambdaric app.handler
-```
-
-This runs the image as a container and starts up an endpoint locally at `http://localhost:9000/2015-03-31/functions/function/invocations`.
-
-3) Post an event to the following endpoint using a curl command:
-
-```shell script
-curl -XPOST "http://localhost:9000/2015-03-31/functions/function/invocations" -d '{}'
-```
-
-This command invokes the function running in the container image and returns a response.
-
-*Alternately, you can also include RIE as a part of your base image. See the AWS documentation on how to [Build RIE into your base image](https://docs.aws.amazon.com/lambda/latest/dg/images-test.html#images-test-alternative).*
-
 
 ## Development
 
@@ -145,7 +150,6 @@ Clone this repository and run:
 make init
 make build
 ```
-
 ### Running tests
 
 Make sure the project is built:
