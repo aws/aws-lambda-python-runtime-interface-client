@@ -1,0 +1,26 @@
+FROM python:3.9-alpine
+
+RUN apk add --no-cache libstdc++ curl
+
+# Install RIE
+RUN curl -Lo /usr/local/bin/aws-lambda-rie https://github.com/aws/aws-lambda-runtime-interface-emulator/releases/latest/download/aws-lambda-rie && \
+    chmod +x /usr/local/bin/aws-lambda-rie
+
+# Add the pre-built wheel
+ADD build-artifacts/*.whl /tmp/
+
+# Install the wheel
+RUN pip install /tmp/*.whl
+
+# Copy test handler
+COPY tests/integration/test-handlers/echo/app.py /var/task/app.py
+
+# Set environment for local testing
+ENV AWS_LAMBDA_RUNTIME_API="127.0.0.1:8080"
+ENV LAMBDA_TASK_ROOT="/var/task"
+ENV _HANDLER="app.handler"
+
+WORKDIR /var/task
+
+ENTRYPOINT ["/usr/local/bin/aws-lambda-rie"]
+CMD ["python", "-m", "awslambdaric", "app.handler"]
