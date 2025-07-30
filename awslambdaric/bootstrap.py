@@ -201,7 +201,6 @@ def handle_event_request(
         )
 
     if error_result is not None:
-
         log_error(error_result, log_sink)
         lambda_runtime_client.post_invocation_error(
             invoke_id, to_json(error_result), to_json(xray_fault)
