@@ -1,10 +1,14 @@
-# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
-# SPDX-License-Identifier: Apache-2.0
+"""Lambda runtime hooks runner.
+
+Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+SPDX-License-Identifier: Apache-2.0
+"""
 
 from snapshot_restore_py import get_before_snapshot, get_after_restore
 
 
 def run_before_snapshot():
+    """Run before snapshot hooks."""
     before_snapshot_callables = get_before_snapshot()
     while before_snapshot_callables:
         # Using pop as before checkpoint callables are executed in the reverse order of their registration
@@ -13,6 +17,7 @@ def run_before_snapshot():
 
 
 def run_after_restore():
+    """Run after restore hooks."""
     after_restore_callables = get_after_restore()
     for func, args, kwargs in after_restore_callables:
         func(*args, **kwargs)
