@@ -47,11 +47,15 @@ format:
 check-format:
 	poetry run ruff format --check awslambdaric/ tests/
 
+.PHONY: check-docstr
+check-docstr:
+	python3 scripts/dev.py check-docstr
+
 .PHONY: dev
 dev: init test
 
 .PHONY: pr
-pr: init check-format check-security dev
+pr: init check-format check-annotations check-types check-type-usage check-security dev
 
 .PHONY: codebuild
 codebuild: setup-codebuild-agent
@@ -70,17 +74,18 @@ define HELP_MESSAGE
 Usage: $ make [TARGETS]
 
 TARGETS
-	check-security	Run bandit to find security issues.
-	format       	Run black to automatically update your code to match formatting.
-	build       	Build the package using scripts/dev.py.
-	clean       	Cleans the working directory using scripts/dev.py.
-	dev         	Run all development tests using scripts/dev.py.
-	init        	Install dependencies via scripts/dev.py.
-	build-container	Build awslambdaric wheel in isolated container.
-	test-rie    	Test with RIE using pre-built wheel (run build-container first).
-	pr          	Perform all checks before submitting a Pull Request.
-	test        	Run unit tests using scripts/dev.py.
-	lint        	Run all linters via scripts/dev.py.
-	test-smoke  	Run smoke tests inside Docker.
-	test-integ  	Run all integration tests.
+	check-security		Run bandit to find security issues.
+	check-docstr		Check docstrings in project using ruff format check.
+	format       		Run ruff to automatically format your code.
+	build       		Build the package using scripts/dev.py.
+	clean       		Cleans the working directory using scripts/dev.py.
+	dev         		Run all development tests using scripts/dev.py.
+	init        		Install dependencies via scripts/dev.py.
+	build-container		Build awslambdaric wheel in isolated container.
+	test-rie    		Test with RIE using pre-built wheel (run build-container first).
+	pr          		Perform all checks before submitting a Pull Request.
+	test        		Run unit tests using scripts/dev.py.
+	lint        		Run all linters via scripts/dev.py.
+	test-smoke  		Run smoke tests inside Docker.
+	test-integ  		Run all integration tests.
 endef

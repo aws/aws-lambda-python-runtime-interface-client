@@ -71,11 +71,16 @@ def test_rie():
     print("Testing with RIE using pre-built wheel")
     run(["./scripts/test-rie.sh"])
 
+def check_docstr():
+    print("Checking docstrings")
+    run(["poetry", "run", "ruff", "check", "--select", "D", "--ignore", "D105", "awslambdaric/"])
+
 
 def main():
     parser = argparse.ArgumentParser(description="Development scripts")
     parser.add_argument("command", choices=[
-        "init", "test", "lint", "format", "clean", "build", "build-container", "test-rie"
+        "init", "test", "lint", "format", "clean", "build", "build-container", "test-rie",
+        "check-docstr"
     ])
     
     args = parser.parse_args()
@@ -89,6 +94,7 @@ def main():
         "build": build,
         "build-container": build_container,
         "test-rie": test_rie,
+        "check-docstr": check_docstr,
     }
     
     command_map[args.command]()

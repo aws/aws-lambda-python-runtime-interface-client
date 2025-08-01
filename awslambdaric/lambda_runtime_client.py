@@ -1,6 +1,4 @@
-"""
-Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
-"""
+"""Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved."""
 
 import sys
 from awslambdaric import __version__
@@ -29,15 +27,22 @@ from .lambda_runtime_marshaller import LambdaMarshaller
 
 
 class InvocationRequest(object):
+    """Lambda invocation request."""
+
     def __init__(self, **kwds):
+        """Initialize invocation request."""
         self.__dict__.update(kwds)
 
     def __eq__(self, other):
+        """Check equality."""
         return self.__dict__ == other.__dict__
 
 
 class LambdaRuntimeClientError(Exception):
+    """Lambda runtime client error."""
+
     def __init__(self, endpoint, response_code, response_body):
+        """Initialize runtime client error."""
         self.endpoint = endpoint
         self.response_code = response_code
         self.response_body = response_body
@@ -47,12 +52,15 @@ class LambdaRuntimeClientError(Exception):
 
 
 class LambdaRuntimeClient(object):
+    """Lambda runtime client."""
+
     marshaller = LambdaMarshaller()
     """marshaller is a class attribute that determines the unmarshalling and marshalling logic of a function's event
     and response. It allows for function authors to override the the default implementation, LambdaMarshaller which
     unmarshals and marshals JSON, to an instance of a class that implements the same interface."""
 
     def __init__(self, lambda_runtime_address, use_thread_for_polling_next=False):
+        """Initialize runtime client."""
         self.lambda_runtime_address = lambda_runtime_address
         self.use_thread_for_polling_next = use_thread_for_polling_next
         if self.use_thread_for_polling_next:
@@ -65,6 +73,7 @@ class LambdaRuntimeClient(object):
     def call_rapid(
         self, http_method, endpoint, expected_http_code, payload=None, headers=None
     ):
+        """Call RAPID endpoint."""
         # These imports are heavy-weight. They implicitly trigger `import ssl, hashlib`.
         # Importing them lazily to speed up critical path of a common case.
         import http.client
@@ -84,6 +93,7 @@ class LambdaRuntimeClient(object):
             raise LambdaRuntimeClientError(endpoint, response.code, response_body)
 
     def post_init_error(self, error_response_data, error_type_override=None):
+        """Post initialization error."""
         import http
 
         endpoint = "/2018-06-01/runtime/init/error"
@@ -99,12 +109,14 @@ class LambdaRuntimeClient(object):
         )
 
     def restore_next(self):
+        """Restore next invocation."""
         import http
 
         endpoint = "/2018-06-01/runtime/restore/next"
         self.call_rapid("GET", endpoint, http.HTTPStatus.OK)
 
     def report_restore_error(self, restore_error_data):
+        """Report restore error."""
         import http
 
         endpoint = "/2018-06-01/runtime/restore/error"
@@ -114,6 +126,7 @@ class LambdaRuntimeClient(object):
         )
 
     def wait_next_invocation(self):
+        """Wait for next invocation."""
         # Calling runtime_client.next() from a separate thread unblocks the main thread,
         # which can then process signals.
         if self.use_thread_for_polling_next:
@@ -145,6 +158,7 @@ class LambdaRuntimeClient(object):
     def post_invocation_result(
         self, invoke_id, result_data, content_type="application/json"
     ):
+        """Post invocation result."""
         runtime_client.post_invocation_result(
             invoke_id,
             (
@@ -156,6 +170,7 @@ class LambdaRuntimeClient(object):
         )
 
     def post_invocation_error(self, invoke_id, error_response_data, xray_fault):
+        """Post invocation error."""
         max_header_size = 1024 * 1024  # 1MiB
         xray_fault = xray_fault if len(xray_fault.encode()) < max_header_size else ""
         runtime_client.post_error(invoke_id, error_response_data, xray_fault)

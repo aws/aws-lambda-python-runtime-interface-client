@@ -51,15 +51,5 @@ select = [
     "C90", # mccabe complexity
 ]
 
-# Ignore rules that are too strict for existing codebases
-ignore = [
-    "E501",    # Line too long (handled by formatter)
-    "PLR0913", # Too many arguments
-    "E722",    # Bare except 
-    "PLW0603", # Global statement 
-    "UP031",   # % formatting vs f-strings
-    "E402",    # Module import not at top
-]
-
 [tool.ruff.format]
 quote-style = "double"

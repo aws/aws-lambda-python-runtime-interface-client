@@ -1,6 +1,4 @@
-"""
-Copyright 2023 Amazon.com, Inc. or its affiliates. All Rights Reserved.
-"""
+"""Copyright 2023 Amazon.com, Inc. or its affiliates. All Rights Reserved."""
 
 import json
 import logging
@@ -36,11 +34,14 @@ _RESERVED_FIELDS = {
 
 
 class LogFormat(IntEnum):
+    """Log format enumeration."""
+
     JSON = 0b0
     TEXT = 0b1
 
     @classmethod
     def from_str(cls, value: str):
+        """Convert string to LogFormat."""
         if value and value.upper() == "JSON":
             return cls.JSON.value
         return cls.TEXT.value
@@ -77,7 +78,10 @@ def _format_log_level(record: logging.LogRecord) -> int:
 
 
 class JsonFormatter(logging.Formatter):
+    """JSON formatter for Lambda logs."""
+
     def __init__(self):
+        """Initialize the JSON formatter."""
         super().__init__(datefmt=_DATETIME_FORMAT)
 
     @staticmethod
@@ -108,6 +112,7 @@ class JsonFormatter(logging.Formatter):
         return f"{record.pathname}:{record.funcName}:{record.lineno}"
 
     def format(self, record: logging.LogRecord) -> str:
+        """Format log record as JSON."""
         record.levelno = _format_log_level(record)
         record.levelname = logging.getLevelName(record.levelno)
         record._frame_type = _JSON_FRAME_TYPES.get(

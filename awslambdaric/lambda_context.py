@@ -1,6 +1,4 @@
-"""
-Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
-"""
+"""Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved."""
 
 import logging
 import os
@@ -9,6 +7,8 @@ import time
 
 
 class LambdaContext(object):
+    """Lambda context object."""
+
     def __init__(
         self,
         invoke_id,
@@ -18,6 +18,7 @@ class LambdaContext(object):
         invoked_function_arn=None,
         tenant_id=None,
     ):
+        """Initialize Lambda context."""
         self.aws_request_id = invoke_id
         self.log_group_name = os.environ.get("AWS_LAMBDA_LOG_GROUP_NAME")
         self.log_stream_name = os.environ.get("AWS_LAMBDA_LOG_STREAM_NAME")
@@ -45,11 +46,13 @@ class LambdaContext(object):
         self._epoch_deadline_time_in_ms = epoch_deadline_time_in_ms
 
     def get_remaining_time_in_millis(self):
+        """Get remaining time in milliseconds."""
         epoch_now_in_ms = int(time.time() * 1000)
         delta_ms = self._epoch_deadline_time_in_ms - epoch_now_in_ms
         return delta_ms if delta_ms > 0 else 0
 
     def log(self, msg):
+        """Log a message."""
         for handler in logging.getLogger().handlers:
             if hasattr(handler, "log_sink"):
                 handler.log_sink.log(str(msg))
@@ -74,6 +77,8 @@ class LambdaContext(object):
 
 
 class CognitoIdentity(object):
+    """Cognito identity information."""
+
     __slots__ = ["cognito_identity_id", "cognito_identity_pool_id"]
 
     def __repr__(self):
@@ -86,6 +91,8 @@ class CognitoIdentity(object):
 
 
 class Client(object):
+    """Client information."""
+
     __slots__ = [
         "installation_id",
         "app_title",
@@ -107,6 +114,8 @@ class Client(object):
 
 
 class ClientContext(object):
+    """Client context information."""
+
     __slots__ = ["custom", "env", "client"]
 
     def __repr__(self):
@@ -120,6 +129,7 @@ class ClientContext(object):
 
 
 def make_obj_from_dict(_class, _dict, fields=None):
+    """Create object from dictionary."""
     if _dict is None:
         return None
     obj = _class()
@@ -128,6 +138,7 @@ def make_obj_from_dict(_class, _dict, fields=None):
 
 
 def set_obj_from_dict(obj, _dict, fields=None):
+    """Set object attributes from dictionary."""
     if fields is None:
         fields = obj.__class__.__slots__
     for field in fields:
