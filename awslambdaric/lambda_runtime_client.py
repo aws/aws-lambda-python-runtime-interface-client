@@ -16,12 +16,9 @@ def _user_agent():
     return f"aws-lambda-python/{py_version}-{pkg_version}"
 
 
-try:
-    import runtime_client
-
-    runtime_client.initialize_client(_user_agent())
-except ImportError:
-    runtime_client = None
+# Import native extension
+import awslambdaric_native as runtime_client
+runtime_client.initialize_client(_user_agent())
 
 from .lambda_runtime_marshaller import LambdaMarshaller
 
@@ -143,6 +140,7 @@ class LambdaRuntimeClient(object):
                 )
         else:
             response_body, headers = runtime_client.next()
+            
         return InvocationRequest(
             invoke_id=headers.get("Lambda-Runtime-Aws-Request-Id"),
             x_amzn_trace_id=headers.get("Lambda-Runtime-Trace-Id"),

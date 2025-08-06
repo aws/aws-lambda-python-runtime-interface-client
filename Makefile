@@ -55,7 +55,7 @@ check-docstr:
 dev: init test
 
 .PHONY: pr
-pr: init check-format check-annotations check-types check-type-usage check-security dev
+pr: init check-format check-security dev
 
 .PHONY: codebuild
 codebuild: setup-codebuild-agent

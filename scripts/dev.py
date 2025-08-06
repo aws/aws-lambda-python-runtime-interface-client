@@ -49,17 +49,8 @@ def clean():
 
 
 def build():
-    print("Building package")
-    env = os.environ.copy()
-    
-    # Set BUILD=true on Linux for native compilation
-    import platform
-    if platform.system() == "Linux":
-        env["BUILD"] = "true"
-    elif os.getenv("BUILD") == "true":
-        env["BUILD"] = "true"
-        
-    run([sys.executable, "setup.py", "sdist", "bdist_wheel"], env=env)
+    print("Building package (pure Python only)")
+    run([sys.executable, "setup.py", "sdist", "bdist_wheel"])
 
 
 def build_container():

@@ -1,18 +1,11 @@
 FROM python:3.9-alpine AS build-image
 
-# Install build dependencies
-RUN apk add --no-cache \
-    build-base \
-    libtool \
-    autoconf \
-    automake \
-    elfutils-dev \
-    make \
-    cmake \
-    libcurl \
-    curl \
-    libstdc++ \
-    binutils
+
+RUN apk add --no-cache curl make
+
+# Copy and install native wheel
+COPY native-wheels/*.whl /tmp/native-wheels/
+RUN pip install /tmp/native-wheels/*.whl
 
 # Build awslambdaric
 ARG RIC_BUILD_DIR="/home/build/"
