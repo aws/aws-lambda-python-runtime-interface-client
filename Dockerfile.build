@@ -3,7 +3,7 @@ FROM python:3.9-alpine AS build-image
 
 RUN apk add --no-cache curl make
 
-# Copy and install native wheel
+# Install native wheel dependency
 COPY native-wheels/*.whl /tmp/native-wheels/
 RUN pip install /tmp/native-wheels/*.whl
 
@@ -15,7 +15,7 @@ COPY . .
 RUN pip install setuptools
 RUN curl -sSL https://install.python-poetry.org | python3 - && \
     ln -s /root/.local/bin/poetry /usr/local/bin/poetry
-RUN make init build
+RUN poetry install && poetry run poe build
 
 # Keep the built wheel accessible
 CMD ["sh", "-c", "echo 'Build complete. Wheel available in /home/build/dist/'"]

@@ -159,3 +159,6 @@ deps/curl-*/
 
 # local build artifacts
 build-artifacts
+
+# native wheels used for testing the separation of the native build
+native-wheels/
