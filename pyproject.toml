@@ -18,9 +18,8 @@ pytest = ">=3.0.7"
 mock = ">=2.0.0"
 parameterized = ">=0.9.0"
 ruff = "^0.1.0"
-bandit = "^1.7.5"
-pre-commit = "^3.0.0"
 poethepoet = "^0.24.0"
+pyrefly = "^0.26.0"
 
 [tool.poe.tasks]
 init = "poetry install"
@@ -31,9 +30,10 @@ clean = { shell = "rm -rf build dist *.egg-info" }
 build = ["clean", { cmd = "python setup.py sdist bdist_wheel" }]
 build-container = { shell = "./scripts/build-container.sh" }
 test-rie = { shell = "./scripts/test-rie.sh" }
-check-security = "bandit -r awslambdaric"
+check-security = "ruff check --select S awslambdaric/"
 check-format = "ruff format --check awslambdaric/ tests/"
 check-docstr = "ruff check --select D --ignore D105 awslambdaric/"
+type-check = "pyrefly check"
 test-smoke = { shell = "CODEBUILD_IMAGE_TAG=codebuild-agent tests/integration/codebuild-local/test_one.sh tests/integration/codebuild/buildspec.os.alpine.yml alpine 3.15 3.9" }
 test-integ = { shell = "CODEBUILD_IMAGE_TAG=codebuild-agent DISTRO=\"$DISTRO\" tests/integration/codebuild-local/test_all.sh tests/integration/codebuild/." }
 setup-codebuild-agent = { shell = "docker build -t codebuild-agent - < tests/integration/codebuild-local/Dockerfile.agent" }
@@ -59,7 +59,12 @@ select = [
     "I",   # isort
     "UP",  # pyupgrade
     "C90", # mccabe complexity
+    "S",   # flake8-bandit security checks
 ]
+
+[tool.pyrefly]
+project-includes = ["**/*"]
+project-excludes = ["**/*venv/**/*"]
 
 [tool.ruff.format]
 quote-style = "double"

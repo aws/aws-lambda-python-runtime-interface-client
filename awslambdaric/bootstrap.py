@@ -7,10 +7,12 @@ import os
 import sys
 import time
 import traceback
+from typing import Any, Optional, List
 
 from .lambda_context import LambdaContext
 from .lambda_runtime_client import LambdaRuntimeClient
 from .lambda_runtime_exception import FaultException
+from .interfaces import RuntimeClientProtocol, LogSinkProtocol
 from .lambda_runtime_log_utils import (
     _DATETIME_FORMAT,
     _DEFAULT_FRAME_TYPE,
@@ -152,18 +154,18 @@ else:
 
 
 def handle_event_request(
-    lambda_runtime_client,
-    request_handler,
-    invoke_id,
-    event_body,
-    content_type,
-    client_context_json,
-    cognito_identity_json,
-    invoked_function_arn,
-    epoch_deadline_time_in_ms,
-    tenant_id,
-    log_sink,
-):
+    lambda_runtime_client: RuntimeClientProtocol,
+    request_handler: Any,
+    invoke_id: Optional[str],
+    event_body: Any,
+    content_type: Optional[str],
+    client_context_json: Optional[str],
+    cognito_identity_json: Optional[str],
+    invoked_function_arn: Optional[str],
+    epoch_deadline_time_in_ms: Optional[str],
+    tenant_id: Optional[str],
+    log_sink: LogSinkProtocol,
+) -> None:
     """Handle Lambda event request."""
     error_result = None
     try:
@@ -228,12 +230,12 @@ def parse_json_header(header, name):
 
 
 def create_lambda_context(
-    client_context_json,
-    cognito_identity_json,
-    epoch_deadline_time_in_ms,
-    invoke_id,
-    invoked_function_arn,
-    tenant_id,
+    client_context_json: Optional[str],
+    cognito_identity_json: Optional[str],
+    epoch_deadline_time_in_ms: Optional[str],
+    invoke_id: Optional[str],
+    invoked_function_arn: Optional[str],
+    tenant_id: Optional[str],
 ):
     """Create Lambda context object."""
     client_context = None
@@ -390,7 +392,7 @@ class Unbuffered(object):
         self.stream.flush()
 
 
-class StandardLogSink(object):
+class StandardLogSink:
     """Standard log sink."""
 
     def __init__(self):
@@ -403,11 +405,11 @@ class StandardLogSink(object):
     def __exit__(self, exc_type, exc_value, exc_tb):
         pass
 
-    def log(self, msg, frame_type=None):
+    def log(self, msg: str, frame_type: Optional[bytes] = None) -> None:
         """Log message to stdout."""
         sys.stdout.write(msg)
 
-    def log_error(self, message_lines):
+    def log_error(self, message_lines: List[str]) -> None:
         """Log error message to stdout."""
         error_message = ERROR_LOG_LINE_TERMINATE.join(message_lines) + "\n"
         sys.stdout.write(error_message)
@@ -432,6 +434,7 @@ class FramedTelemetryLogSink(object):
     def __init__(self, fd):
         """Initialize framed telemetry log sink."""
         self.fd = int(fd)
+        self.file: Any = None
 
     def __enter__(self):
         self.file = os.fdopen(self.fd, "wb", 0)
@@ -440,7 +443,7 @@ class FramedTelemetryLogSink(object):
     def __exit__(self, exc_type, exc_value, exc_tb):
         self.file.close()
 
-    def log(self, msg, frame_type=None):
+    def log(self, msg: str, frame_type: Optional[bytes] = None) -> None:
         """Log message with frame type."""
         encoded_msg = msg.encode("utf8")
 
@@ -453,7 +456,7 @@ class FramedTelemetryLogSink(object):
         )
         self.file.write(log_msg)
 
-    def log_error(self, message_lines):
+    def log_error(self, message_lines: List[str]) -> None:
         """Log error message."""
         error_message = "\n".join(message_lines)
         self.log(
