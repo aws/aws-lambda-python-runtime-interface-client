@@ -3,9 +3,11 @@
 import decimal
 import math
 import os
+from typing import Any, Tuple, Optional
 import simplejson as json
 
 from .lambda_runtime_exception import FaultException
+from .interfaces import MarshallerProtocol
 
 
 # simplejson's Decimal encoding allows '-NaN' as an output, which is a parse error for json.loads
@@ -24,7 +26,7 @@ class Encoder(json.JSONEncoder):
         else:
             super().__init__(use_decimal=False, allow_nan=True)
 
-    def default(self, obj):
+    def default(self, obj: Any) -> Any:
         """Handle special object types during encoding."""
         if isinstance(obj, decimal.Decimal):
             if obj.is_nan():
@@ -38,14 +40,14 @@ def to_json(obj):
     return Encoder().encode(obj)
 
 
-class LambdaMarshaller:
+class LambdaMarshaller(MarshallerProtocol):
     """Marshaller for Lambda requests and responses."""
 
     def __init__(self):
         """Initialize the marshaller."""
         self.jsonEncoder = Encoder()
 
-    def unmarshal_request(self, request, content_type="application/json"):
+    def unmarshal_request(self, request: Any, content_type: Optional[str] = "application/json") -> Any:
         """Unmarshal incoming request."""
         if content_type != "application/json":
             return request
@@ -58,7 +60,7 @@ class LambdaMarshaller:
                 None,
             )
 
-    def marshal_response(self, response):
+    def marshal_response(self, response: Any) -> Tuple[Any, str]:
         """Marshal response for Lambda."""
         if isinstance(response, bytes):
             return response, "application/unknown"

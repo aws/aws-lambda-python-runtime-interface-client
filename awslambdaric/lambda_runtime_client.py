@@ -1,9 +1,11 @@
 """Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved."""
 
 import sys
+from typing import Any, Dict, Optional
 from awslambdaric import __version__
 from .lambda_runtime_exception import FaultException
 from .lambda_runtime_marshaller import to_json
+from .interfaces import MarshallerProtocol, RuntimeClientProtocol
 
 ERROR_TYPE_HEADER = "Lambda-Runtime-Function-Error-Type"
 
@@ -16,25 +18,33 @@ def _user_agent():
     return f"aws-lambda-python/{py_version}-{pkg_version}"
 
 
-try:
-    import runtime_client
-
-    runtime_client.initialize_client(_user_agent())
-except ImportError:
-    runtime_client = None
+# Import native extension
+import awslambdaric_native as runtime_client
+runtime_client.initialize_client(_user_agent())
 
 from .lambda_runtime_marshaller import LambdaMarshaller
 
 
-class InvocationRequest(object):
+class InvocationRequest:
     """Lambda invocation request."""
 
-    def __init__(self, **kwds):
+    def __init__(self, **kwds: Any) -> None:
         """Initialize invocation request."""
+        self.invoke_id: Optional[str] = kwds.get('invoke_id')
+        self.x_amzn_trace_id: Optional[str] = kwds.get('x_amzn_trace_id')
+        self.invoked_function_arn: Optional[str] = kwds.get('invoked_function_arn')
+        self.deadline_time_in_ms: Optional[str] = kwds.get('deadline_time_in_ms')
+        self.client_context: Optional[str] = kwds.get('client_context')
+        self.cognito_identity: Optional[str] = kwds.get('cognito_identity')
+        self.tenant_id: Optional[str] = kwds.get('tenant_id')
+        self.content_type: Optional[str] = kwds.get('content_type')
+        self.event_body: Any = kwds.get('event_body')
         self.__dict__.update(kwds)
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         """Check equality."""
+        if not isinstance(other, InvocationRequest):
+            return False
         return self.__dict__ == other.__dict__
 
 
@@ -51,10 +61,10 @@ class LambdaRuntimeClientError(Exception):
         )
 
 
-class LambdaRuntimeClient(object):
+class LambdaRuntimeClient(RuntimeClientProtocol):
     """Lambda runtime client."""
 
-    marshaller = LambdaMarshaller()
+    marshaller: MarshallerProtocol = LambdaMarshaller()
     """marshaller is a class attribute that determines the unmarshalling and marshalling logic of a function's event
     and response. It allows for function authors to override the the default implementation, LambdaMarshaller which
     unmarshals and marshals JSON, to an instance of a class that implements the same interface."""
@@ -92,7 +102,7 @@ class LambdaRuntimeClient(object):
         if response.code != expected_http_code:
             raise LambdaRuntimeClientError(endpoint, response.code, response_body)
 
-    def post_init_error(self, error_response_data, error_type_override=None):
+    def post_init_error(self, error_response_data: Dict[str, Any], error_type_override: Optional[str] = None) -> None:
         """Post initialization error."""
         import http
 
@@ -143,6 +153,7 @@ class LambdaRuntimeClient(object):
                 )
         else:
             response_body, headers = runtime_client.next()
+            
         return InvocationRequest(
             invoke_id=headers.get("Lambda-Runtime-Aws-Request-Id"),
             x_amzn_trace_id=headers.get("Lambda-Runtime-Trace-Id"),
@@ -156,8 +167,8 @@ class LambdaRuntimeClient(object):
         )
 
     def post_invocation_result(
-        self, invoke_id, result_data, content_type="application/json"
-    ):
+        self, invoke_id: Optional[str], result_data: Any, content_type: str = "application/json"
+    ) -> None:
         """Post invocation result."""
         runtime_client.post_invocation_result(
             invoke_id,
@@ -169,7 +180,7 @@ class LambdaRuntimeClient(object):
             content_type,
         )
 
-    def post_invocation_error(self, invoke_id, error_response_data, xray_fault):
+    def post_invocation_error(self, invoke_id: Optional[str], error_response_data: str, xray_fault: str) -> None:
         """Post invocation error."""
         max_header_size = 1024 * 1024  # 1MiB
         xray_fault = xray_fault if len(xray_fault.encode()) < max_header_size else ""

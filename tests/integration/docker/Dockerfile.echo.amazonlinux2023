@@ -94,7 +94,7 @@ RUN /usr/local/bin/python${RUNTIME_VERSION} -m pip install setuptools wheel poet
 # Configure poetry to use the correct python version
 RUN poetry config virtualenvs.create false
 
-RUN make init build 
+RUN poetry install && poetry run poe build
 
 RUN ls -la ./dist/
 

@@ -4,6 +4,7 @@ import logging
 import os
 import sys
 import time
+from typing import Optional, Any
 
 
 class LambdaContext(object):
@@ -35,7 +36,7 @@ class LambdaContext(object):
             )
 
         self.identity = make_obj_from_dict(CognitoIdentity, {})
-        if cognito_identity is not None:
+        if cognito_identity is not None and self.identity is not None:
             self.identity.cognito_identity_id = cognito_identity.get(
                 "cognitoIdentityId"
             )
@@ -80,6 +81,10 @@ class CognitoIdentity(object):
     """Cognito identity information."""
 
     __slots__ = ["cognito_identity_id", "cognito_identity_pool_id"]
+    
+    def __init__(self) -> None:
+        self.cognito_identity_id: Optional[str] = None
+        self.cognito_identity_pool_id: Optional[str] = None
 
     def __repr__(self):
         return (
@@ -100,6 +105,13 @@ class Client(object):
         "app_version_code",
         "app_package_name",
     ]
+    
+    def __init__(self) -> None:
+        self.installation_id: Optional[str] = None
+        self.app_title: Optional[str] = None
+        self.app_version_name: Optional[str] = None
+        self.app_version_code: Optional[str] = None
+        self.app_package_name: Optional[str] = None
 
     def __repr__(self):
         return (
@@ -117,6 +129,11 @@ class ClientContext(object):
     """Client context information."""
 
     __slots__ = ["custom", "env", "client"]
+    
+    def __init__(self) -> None:
+        self.custom: Optional[Any] = None
+        self.env: Optional[Any] = None
+        self.client: Optional[Client] = None
 
     def __repr__(self):
         return (

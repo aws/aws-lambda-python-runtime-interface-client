@@ -7,7 +7,7 @@ echo "Starting RIE test setup..."
 
 # Check if build artifacts exist
 if [ ! -d "build-artifacts" ] || [ -z "$(ls -A build-artifacts/*.whl 2>/dev/null)" ]; then
-    echo "No build artifacts found. Please run 'make build-container' first."
+    echo "No build artifacts found. Please run 'poetry run poe build-container' first."
     exit 1
 fi
 
@@ -22,5 +22,5 @@ echo "Test with:"
 echo "curl -XPOST \"http://localhost:9000/2015-03-31/functions/function/invocations\" -d '{\"message\":\"test\"}'"
 echo ""
 
-docker run -it -p 9000:8080 \
+docker run -p 9000:8080 \
     --rm awslambdaric-rie-test
