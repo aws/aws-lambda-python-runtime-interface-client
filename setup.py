@@ -19,7 +19,10 @@ def get_curl_extra_linker_flags():
     check_call(["./scripts/preinstall.sh"])
 
     # call curl-config to get the required linker flags
-    cmd = ["./deps/artifacts/bin/curl-config", "--static-libs"]
+    if platform.system() in {"Darwin"}:
+        cmd = ["curl-config", "--libs"]
+    else:
+        cmd = ["./deps/artifacts/bin/curl-config", "--static-libs"]
     curl_config = check_output(cmd).decode("utf-8").replace("\n", "")
 
     # It is expected that the result of the curl-config call is similar to

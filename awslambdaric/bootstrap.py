@@ -37,7 +37,7 @@ INIT_TYPE_SNAP_START = "snap-start"
 
 def _get_handler(handler):
     try:
-        modname, fname = handler.rsplit(".", 1)
+        (modname, fname) = handler.rsplit(".", 1)
     except ValueError as e:
         raise FaultException(
             FaultException.MALFORMED_HANDLER_NAME,

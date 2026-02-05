@@ -14,34 +14,32 @@ else
     exit 1
 fi
 
+skip () {
+    [ "$(uname)" = "Darwin" ]
+}
+
 cd deps
 . ./versions
 
 CURL_VERSION="${CURL_MAJOR_VERSION}.${CURL_MINOR_VERSION}.${CURL_PATCH_VERSION}"
 
-rm -rf ./curl-$CURL_VERSION
+skip || rm -rf ./curl-$CURL_VERSION
 rm -rf ./aws-lambda-cpp-$AWS_LAMBDA_CPP_RELEASE
 
 # unpack dependencies
-tar xzf ./curl-$CURL_VERSION.tar.gz --no-same-owner && \
+skip || tar xzf ./curl-$CURL_VERSION.tar.gz --no-same-owner && \
 tar xzf ./aws-lambda-cpp-$AWS_LAMBDA_CPP_RELEASE.tar.gz --no-same-owner
 
-(
+skip || (
     # Build Curl
-    export CFLAGS="$CFLAGS -Wno-deprecated-declarations"
     cd curl-$CURL_VERSION && \
         ./buildconf && \
         ./configure \
             --prefix "$ARTIFACTS_DIR" \
             --disable-shared \
-            --disable-ldap \
-            --disable-ldaps \
             --without-ssl \
             --with-pic \
-            --without-zlib  \
-            --without-nghttp2 \
-            --without-nghttp3 \
-            --without-ngtcp2 &&
+            --without-zlib && \
         make && \
         make install
 )
@@ -52,7 +50,7 @@ tar xzf ./aws-lambda-cpp-$AWS_LAMBDA_CPP_RELEASE.tar.gz --no-same-owner
         cd ./aws-lambda-cpp-$AWS_LAMBDA_CPP_RELEASE/build
 
     $CMAKE .. \
-            -DCMAKE_CXX_FLAGS="-fPIC -Wno-deprecated-declarations" \
+            -DCMAKE_CXX_FLAGS="-fPIC" \
             -DCMAKE_INSTALL_PREFIX="$ARTIFACTS_DIR" \
             -DENABLE_LTO=$ENABLE_LTO \
             -DCMAKE_MODULE_PATH="$ARTIFACTS_DIR"/lib/pkgconfig && \
