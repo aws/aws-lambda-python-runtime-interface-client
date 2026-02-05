@@ -12,7 +12,7 @@ from awslambdaric import __version__
 
 def get_curl_extra_linker_flags():
     # We do not want to build the dependencies during packaging
-    if platform.system() != "Linux" or os.getenv("BUILD") == "true":
+    if platform.system() not in {"Linux", "Darwin"} or os.getenv("BUILD") == "true":
         return []
 
     # Build the dependencies
@@ -31,7 +31,7 @@ def get_curl_extra_linker_flags():
 
 
 def get_runtime_client_extension():
-    if platform.system() != "Linux" and os.getenv("BUILD") != "true":
+    if platform.system() not in {"Linux", "Darwin"} and os.getenv("BUILD") != "true":
         print(
             "The native runtime_client only builds on Linux. Skipping its compilation."
         )
