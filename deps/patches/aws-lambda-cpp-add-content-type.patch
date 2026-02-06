@@ -46,7 +46,7 @@ index 08d7014..1cbd6bb 100644
 @@ -275,6 +275,7 @@ runtime::next_outcome runtime::get_next()
      invocation_request req;
      req.payload = resp.get_body();
-     req.request_id = resp.get_header(REQUEST_ID_HEADER);
+     req.request_id = std::move(out).get_result();
 +    req.content_type = resp.get_content_type();
 
      if (resp.has_header(TRACE_ID_HEADER)) {

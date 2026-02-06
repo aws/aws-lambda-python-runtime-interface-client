@@ -26,14 +26,17 @@ index e53b2b8..9763282 100644
  
  enum Endpoints {
      INIT,
-@@ -289,6 +290,10 @@ runtime::next_outcome runtime::get_next()
+@@ -289,6 +290,11 @@ runtime::next_outcome runtime::get_next()
          req.function_arn = resp.get_header(FUNCTION_ARN_HEADER);
      }
  
-+    if (resp.has_header(TENANT_ID_HEADER)) {
-+        req.tenant_id = resp.get_header(TENANT_ID_HEADER);
++    out = resp.get_header(TENANT_ID_HEADER);
++    if (out.is_success()) {
++        req.tenant_id = std::move(out).get_result();
 +    }
 +
-     if (resp.has_header(DEADLINE_MS_HEADER)) {
-         auto const& deadline_string = resp.get_header(DEADLINE_MS_HEADER);
+     out = resp.get_header(DEADLINE_MS_HEADER);
+     if (out.is_success()) {
+         auto const& deadline_string = std::move(out).get_result();
          constexpr int base = 10;
+
