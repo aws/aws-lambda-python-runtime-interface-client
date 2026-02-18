@@ -15,12 +15,12 @@ class TestMain(unittest.TestCase):
     def test_default_path_invokes_runtime_client_and_bootstrap(
         self, mock_config_provider, mock_client_cls, mock_bootstrap
     ):
-        # Non-elevator mode
+        # Non-multi-concurrent mode
         cfg = MagicMock()
         cfg.handler = "my.handler"
         cfg.api_address = "http://addr"
         cfg.use_thread_polling = False
-        cfg.is_elevator = False
+        cfg.is_multi_concurrent = False
         mock_config_provider.return_value = cfg
 
         package_entry.main(["prog", "my.handler"])
@@ -30,25 +30,25 @@ class TestMain(unittest.TestCase):
             "my.handler", mock_client_cls.return_value
         )
 
-    @patch("awslambdaric.__main__.ElevatorRunner")
+    @patch("awslambdaric.__main__.MultiConcurrentRunner")
     @patch("awslambdaric.__main__.LambdaConfigProvider")
-    def test_elevator_path_dispatches_to_elevator_runner(
+    def test_multi_concurrent_path_dispatches_to_multi_concurrent_runner(
         self, mock_config_provider, mock_runner
     ):
-        # Elevator mode
+        # Multi-concurrent mode
         cfg = MagicMock()
         cfg.handler = "my.handler"
         cfg.api_address = "http://addr"
         cfg.use_thread_polling = True
-        cfg.is_elevator = True
+        cfg.is_multi_concurrent = True
         cfg.max_concurrency = "2"
-        cfg.elevator_socket_path = "/tmp/elev.sock"
+        cfg.lmi_socket_path = "/tmp/lmi.sock"
         mock_config_provider.return_value = cfg
 
         package_entry.main(["prog", "my.handler"])
 
         mock_runner.run_concurrent.assert_called_once_with(
-            "my.handler", "http://addr", True, "/tmp/elev.sock", 2
+            "my.handler", "http://addr", True, "/tmp/lmi.sock", 2
         )
 
 

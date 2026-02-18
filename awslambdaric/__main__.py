@@ -6,7 +6,7 @@ import sys
 
 from .lambda_config import LambdaConfigProvider
 from .lambda_runtime_client import LambdaRuntimeClient
-from .lambda_elevator_utils import ElevatorRunner
+from .lambda_multi_concurrent_utils import MultiConcurrentRunner
 from . import bootstrap
 
 
@@ -16,11 +16,11 @@ def main(args):
     api_addr = config.api_address
     use_thread = config.use_thread_polling
 
-    if config.is_elevator:
-        # Elevator mode: redirect fork, stdout/strerr and run
+    if config.is_multi_concurrent:
+        # Multi-concurrent mode: redirect fork, stdout/stderr and run
         max_conc = int(config.max_concurrency)
-        socket_path = config.elevator_socket_path
-        ElevatorRunner.run_concurrent(
+        socket_path = config.lmi_socket_path
+        MultiConcurrentRunner.run_concurrent(
             handler, api_addr, use_thread, socket_path, max_conc
         )
     else:

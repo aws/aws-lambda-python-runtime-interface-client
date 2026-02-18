@@ -8,10 +8,10 @@ import socket
 import multiprocessing
 
 from . import bootstrap
-from .lambda_runtime_client import LambdaElevatorRuntimeClient
+from .lambda_runtime_client import LambdaMultiConcurrentRuntimeClient
 
 
-class ElevatorRunner:
+class MultiConcurrentRunner:
     @staticmethod
     def _redirect_stream_to_fd(stream_fd: int, socket_path: str):
         with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
@@ -29,7 +29,7 @@ class ElevatorRunner:
     ):
         if socket_path:
             cls._redirect_output(socket_path)
-        client = LambdaElevatorRuntimeClient(api_addr, use_thread)
+        client = LambdaMultiConcurrentRuntimeClient(api_addr, use_thread)
         bootstrap.run(handler, client)
 
     @classmethod

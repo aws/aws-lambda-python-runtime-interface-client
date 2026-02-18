@@ -31,15 +31,15 @@ class TestLambdaConfigProvider(unittest.TestCase):
         with self.assertRaises(KeyError):
             LambdaConfigProvider(["prog", "h.fn"], environ={})
 
-    def test_concurrency_and_is_elevator(self):
+    def test_concurrency_and_is_multi_concurrent(self):
         env = {"AWS_LAMBDA_RUNTIME_API": "a", "AWS_LAMBDA_MAX_CONCURRENCY": "4"}
         cfg = LambdaConfigProvider(["p", "h.fn"], environ=env)
         self.assertEqual(cfg.max_concurrency, "4")
-        self.assertTrue(cfg.is_elevator)
+        self.assertTrue(cfg.is_multi_concurrent)
         env2 = {"AWS_LAMBDA_RUNTIME_API": "a"}
         cfg2 = LambdaConfigProvider(["p", "h.fn"], environ=env2)
         self.assertIsNone(cfg2.max_concurrency)
-        self.assertFalse(cfg2.is_elevator)
+        self.assertFalse(cfg2.is_multi_concurrent)
 
     def test_use_thread_polling_flag(self):
         env = {
@@ -52,18 +52,18 @@ class TestLambdaConfigProvider(unittest.TestCase):
         cfg2 = LambdaConfigProvider(["p", "h.fn"], environ=env2)
         self.assertFalse(cfg2.use_thread_polling)
 
-    def test_elevator_socket_path_property(self):
+    def test_lmi_socket_path_property(self):
         env = {
             "AWS_LAMBDA_RUNTIME_API": "a",
             "_LAMBDA_TELEMETRY_LOG_FD_PROVIDER_SOCKET": "/sock",
         }
         cfg = LambdaConfigProvider(["p", "h.fn"], environ=env)
-        self.assertEqual(cfg.elevator_socket_path, "/sock")
+        self.assertEqual(cfg.lmi_socket_path, "/sock")
 
         # Test case where socket path env var is not set
         env2 = {"AWS_LAMBDA_RUNTIME_API": "a"}
         cfg2 = LambdaConfigProvider(["p", "h.fn"], environ=env2)
-        self.assertIsNone(cfg2.elevator_socket_path)
+        self.assertIsNone(cfg2.lmi_socket_path)
 
 
 if __name__ == "__main__":

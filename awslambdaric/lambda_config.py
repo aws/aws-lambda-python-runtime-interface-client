@@ -22,7 +22,7 @@ class LambdaConfigProvider:
         self._api_address = self._parse_api_address()
         self._max_concurrency = self._parse_concurrency()
         self._use_thread_polling = self._parse_thread_polling()
-        self._elevator_socket_path = self._parse_elevator_socket_path()
+        self._lmi_socket_path = self._parse_lmi_socket_path()
 
     def _parse_handler(self, args):
         try:
@@ -42,7 +42,7 @@ class LambdaConfigProvider:
             in self.SUPPORTED_THREADPOLLING_ENVS
         )
 
-    def _parse_elevator_socket_path(self):
+    def _parse_lmi_socket_path(self):
         return self._environ.get(self.SOCKET_PATH_ENV)
 
     @property
@@ -62,9 +62,9 @@ class LambdaConfigProvider:
         return self._use_thread_polling
 
     @property
-    def is_elevator(self):
+    def is_multi_concurrent(self):
         return self._max_concurrency is not None
 
     @property
-    def elevator_socket_path(self):
-        return self._elevator_socket_path
+    def lmi_socket_path(self):
+        return self._lmi_socket_path

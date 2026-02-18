@@ -6,10 +6,10 @@ import sys
 import unittest
 from unittest.mock import patch, MagicMock
 
-from awslambdaric.lambda_elevator_utils import ElevatorRunner
+from awslambdaric.lambda_multi_concurrent_utils import MultiConcurrentRunner
 
 
-class TestElevatorRunnerRedirect(unittest.TestCase):
+class TestMultiConcurrentRunnerRedirect(unittest.TestCase):
     @patch("socket.socket")
     @patch("os.dup2")
     def test_redirect_output_opens_two_sockets_and_dup2s(
@@ -27,7 +27,7 @@ class TestElevatorRunnerRedirect(unittest.TestCase):
 
         mock_socket_cls.side_effect = [sock1, sock2]
 
-        ElevatorRunner._redirect_output("/fake/path")
+        MultiConcurrentRunner._redirect_output("/fake/path")
 
         self.assertEqual(mock_socket_cls.call_count, 2)
         sock1.connect.assert_called_once_with("/fake/path")
@@ -41,8 +41,10 @@ class TestElevatorRunnerRedirect(unittest.TestCase):
         self.assertEqual(sock2.__enter__.call_count, 1)
         self.assertEqual(sock2.__exit__.call_count, 1)
 
-    @patch("awslambdaric.lambda_elevator_utils.LambdaElevatorRuntimeClient")
-    @patch("awslambdaric.lambda_elevator_utils.bootstrap")
+    @patch(
+        "awslambdaric.lambda_multi_concurrent_utils.LambdaMultiConcurrentRuntimeClient"
+    )
+    @patch("awslambdaric.lambda_multi_concurrent_utils.bootstrap")
     def test_run_single_creates_client_and_calls_bootstrap(
         self, mock_bootstrap, mock_client_cls
     ):
@@ -50,8 +52,8 @@ class TestElevatorRunnerRedirect(unittest.TestCase):
         mock_client_cls.return_value = mock_client
 
         # stub out redirect
-        with patch.object(ElevatorRunner, "_redirect_output"):
-            ElevatorRunner.run_single("h.fn", "addr", True, "/socket")
+        with patch.object(MultiConcurrentRunner, "_redirect_output"):
+            MultiConcurrentRunner.run_single("h.fn", "addr", True, "/socket")
 
         mock_client_cls.assert_called_once_with("addr", True)
         mock_bootstrap.run.assert_called_once_with("h.fn", mock_client)
@@ -61,7 +63,9 @@ class TestElevatorRunnerRedirect(unittest.TestCase):
         fake_proc = MagicMock()
         mock_process.return_value = fake_proc
 
-        ElevatorRunner.run_concurrent("h", "a", False, "/sock", max_concurrency=3)
+        MultiConcurrentRunner.run_concurrent(
+            "h", "a", False, "/sock", max_concurrency=3
+        )
 
         self.assertEqual(mock_process.call_count, 3)
         self.assertEqual(fake_proc.start.call_count, 3)
@@ -70,19 +74,21 @@ class TestElevatorRunnerRedirect(unittest.TestCase):
         for call_args in mock_process.call_args_list:
             target = call_args.kwargs.get("target") or call_args[1].get("target")
             args = call_args.kwargs.get("args") or call_args[1].get("args")
-            self.assertEqual(target, ElevatorRunner.run_single)
+            self.assertEqual(target, MultiConcurrentRunner.run_single)
             self.assertEqual(args, ("h", "a", False, "/sock"))
 
-    @patch("awslambdaric.lambda_elevator_utils.LambdaElevatorRuntimeClient")
-    @patch("awslambdaric.lambda_elevator_utils.bootstrap")
+    @patch(
+        "awslambdaric.lambda_multi_concurrent_utils.LambdaMultiConcurrentRuntimeClient"
+    )
+    @patch("awslambdaric.lambda_multi_concurrent_utils.bootstrap")
     def test_run_single_skips_redirect_when_socket_path_is_none(
         self, mock_bootstrap, mock_client_cls
     ):
         mock_client = MagicMock()
         mock_client_cls.return_value = mock_client
 
-        with patch.object(ElevatorRunner, "_redirect_output") as mock_redirect:
-            ElevatorRunner.run_single("h.fn", "addr", True, None)
+        with patch.object(MultiConcurrentRunner, "_redirect_output") as mock_redirect:
+            MultiConcurrentRunner.run_single("h.fn", "addr", True, None)
 
         # Verify _redirect_output was not called
         mock_redirect.assert_not_called()
@@ -91,8 +97,10 @@ class TestElevatorRunnerRedirect(unittest.TestCase):
         mock_client_cls.assert_called_once_with("addr", True)
         mock_bootstrap.run.assert_called_once_with("h.fn", mock_client)
 
-    @patch("awslambdaric.lambda_elevator_utils.LambdaElevatorRuntimeClient")
-    @patch("awslambdaric.lambda_elevator_utils.bootstrap")
+    @patch(
+        "awslambdaric.lambda_multi_concurrent_utils.LambdaMultiConcurrentRuntimeClient"
+    )
+    @patch("awslambdaric.lambda_multi_concurrent_utils.bootstrap")
     def test_run_single_calls_redirect_when_socket_path_is_provided(
         self, mock_bootstrap, mock_client_cls
     ):
@@ -100,8 +108,8 @@ class TestElevatorRunnerRedirect(unittest.TestCase):
         mock_client = MagicMock()
         mock_client_cls.return_value = mock_client
 
-        with patch.object(ElevatorRunner, "_redirect_output") as mock_redirect:
-            ElevatorRunner.run_single("h.fn", "addr", True, "/valid/socket/path")
+        with patch.object(MultiConcurrentRunner, "_redirect_output") as mock_redirect:
+            MultiConcurrentRunner.run_single("h.fn", "addr", True, "/valid/socket/path")
 
         # Verify _redirect_output was called with the socket path
         mock_redirect.assert_called_once_with("/valid/socket/path")

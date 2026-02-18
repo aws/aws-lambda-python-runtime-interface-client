@@ -204,7 +204,7 @@ class LambdaRuntimeClient(BaseLambdaRuntimeClient):
         raise exc
 
 
-class LambdaElevatorRuntimeClient(BaseLambdaRuntimeClient):
+class LambdaMultiConcurrentRuntimeClient(BaseLambdaRuntimeClient):
     def _get_next_with_backoff(self, e, func_to_retry):
         logging.warning(f"Initial runtime_client.next() failed: {e}")
         delay = DEFAULT_RETRY_INITIAL_DELAY
@@ -223,7 +223,7 @@ class LambdaElevatorRuntimeClient(BaseLambdaRuntimeClient):
 
         raise latest_exception
 
-    # In elevator we don't want to raises unhandled exception and crash the worker on non-2xx responses from RAPID
+    # In multi-concurrent mode we don't want to raise unhandled exception and crash the worker on non-2xx responses from RAPID
     def handle_exception(self, exc, func_to_retry=None, use_backoff=False):
         if use_backoff:
             return self._get_next_with_backoff(exc, func_to_retry)

@@ -6,7 +6,7 @@ import multiprocessing
 import unittest
 from unittest.mock import patch, MagicMock
 
-from awslambdaric.lambda_elevator_utils import ElevatorRunner
+from awslambdaric.lambda_multi_concurrent_utils import MultiConcurrentRunner
 
 
 class LambdaRuntimeConcurrencyTest(unittest.TestCase):
@@ -33,13 +33,13 @@ class LambdaRuntimeConcurrencyTest(unittest.TestCase):
                 raise RuntimeError("Simulated failure")
 
         with patch(
-            "awslambdaric.lambda_elevator_utils.ElevatorRunner._redirect_output"
+            "awslambdaric.lambda_multi_concurrent_utils.MultiConcurrentRunner._redirect_output"
         ), patch(
-            "awslambdaric.lambda_elevator_utils.bootstrap.run",
+            "awslambdaric.lambda_multi_concurrent_utils.bootstrap.run",
             side_effect=fake_bootstrap_run,
         ):
-            # spawn 4 elevator processes
-            ElevatorRunner.run_concurrent(
+            # spawn 4 multi-concurrent processes
+            MultiConcurrentRunner.run_concurrent(
                 self.handler, self.addr, self.use_thread, self.socket, max_concurrency=4
             )
 

@@ -12,7 +12,7 @@ from awslambdaric import __version__
 from awslambdaric.lambda_runtime_client import (
     InvocationRequest,
     LambdaRuntimeClient,
-    LambdaElevatorRuntimeClient,
+    LambdaMultiConcurrentRuntimeClient,
     LambdaRuntimeClientError,
     _user_agent,
 )
@@ -313,10 +313,12 @@ class TestLambdaRuntime(unittest.TestCase):
         )
 
     @patch("awslambdaric.lambda_runtime_client.runtime_client")
-    def test_get_next_falls_back_to_backoff_if_elevator(self, mock_runtime_client):
+    def test_get_next_falls_back_to_backoff_if_multi_concurrent(
+        self, mock_runtime_client
+    ):
         # First call raises, second call succeeds
         mock_runtime_client.next.side_effect = [RuntimeError("first fail"), (b"{}", {})]
-        client = LambdaElevatorRuntimeClient(
+        client = LambdaMultiConcurrentRuntimeClient(
             "localhost:1234", use_thread_for_polling_next=True
         )
 
@@ -325,7 +327,7 @@ class TestLambdaRuntime(unittest.TestCase):
         self.assertEqual(mock_runtime_client.next.call_count, 2)
 
     @patch("awslambdaric.lambda_runtime_client.runtime_client")
-    def test_get_next_raises_if_not_elevator(self, mock_runtime_client):
+    def test_get_next_raises_if_not_multi_concurrent(self, mock_runtime_client):
         mock_runtime_client.next.side_effect = RuntimeError("fail")
 
         client = LambdaRuntimeClient("localhost:1234", use_thread_for_polling_next=True)
@@ -342,7 +344,7 @@ class TestLambdaRuntime(unittest.TestCase):
     ):
         # Simulate all attempts failing
         mock_runtime_client.next.side_effect = RuntimeError("always fail")
-        client = LambdaElevatorRuntimeClient(
+        client = LambdaMultiConcurrentRuntimeClient(
             "localhost:1234", use_thread_for_polling_next=True
         )
 
@@ -357,12 +359,12 @@ class TestLambdaRuntime(unittest.TestCase):
         self.assertEqual(actual_delays, expected_delays)
 
     @patch("awslambdaric.lambda_runtime_client.runtime_client")
-    def test_post_invocation_result_suppresses_error_if_elevator(
+    def test_post_invocation_result_suppresses_error_if_multi_concurrent(
         self, mock_runtime_client
     ):
         mock_runtime_client.post_invocation_result.side_effect = RuntimeError("failure")
 
-        client = LambdaElevatorRuntimeClient(
+        client = LambdaMultiConcurrentRuntimeClient(
             "localhost:1234", use_thread_for_polling_next=True
         )
 
@@ -370,7 +372,9 @@ class TestLambdaRuntime(unittest.TestCase):
             client.post_invocation_result("invoke_id", "result")
 
     @patch("awslambdaric.lambda_runtime_client.runtime_client")
-    def test_post_invocation_result_raises_if_not_elevator(self, mock_runtime_client):
+    def test_post_invocation_result_raises_if_not_multi_concurrent(
+        self, mock_runtime_client
+    ):
         mock_runtime_client.post_invocation_result.side_effect = RuntimeError("failure")
 
         client = LambdaRuntimeClient("localhost:1234", use_thread_for_polling_next=True)
@@ -379,12 +383,12 @@ class TestLambdaRuntime(unittest.TestCase):
             client.post_invocation_result("invoke_id", "result")
 
     @patch("awslambdaric.lambda_runtime_client.runtime_client")
-    def test_post_invocation_error_suppresses_error_if_elevator(
+    def test_post_invocation_error_suppresses_error_if_multi_concurrent(
         self, mock_runtime_client
     ):
         mock_runtime_client.post_error.side_effect = RuntimeError("post error")
 
-        client = LambdaElevatorRuntimeClient(
+        client = LambdaMultiConcurrentRuntimeClient(
             "localhost:1234", use_thread_for_polling_next=True
         )
 
@@ -392,7 +396,9 @@ class TestLambdaRuntime(unittest.TestCase):
             client.post_invocation_error("invoke_id", "error_data", "xray_data")
 
     @patch("awslambdaric.lambda_runtime_client.runtime_client")
-    def test_post_invocation_error_raises_if_not_elevator(self, mock_runtime_client):
+    def test_post_invocation_error_raises_if_not_multi_concurrent(
+        self, mock_runtime_client
+    ):
         mock_runtime_client.post_error.side_effect = RuntimeError("post error")
 
         client = LambdaRuntimeClient("localhost:1234", use_thread_for_polling_next=True)
@@ -401,33 +407,39 @@ class TestLambdaRuntime(unittest.TestCase):
             client.post_invocation_error("invoke_id", "error_data", "xray_data")
 
     @patch("http.client.HTTPConnection", autospec=http.client.HTTPConnection)
-    def test_post_init_error_suppresses_403_if_elevator(self, MockHTTPConnection):
+    def test_post_init_error_suppresses_403_if_multi_concurrent(
+        self, MockHTTPConnection
+    ):
         mock_conn = MockHTTPConnection.return_value
         mock_response = MagicMock(autospec=http.client.HTTPResponse)
         mock_conn.getresponse.return_value = mock_response
         mock_response.read.return_value = b""
         mock_response.code = http.HTTPStatus.FORBIDDEN
 
-        client = LambdaElevatorRuntimeClient("localhost:1234")
+        client = LambdaMultiConcurrentRuntimeClient("localhost:1234")
 
         # Should not raise exception for 403 error
         client.post_init_error(self.error_result)
 
     @patch("http.client.HTTPConnection", autospec=http.client.HTTPConnection)
-    def test_post_init_error_raises_non_403_if_elevator(self, MockHTTPConnection):
+    def test_post_init_error_raises_non_403_if_multi_concurrent(
+        self, MockHTTPConnection
+    ):
         mock_conn = MockHTTPConnection.return_value
         mock_response = MagicMock(autospec=http.client.HTTPResponse)
         mock_conn.getresponse.return_value = mock_response
         mock_response.read.return_value = b""
         mock_response.code = http.HTTPStatus.INTERNAL_SERVER_ERROR
 
-        client = LambdaElevatorRuntimeClient("localhost:1234")
+        client = LambdaMultiConcurrentRuntimeClient("localhost:1234")
 
         with self.assertRaises(LambdaRuntimeClientError):
             client.post_init_error(self.error_result)
 
     @patch("http.client.HTTPConnection", autospec=http.client.HTTPConnection)
-    def test_post_init_error_raises_403_if_not_elevator(self, MockHTTPConnection):
+    def test_post_init_error_raises_403_if_not_multi_concurrent(
+        self, MockHTTPConnection
+    ):
         mock_conn = MockHTTPConnection.return_value
         mock_response = MagicMock(autospec=http.client.HTTPResponse)
         mock_conn.getresponse.return_value = mock_response
