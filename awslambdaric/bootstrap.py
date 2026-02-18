@@ -477,19 +477,11 @@ def _setup_logging(log_format, log_level, log_sink):
     logger.addHandler(logger_handler)
 
 
-def run(app_root, handler, lambda_runtime_api_addr):
+def run(handler, lambda_runtime_client):
     sys.stdout = Unbuffered(sys.stdout)
     sys.stderr = Unbuffered(sys.stderr)
 
-    use_thread_for_polling_next = os.environ.get("AWS_EXECUTION_ENV") in {
-        "AWS_Lambda_python3.12",
-        "AWS_Lambda_python3.13",
-    }
-
     with create_log_sink() as log_sink:
-        lambda_runtime_client = LambdaRuntimeClient(
-            lambda_runtime_api_addr, use_thread_for_polling_next
-        )
         error_result = None
 
         try:

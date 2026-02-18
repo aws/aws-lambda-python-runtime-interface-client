@@ -2,32 +2,55 @@
 Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 """
 
-import os
 import unittest
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import awslambdaric.__main__ as package_entry
 
 
-class TestEnvVars(unittest.TestCase):
-    def setUp(self):
-        self.org_os_environ = os.environ
-
-    def tearDown(self):
-        os.environ = self.org_os_environ
-
+class TestMain(unittest.TestCase):
     @patch("awslambdaric.__main__.bootstrap")
-    def test_main(self, mock_bootstrap):
-        expected_app_root = os.getcwd()
-        expected_handler = "app.my_test_handler"
-        expected_lambda_runtime_api_addr = "test_addr"
+    @patch("awslambdaric.__main__.LambdaRuntimeClient")
+    @patch("awslambdaric.__main__.LambdaConfigProvider")
+    def test_default_path_invokes_runtime_client_and_bootstrap(
+        self, mock_config_provider, mock_client_cls, mock_bootstrap
+    ):
+        # Non-elevator mode
+        cfg = MagicMock()
+        cfg.handler = "my.handler"
+        cfg.api_address = "http://addr"
+        cfg.use_thread_polling = False
+        cfg.is_elevator = False
+        mock_config_provider.return_value = cfg
 
-        args = ["dummy", expected_handler, "other_dummy"]
+        package_entry.main(["prog", "my.handler"])
 
-        os.environ["AWS_LAMBDA_RUNTIME_API"] = expected_lambda_runtime_api_addr
-
-        package_entry.main(args)
-
+        mock_client_cls.assert_called_once_with("http://addr", False)
         mock_bootstrap.run.assert_called_once_with(
-            expected_app_root, expected_handler, expected_lambda_runtime_api_addr
+            "my.handler", mock_client_cls.return_value
         )
+
+    @patch("awslambdaric.__main__.ElevatorRunner")
+    @patch("awslambdaric.__main__.LambdaConfigProvider")
+    def test_elevator_path_dispatches_to_elevator_runner(
+        self, mock_config_provider, mock_runner
+    ):
+        # Elevator mode
+        cfg = MagicMock()
+        cfg.handler = "my.handler"
+        cfg.api_address = "http://addr"
+        cfg.use_thread_polling = True
+        cfg.is_elevator = True
+        cfg.max_concurrency = "2"
+        cfg.elevator_socket_path = "/tmp/elev.sock"
+        mock_config_provider.return_value = cfg
+
+        package_entry.main(["prog", "my.handler"])
+
+        mock_runner.run_concurrent.assert_called_once_with(
+            "my.handler", "http://addr", True, "/tmp/elev.sock", 2
+        )
+
+
+if __name__ == "__main__":
+    unittest.main()
