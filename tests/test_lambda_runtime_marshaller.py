@@ -11,6 +11,7 @@ from awslambdaric.lambda_runtime_marshaller import to_json
 
 class TestLambdaRuntimeMarshaller(unittest.TestCase):
     execution_envs = (
+        "AWS_Lambda_python3.14",
         "AWS_Lambda_python3.13",
         "AWS_Lambda_python3.12",
         "AWS_Lambda_python3.11",
@@ -21,6 +22,7 @@ class TestLambdaRuntimeMarshaller(unittest.TestCase):
     envs_lambda_marshaller_ensure_ascii_false = {
         "AWS_Lambda_python3.12",
         "AWS_Lambda_python3.13",
+        "AWS_Lambda_python3.14",
     }
 
     execution_envs_lambda_marshaller_ensure_ascii_true = tuple(
