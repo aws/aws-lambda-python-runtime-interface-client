@@ -1,3 +1,7 @@
+### Feb 20, 2026
+`4.0.0`
+- Add Lambda Managed Instances (LMI) / Multi-Concurrent Support ([#200](https://github.com/aws/aws-lambda-python-runtime-interface-client/pull/200))
+
 ### May 26, 2025
 `3.1.1`
 - Move unhandled exception warning message to init errors. ([#189](https://github.com/aws/aws-lambda-python-runtime-interface-client/pull/189))
