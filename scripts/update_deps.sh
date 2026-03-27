@@ -8,7 +8,6 @@ source versions
 # Clean up old files
 rm -f aws-lambda-cpp-*.tar.gz && rm -f curl-*.tar.gz
 
-
 LIBCURL="curl-${CURL_MAJOR_VERSION}.${CURL_MINOR_VERSION}.${CURL_PATCH_VERSION}"
 
 # Grab Curl
@@ -27,9 +26,6 @@ wget -c https://github.com/awslabs/aws-lambda-cpp/archive/v$AWS_LAMBDA_CPP_RELEA
 (
   cd aws-lambda-cpp-$AWS_LAMBDA_CPP_RELEASE && \
     patch -p1 < ../patches/aws-lambda-cpp-add-xray-response.patch && \
-    patch -p1 < ../patches/aws-lambda-cpp-posting-init-errors.patch && \
-    patch -p1 < ../patches/aws-lambda-cpp-make-the-runtime-client-user-agent-overrideable.patch && \
-    patch -p1 < ../patches/aws-lambda-cpp-make-lto-optional.patch && \
     patch -p1 < ../patches/aws-lambda-cpp-add-content-type.patch && \
     patch -p1 < ../patches/aws-lambda-cpp-add-tenant-id.patch && \
     patch -p1 < ../patches/aws-lambda-cpp-logging-error.patch

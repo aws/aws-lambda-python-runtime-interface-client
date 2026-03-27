@@ -12,14 +12,17 @@ from awslambdaric import __version__
 
 def get_curl_extra_linker_flags():
     # We do not want to build the dependencies during packaging
-    if platform.system() != "Linux" or os.getenv("BUILD") == "true":
+    if platform.system() not in {"Linux", "Darwin"} or os.getenv("BUILD") == "true":
         return []
 
     # Build the dependencies
     check_call(["./scripts/preinstall.sh"])
 
     # call curl-config to get the required linker flags
-    cmd = ["./deps/artifacts/bin/curl-config", "--static-libs"]
+    if platform.system() in {"Darwin"}:
+        cmd = ["curl-config", "--libs"]
+    else:
+        cmd = ["./deps/artifacts/bin/curl-config", "--static-libs"]
     curl_config = check_output(cmd).decode("utf-8").replace("\n", "")
 
     # It is expected that the result of the curl-config call is similar to
@@ -31,7 +34,7 @@ def get_curl_extra_linker_flags():
 
 
 def get_runtime_client_extension():
-    if platform.system() != "Linux" and os.getenv("BUILD") != "true":
+    if platform.system() not in {"Linux", "Darwin"} and os.getenv("BUILD") != "true":
         print(
             "The native runtime_client only builds on Linux. Skipping its compilation."
         )
