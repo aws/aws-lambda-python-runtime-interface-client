@@ -1250,7 +1250,7 @@ class TestLambdaLoggerHandlerSetup(unittest.TestCase):
     def test_handler_setup(self, *_):
         test_cases = [
             (62, 0xA55A0003, 46, {}),
-            (133, 0xA55A001A, 117, {"AWS_LAMBDA_LOG_FORMAT": "JSON"}),
+            (137, 0xA55A001A, 121, {"AWS_LAMBDA_LOG_FORMAT": "JSON"}),
             (62, 0xA55A001B, 46, {"AWS_LAMBDA_LOG_LEVEL": "INFO"}),
         ]
 
