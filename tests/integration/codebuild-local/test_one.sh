@@ -17,6 +17,22 @@ function usage {
     >&2 echo "  env                    Additional environment variables file."
 }
 
+function pull_with_retry() {
+    local image="$1"
+    local max_retries=3
+    local wait=10
+    for attempt in $(seq 1 $max_retries); do
+        if docker pull "$image"; then
+            return 0
+        fi
+        >&2 echo "Docker pull attempt $attempt/$max_retries failed. Retrying in ${wait}s..."
+        sleep $wait
+        wait=$((wait * 2))
+    done
+    >&2 echo "Failed to pull $image after $max_retries attempts."
+    return 1
+}
+
 main() {
     if (( $# != 3 && $# != 4)); then
         >&2 echo "Invalid number of parameters."
@@ -48,6 +64,9 @@ main() {
     
     ARTIFACTS_DIR="$CODEBUILD_TEMP_DIR/artifacts"
     mkdir -p "$ARTIFACTS_DIR"
+
+    # Pre-pull the CodeBuild local agent image with retries to handle ECR rate limits.
+    pull_with_retry "public.ecr.aws/codebuild/local-builds:latest"
 
     # Run CodeBuild local agent.
     "$(dirname "$0")"/codebuild_build.sh \
