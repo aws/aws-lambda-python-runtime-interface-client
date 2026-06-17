@@ -17,32 +17,83 @@ jobs:
 
   alpine:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        distro_version: ["3.19", "3.20"]
+        runtime_version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
 
     steps:
     - uses: actions/checkout@v4
-    - name: Run alpine integration tests
-      run: DISTRO=alpine make test-integ
-
-  amazonlinux:
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v4
-    - name: Run amazonlinux integration tests
-      run: DISTRO=amazonlinux make test-integ
+    - name: Run integration test (alpine ${{ matrix.distro_version }} / python ${{ matrix.runtime_version }})
+      run: |
+        docker build -t codebuild-agent - < tests/integration/codebuild-local/Dockerfile.agent
+        CODEBUILD_IMAGE_TAG=codebuild-agent tests/integration/codebuild-local/test_one.sh \
+          tests/integration/codebuild/buildspec.os.alpine.yml \
+          alpine "${{ matrix.distro_version }}" "${{ matrix.runtime_version }}"
 
   debian:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        distro_version: ["bookworm", "bullseye"]
+        runtime_version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
 
     steps:
     - uses: actions/checkout@v4
-    - name: Run debian integration tests
-      run: DISTRO=debian make test-integ
+    - name: Run integration test (debian ${{ matrix.distro_version }} / python ${{ matrix.runtime_version }})
+      run: |
+        docker build -t codebuild-agent - < tests/integration/codebuild-local/Dockerfile.agent
+        CODEBUILD_IMAGE_TAG=codebuild-agent tests/integration/codebuild-local/test_one.sh \
+          tests/integration/codebuild/buildspec.os.debian.yml \
+          debian "${{ matrix.distro_version }}" "${{ matrix.runtime_version }}"
+
+  amazonlinux2:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        runtime_version: ["3.9", "3.10", "3.11"]
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Run integration test (amazonlinux 2 / python ${{ matrix.runtime_version }})
+      run: |
+        docker build -t codebuild-agent - < tests/integration/codebuild-local/Dockerfile.agent
+        CODEBUILD_IMAGE_TAG=codebuild-agent tests/integration/codebuild-local/test_one.sh \
+          tests/integration/codebuild/buildspec.os.amazonlinux.2.yml \
+          amazonlinux2 "2" "${{ matrix.runtime_version }}"
+
+  amazonlinux2023:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        runtime_version: ["3.12", "3.13"]
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Run integration test (amazonlinux 2023 / python ${{ matrix.runtime_version }})
+      run: |
+        docker build -t codebuild-agent - < tests/integration/codebuild-local/Dockerfile.agent
+        CODEBUILD_IMAGE_TAG=codebuild-agent tests/integration/codebuild-local/test_one.sh \
+          tests/integration/codebuild/buildspec.os.amazonlinux.2023.yml \
+          amazonlinux2023 "2023" "${{ matrix.runtime_version }}"
 
   ubuntu:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        distro_version: ["22.04", "24.04"]
+        runtime_version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
 
     steps:
     - uses: actions/checkout@v4
-    - name: Run ubuntu integration tests
-      run: DISTRO=ubuntu make test-integ
+    - name: Run integration test (ubuntu ${{ matrix.distro_version }} / python ${{ matrix.runtime_version }})
+      run: |
+        docker build -t codebuild-agent - < tests/integration/codebuild-local/Dockerfile.agent
+        CODEBUILD_IMAGE_TAG=codebuild-agent tests/integration/codebuild-local/test_one.sh \
+          tests/integration/codebuild/buildspec.os.ubuntu.yml \
+          ubuntu "${{ matrix.distro_version }}" "${{ matrix.runtime_version }}"
