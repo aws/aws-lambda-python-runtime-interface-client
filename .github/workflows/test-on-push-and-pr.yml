@@ -24,7 +24,7 @@ jobs:
       fail-fast: false
       matrix:
         distro_version: ["3.19", "3.20"]
-        runtime_version: ["3.10", "3.11", "3.12", "3.13"]
+        runtime_version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
 
     steps:
     - uses: actions/checkout@v4
@@ -41,7 +41,7 @@ jobs:
       fail-fast: false
       matrix:
         distro_version: ["bookworm", "bullseye"]
-        runtime_version: ["3.10", "3.11", "3.12", "3.13"]
+        runtime_version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
 
     steps:
     - uses: actions/checkout@v4
@@ -73,7 +73,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runtime_version: ["3.12", "3.13"]
+        runtime_version: ["3.12", "3.13", "3.14"]
 
     steps:
     - uses: actions/checkout@v4
@@ -90,7 +90,7 @@ jobs:
       fail-fast: false
       matrix:
         distro_version: ["22.04", "24.04"]
-        runtime_version: ["3.10", "3.11", "3.12", "3.13"]
+        runtime_version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
 
     steps:
     - uses: actions/checkout@v4
