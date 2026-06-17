@@ -18,8 +18,9 @@ class LambdaRuntimeConcurrencyTest(unittest.TestCase):
         self.socket = "/tmp/sock"
 
     def test_success_and_failure_isolation(self):
-        success_counter = multiprocessing.Value("i", 0)
-        fail_counter = multiprocessing.Value("i", 0)
+        ctx = multiprocessing.get_context("fork")
+        success_counter = ctx.Value("i", 0)
+        fail_counter = ctx.Value("i", 0)
 
         def fake_bootstrap_run(handler, lambda_runtime_client):
             pid = multiprocessing.current_process().pid
@@ -37,8 +38,10 @@ class LambdaRuntimeConcurrencyTest(unittest.TestCase):
         ), patch(
             "awslambdaric.lambda_multi_concurrent_utils.bootstrap.run",
             side_effect=fake_bootstrap_run,
+        ), patch(
+            "awslambdaric.lambda_multi_concurrent_utils.multiprocessing.Process",
+            ctx.Process,
         ):
-            # spawn 4 multi-concurrent processes
             MultiConcurrentRunner.run_concurrent(
                 self.handler, self.addr, self.use_thread, self.socket, max_concurrency=4
             )
