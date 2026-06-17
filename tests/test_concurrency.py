@@ -42,6 +42,7 @@ class LambdaRuntimeConcurrencyTest(unittest.TestCase):
             "awslambdaric.lambda_multi_concurrent_utils.multiprocessing.Process",
             ctx.Process,
         ):
+            # spawn 4 multi-concurrent processes
             MultiConcurrentRunner.run_concurrent(
                 self.handler, self.addr, self.use_thread, self.socket, max_concurrency=4
             )
