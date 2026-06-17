@@ -37,7 +37,9 @@ else
                 --disable-shared \
                 --without-ssl \
                 --with-pic \
-                --without-zlib && \
+                --without-zlib \
+                --without-ngtcp2 \
+                --without-nghttp3 && \
             make && \
             make install
     )
