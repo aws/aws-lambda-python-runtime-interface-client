@@ -2,7 +2,7 @@
 Copyright 2025 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 """
 
-import threading
+import multiprocessing
 import unittest
 from unittest.mock import patch, MagicMock
 
@@ -18,23 +18,22 @@ class LambdaRuntimeConcurrencyTest(unittest.TestCase):
         self.socket = "/tmp/sock"
 
     def test_success_and_failure_isolation(self):
-        success_counter = 0
-        fail_counter = 0
-        process_index = 0
-        lock = threading.Lock()
+        multiprocessing.set_start_method("fork", force=True)
+        success_counter = multiprocessing.Value("i", 0)
+        fail_counter = multiprocessing.Value("i", 0)
+        process_index = multiprocessing.Value("i", 0)
 
         def fake_bootstrap_run(handler, lambda_runtime_client):
-            nonlocal success_counter, fail_counter, process_index
-            with lock:
-                idx = process_index
-                process_index += 1
+            with process_index.get_lock():
+                idx = process_index.value
+                process_index.value += 1
             if idx % 2 == 0:
                 for _ in range(3):
-                    with lock:
-                        success_counter += 1
+                    with success_counter.get_lock():
+                        success_counter.value += 1
             else:
-                with lock:
-                    fail_counter += 1
+                with fail_counter.get_lock():
+                    fail_counter.value += 1
                 raise RuntimeError("Simulated failure")
 
         with patch(
@@ -44,19 +43,12 @@ class LambdaRuntimeConcurrencyTest(unittest.TestCase):
             side_effect=fake_bootstrap_run,
         ):
             # spawn 4 multi-concurrent processes
-            threads = []
-            for _ in range(4):
-                t = threading.Thread(
-                    target=MultiConcurrentRunner.run_single,
-                    args=(self.handler, self.addr, self.use_thread, self.socket),
-                )
-                t.start()
-                threads.append(t)
-            for t in threads:
-                t.join()
+            MultiConcurrentRunner.run_concurrent(
+                self.handler, self.addr, self.use_thread, self.socket, max_concurrency=4
+            )
 
-        self.assertEqual(success_counter, 6)
-        self.assertEqual(fail_counter, 2)
+        self.assertEqual(success_counter.value, 6)
+        self.assertEqual(fail_counter.value, 2)
 
 
 if __name__ == "__main__":
