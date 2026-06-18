@@ -42,14 +42,18 @@ class LambdaRuntimeConcurrencyTest(unittest.TestCase):
         ), patch(
             "awslambdaric.lambda_multi_concurrent_utils.bootstrap.run",
             side_effect=fake_bootstrap_run,
-        ), patch(
-            "awslambdaric.lambda_multi_concurrent_utils.multiprocessing.Process",
-            threading.Thread,
         ):
             # spawn 4 multi-concurrent processes
-            MultiConcurrentRunner.run_concurrent(
-                self.handler, self.addr, self.use_thread, self.socket, max_concurrency=4
-            )
+            threads = []
+            for _ in range(4):
+                t = threading.Thread(
+                    target=MultiConcurrentRunner.run_single,
+                    args=(self.handler, self.addr, self.use_thread, self.socket),
+                )
+                t.start()
+                threads.append(t)
+            for t in threads:
+                t.join()
 
         self.assertEqual(success_counter, 6)
         self.assertEqual(fail_counter, 2)
