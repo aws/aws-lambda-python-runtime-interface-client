@@ -21,11 +21,14 @@ class LambdaRuntimeConcurrencyTest(unittest.TestCase):
         manager = multiprocessing.Manager()
         success_counter = manager.Value("i", 0)
         fail_counter = manager.Value("i", 0)
+        process_index = manager.Value("i", 0)
         lock = manager.Lock()
 
         def fake_bootstrap_run(handler, lambda_runtime_client):
-            pid = multiprocessing.current_process().pid
-            if pid % 2 == 0:
+            with lock:
+                idx = process_index.value
+                process_index.value += 1
+            if idx % 2 == 0:
                 for _ in range(3):
                     with lock:
                         success_counter.value += 1
