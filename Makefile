@@ -11,17 +11,15 @@ init:
 test: check-format
 	pytest --cov awslambdaric --cov-report term-missing --cov-fail-under 90 tests
 
-.PHONY: setup-codebuild-agent
-setup-codebuild-agent:
-	docker build -t codebuild-agent - < tests/integration/codebuild-local/Dockerfile.agent
-
-.PHONY: test-smoke
-test-smoke: setup-codebuild-agent
-	CODEBUILD_IMAGE_TAG=codebuild-agent tests/integration/codebuild-local/test_one.sh tests/integration/codebuild/buildspec.os.alpine.yml alpine 3.15 3.9
-
 .PHONY: test-integ
-test-integ: setup-codebuild-agent
-	CODEBUILD_IMAGE_TAG=codebuild-agent DISTRO="$(DISTRO)" tests/integration/codebuild-local/test_all.sh tests/integration/codebuild/.
+test-integ:
+	@echo "Integration tests run via GitHub Actions (see .github/workflows/test-on-push-and-pr.yml)"
+	@echo "To run a single combo locally:"
+	@echo "  make test-integ-local DISTRO=alpine DISTRO_VERSION=3.20 RUNTIME_VERSION=3.13"
+
+.PHONY: test-integ-local
+test-integ-local:
+	tests/integration/run-local.sh $(DISTRO) $(DISTRO_VERSION) $(RUNTIME_VERSION)
 
 .PHONY: check-security
 check-security:
@@ -42,9 +40,6 @@ dev: init test
 # Verifications to run before sending a pull request
 .PHONY: pr
 pr: init check-format check-security dev
-
-codebuild: setup-codebuild-agent
-	CODEBUILD_IMAGE_TAG=codebuild-agent DISTRO="$(DISTRO)" tests/integration/codebuild-local/test_all.sh tests/integration/codebuild
 
 .PHONY: clean
 clean:
