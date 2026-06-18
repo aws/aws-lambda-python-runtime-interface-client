@@ -44,6 +44,8 @@ RUN pip install \
 # Grab a fresh slim copy of the Python image
 FROM public.ecr.aws/docker/library/python:${RUNTIME_VERSION}-slim-${DISTRO_VERSION}
 
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+
 # Include global arg in this stage of the build
 ARG FUNCTION_DIR="/home/app/"
 
