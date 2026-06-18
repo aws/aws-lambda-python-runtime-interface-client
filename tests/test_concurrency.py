@@ -2,7 +2,7 @@
 Copyright 2025 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 """
 
-import multiprocessing
+import threading
 import unittest
 from unittest.mock import patch, MagicMock
 
@@ -18,23 +18,23 @@ class LambdaRuntimeConcurrencyTest(unittest.TestCase):
         self.socket = "/tmp/sock"
 
     def test_success_and_failure_isolation(self):
-        manager = multiprocessing.Manager()
-        success_counter = manager.Value("i", 0)
-        fail_counter = manager.Value("i", 0)
-        process_index = manager.Value("i", 0)
-        lock = manager.Lock()
+        success_counter = 0
+        fail_counter = 0
+        process_index = 0
+        lock = threading.Lock()
 
         def fake_bootstrap_run(handler, lambda_runtime_client):
+            nonlocal success_counter, fail_counter, process_index
             with lock:
-                idx = process_index.value
-                process_index.value += 1
+                idx = process_index
+                process_index += 1
             if idx % 2 == 0:
                 for _ in range(3):
                     with lock:
-                        success_counter.value += 1
+                        success_counter += 1
             else:
                 with lock:
-                    fail_counter.value += 1
+                    fail_counter += 1
                 raise RuntimeError("Simulated failure")
 
         with patch(
@@ -42,14 +42,17 @@ class LambdaRuntimeConcurrencyTest(unittest.TestCase):
         ), patch(
             "awslambdaric.lambda_multi_concurrent_utils.bootstrap.run",
             side_effect=fake_bootstrap_run,
+        ), patch(
+            "awslambdaric.lambda_multi_concurrent_utils.multiprocessing.Process",
+            threading.Thread,
         ):
+            # spawn 4 multi-concurrent processes
             MultiConcurrentRunner.run_concurrent(
                 self.handler, self.addr, self.use_thread, self.socket, max_concurrency=4
             )
 
-        self.assertEqual(success_counter.value, 6)
-        self.assertEqual(fail_counter.value, 2)
-        manager.shutdown()
+        self.assertEqual(success_counter, 6)
+        self.assertEqual(fail_counter, 2)
 
 
 if __name__ == "__main__":
