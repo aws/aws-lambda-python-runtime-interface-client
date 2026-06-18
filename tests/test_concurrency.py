@@ -18,18 +18,19 @@ class LambdaRuntimeConcurrencyTest(unittest.TestCase):
         self.socket = "/tmp/sock"
 
     def test_success_and_failure_isolation(self):
-        ctx = multiprocessing.get_context("fork")
-        success_counter = ctx.Value("i", 0)
-        fail_counter = ctx.Value("i", 0)
+        manager = multiprocessing.Manager()
+        success_counter = manager.Value("i", 0)
+        fail_counter = manager.Value("i", 0)
+        lock = manager.Lock()
 
         def fake_bootstrap_run(handler, lambda_runtime_client):
             pid = multiprocessing.current_process().pid
             if pid % 2 == 0:
                 for _ in range(3):
-                    with success_counter.get_lock():
+                    with lock:
                         success_counter.value += 1
             else:
-                with fail_counter.get_lock():
+                with lock:
                     fail_counter.value += 1
                 raise RuntimeError("Simulated failure")
 
@@ -38,17 +39,14 @@ class LambdaRuntimeConcurrencyTest(unittest.TestCase):
         ), patch(
             "awslambdaric.lambda_multi_concurrent_utils.bootstrap.run",
             side_effect=fake_bootstrap_run,
-        ), patch(
-            "awslambdaric.lambda_multi_concurrent_utils.multiprocessing.Process",
-            ctx.Process,
         ):
-            # spawn 4 multi-concurrent processes
             MultiConcurrentRunner.run_concurrent(
                 self.handler, self.addr, self.use_thread, self.socket, max_concurrency=4
             )
 
         self.assertEqual(success_counter.value, 6)
         self.assertEqual(fail_counter.value, 2)
+        manager.shutdown()
 
 
 if __name__ == "__main__":
