@@ -10,6 +10,7 @@ class LambdaConfigProvider:
         "AWS_Lambda_python3.12",
         "AWS_Lambda_python3.13",
         "AWS_Lambda_python3.14",
+        "AWS_Lambda_python3.15",
     }
     SOCKET_PATH_ENV = "_LAMBDA_TELEMETRY_LOG_FD_PROVIDER_SOCKET"
     AWS_LAMBDA_RUNTIME_API = "AWS_LAMBDA_RUNTIME_API"
