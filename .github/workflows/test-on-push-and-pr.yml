@@ -245,3 +245,77 @@ jobs:
           TEST_NAME="ric-integ-test"
           docker rm -f "${TEST_NAME}-app" "${TEST_NAME}-tester" 2>/dev/null || true
           docker network rm "${TEST_NAME}-net" 2>/dev/null || true
+
+  # Verifies the documented end-user `pip install` source build works, including
+  # the native aws-lambda-cpp compile triggered by scripts/preinstall.sh (i.e. a
+  # real install where BUILD is NOT set, so the C++ extension is actually built).
+  #
+  # This specifically guards the Alpine/musl regression in issue #128: Alpine 3.17
+  # removed the libexecinfo-dev package (no execinfo.h on musl), which broke the
+  # backward.cpp compile. These jobs intentionally do NOT install libexecinfo-dev
+  # and cover the full affected Alpine range (3.17+), which the integration-test
+  # matrix above does not (it starts at 3.19).
+  pip-install-from-source:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Alpine (musl) - full range that dropped libexecinfo-dev (3.17+)
+          - distro: alpine
+            distro_version: "3.17"
+            runtime_version: "3.11"
+          - distro: alpine
+            distro_version: "3.18"
+            runtime_version: "3.11"
+          - distro: alpine
+            distro_version: "3.19"
+            runtime_version: "3.12"
+          - distro: alpine
+            distro_version: "3.20"
+            runtime_version: "3.13"
+          - distro: alpine
+            distro_version: "3.21"
+            runtime_version: "3.13"
+          # Debian (glibc) - ensure execinfo.h is still detected and stack
+          # traces remain compiled in (no regression on glibc systems).
+          - distro: debian
+            distro_version: bookworm
+            runtime_version: "3.12"
+
+    name: "pip install / ${{ matrix.distro }} ${{ matrix.distro_version }} / python ${{ matrix.runtime_version }}"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: pip install from source and import native extension
+        run: |
+          set -euo pipefail
+
+          if [ "${{ matrix.distro }}" = "alpine" ]; then
+            IMAGE="public.ecr.aws/docker/library/python:${{ matrix.runtime_version }}-alpine${{ matrix.distro_version }}"
+            # Build deps per README/Dockerfile.echo.alpine. Note: libexecinfo-dev
+            # is deliberately omitted - the fix must build without it.
+            INSTALL_DEPS="apk add --no-cache build-base libtool autoconf automake elfutils-dev make cmake libcurl"
+          else
+            IMAGE="public.ecr.aws/docker/library/python:${{ matrix.runtime_version }}-${{ matrix.distro_version }}"
+            INSTALL_DEPS="apt-get update && apt-get install -y --no-install-recommends g++ make cmake libcurl4-openssl-dev"
+          fi
+
+          echo "Testing 'pip install .' on ${IMAGE}"
+
+          # Mount the checkout read-only and build from a writable copy so the
+          # host workspace is not polluted with build artifacts.
+          docker run --rm \
+            -v "$PWD":/src:ro \
+            "$IMAGE" \
+            sh -euc "
+              $INSTALL_DEPS
+              cp -r /src /build
+              cd /build
+              python -m pip install --no-cache-dir .
+              # The native extension only imports if the C++ build (including the
+              # backward.cpp / execinfo.h path) compiled and linked successfully.
+              python -c 'import runtime_client; print(\"native runtime_client extension: OK\")'
+              python -c 'import awslambdaric; print(\"awslambdaric\", awslambdaric.__version__, \"import: OK\")'
+            "
