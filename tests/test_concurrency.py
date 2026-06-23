@@ -18,12 +18,16 @@ class LambdaRuntimeConcurrencyTest(unittest.TestCase):
         self.socket = "/tmp/sock"
 
     def test_success_and_failure_isolation(self):
+        multiprocessing.set_start_method("fork", force=True)
         success_counter = multiprocessing.Value("i", 0)
         fail_counter = multiprocessing.Value("i", 0)
+        process_index = multiprocessing.Value("i", 0)
 
         def fake_bootstrap_run(handler, lambda_runtime_client):
-            pid = multiprocessing.current_process().pid
-            if pid % 2 == 0:
+            with process_index.get_lock():
+                idx = process_index.value
+                process_index.value += 1
+            if idx % 2 == 0:
                 for _ in range(3):
                     with success_counter.get_lock():
                         success_counter.value += 1

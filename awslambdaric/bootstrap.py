@@ -33,6 +33,7 @@ _AWS_LAMBDA_LOG_LEVEL = _get_log_level_from_env_var(
 )
 AWS_LAMBDA_INITIALIZATION_TYPE = "AWS_LAMBDA_INITIALIZATION_TYPE"
 INIT_TYPE_SNAP_START = "snap-start"
+PREVIEW_RUNTIME_ENVS = {"AWS_Lambda_python3.15"}
 
 
 def _get_handler(handler):
@@ -477,6 +478,18 @@ def _setup_logging(log_format, log_level, log_sink):
     logger.addHandler(logger_handler)
 
 
+def _log_preview_runtime_warning():
+    """Emit a warning if the runtime version is a preview."""
+    if os.environ.get("LAMBDA_DISABLE_PREVIEW_WARN", ""):
+        return
+
+    from .lambda_literals import get_lambda_preview_runtime_warning_message
+
+    execution_env = os.environ.get("AWS_EXECUTION_ENV", "")
+    if execution_env in PREVIEW_RUNTIME_ENVS:
+        logging.warning(get_lambda_preview_runtime_warning_message())
+
+
 def run(handler, lambda_runtime_client):
     sys.stdout = Unbuffered(sys.stdout)
     sys.stderr = Unbuffered(sys.stderr)
@@ -487,6 +500,8 @@ def run(handler, lambda_runtime_client):
         try:
             _setup_logging(_AWS_LAMBDA_LOG_FORMAT, _AWS_LAMBDA_LOG_LEVEL, log_sink)
             global _GLOBAL_AWS_REQUEST_ID, _GLOBAL_TENANT_ID
+
+            _log_preview_runtime_warning()
 
             request_handler = _get_handler(handler)
         except FaultException as e:

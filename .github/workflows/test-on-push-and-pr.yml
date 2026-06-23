@@ -4,7 +4,10 @@ on:
   push:
     branches: [ main ]
   pull_request:
-    branches: [ '*' ]
+    branches: [ '**' ]
+
+permissions:
+   contents: read
 
 jobs:
   build:
@@ -15,34 +18,230 @@ jobs:
     - name: Run 'pr' target
       run: make pr
 
-  alpine:
+  integration-test:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Alpine
+          - distro: alpine
+            distro_version: "3.19"
+            runtime_version: "3.10"
+            python_location: /usr/local/bin/python
+          - distro: alpine
+            distro_version: "3.19"
+            runtime_version: "3.11"
+            python_location: /usr/local/bin/python
+          - distro: alpine
+            distro_version: "3.19"
+            runtime_version: "3.12"
+            python_location: /usr/local/bin/python
+          - distro: alpine
+            distro_version: "3.19"
+            runtime_version: "3.13"
+            python_location: /usr/local/bin/python
+          - distro: alpine
+            distro_version: "3.20"
+            runtime_version: "3.10"
+            python_location: /usr/local/bin/python
+          - distro: alpine
+            distro_version: "3.20"
+            runtime_version: "3.11"
+            python_location: /usr/local/bin/python
+          - distro: alpine
+            distro_version: "3.20"
+            runtime_version: "3.12"
+            python_location: /usr/local/bin/python
+          - distro: alpine
+            distro_version: "3.20"
+            runtime_version: "3.13"
+            python_location: /usr/local/bin/python
+          - distro: alpine
+            distro_version: "3.21"
+            runtime_version: "3.14"
+            python_location: /usr/local/bin/python
+          # Debian
+          - distro: debian
+            distro_version: bookworm
+            runtime_version: "3.10"
+            python_location: /usr/local/bin/python
+          - distro: debian
+            distro_version: bookworm
+            runtime_version: "3.11"
+            python_location: /usr/local/bin/python
+          - distro: debian
+            distro_version: bookworm
+            runtime_version: "3.12"
+            python_location: /usr/local/bin/python
+          - distro: debian
+            distro_version: bookworm
+            runtime_version: "3.13"
+            python_location: /usr/local/bin/python
+          - distro: debian
+            distro_version: bookworm
+            runtime_version: "3.14"
+            python_location: /usr/local/bin/python
+          - distro: debian
+            distro_version: bullseye
+            runtime_version: "3.10"
+            python_location: /usr/local/bin/python
+          - distro: debian
+            distro_version: bullseye
+            runtime_version: "3.11"
+            python_location: /usr/local/bin/python
+          - distro: debian
+            distro_version: bullseye
+            runtime_version: "3.12"
+            python_location: /usr/local/bin/python
+          - distro: debian
+            distro_version: bullseye
+            runtime_version: "3.13"
+            python_location: /usr/local/bin/python
+          # Amazon Linux 2
+          - distro: amazonlinux2
+            distro_version: "2"
+            runtime_version: "3.10"
+            python_location: /usr/local/bin/python3
+          - distro: amazonlinux2
+            distro_version: "2"
+            runtime_version: "3.11"
+            python_location: /usr/local/bin/python3
+          # Amazon Linux 2023
+          - distro: amazonlinux2023
+            distro_version: "2023"
+            runtime_version: "3.12"
+            python_location: /usr/local/bin/python3
+          - distro: amazonlinux2023
+            distro_version: "2023"
+            runtime_version: "3.13"
+            python_location: /usr/local/bin/python3
+          - distro: amazonlinux2023
+            distro_version: "2023"
+            runtime_version: "3.14"
+            python_location: /usr/local/bin/python3
+          # Ubuntu
+          - distro: ubuntu
+            distro_version: "22.04"
+            runtime_version: "3.10"
+            python_location: /usr/bin/python3.10
+          - distro: ubuntu
+            distro_version: "22.04"
+            runtime_version: "3.11"
+            python_location: /usr/bin/python3.11
+          - distro: ubuntu
+            distro_version: "22.04"
+            runtime_version: "3.12"
+            python_location: /usr/bin/python3.12
+          - distro: ubuntu
+            distro_version: "22.04"
+            runtime_version: "3.13"
+            python_location: /usr/bin/python3.13
+          - distro: ubuntu
+            distro_version: "22.04"
+            runtime_version: "3.14"
+            python_location: /usr/bin/python3.14
+          - distro: ubuntu
+            distro_version: "24.04"
+            runtime_version: "3.10"
+            python_location: /usr/bin/python3.10
+          - distro: ubuntu
+            distro_version: "24.04"
+            runtime_version: "3.11"
+            python_location: /usr/bin/python3.11
+          - distro: ubuntu
+            distro_version: "24.04"
+            runtime_version: "3.12"
+            python_location: /usr/bin/python3.12
+          - distro: ubuntu
+            distro_version: "24.04"
+            runtime_version: "3.13"
+            python_location: /usr/bin/python3.13
+          - distro: ubuntu
+            distro_version: "24.04"
+            runtime_version: "3.14"
+            python_location: /usr/bin/python3.14
+
+    name: "${{ matrix.distro }} ${{ matrix.distro_version }} / python ${{ matrix.runtime_version }}"
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Run alpine integration tests
-      run: DISTRO=alpine make test-integ
+      - uses: actions/checkout@v4
 
-  amazonlinux:
-    runs-on: ubuntu-latest
+      - name: Extract RIE
+        run: |
+          mkdir -p .scratch
+          ARCHITECTURE=$(arch)
+          if [[ "$ARCHITECTURE" == "x86_64" ]]; then
+            RIE="aws-lambda-rie"
+          elif [[ "$ARCHITECTURE" == "aarch64" ]]; then
+            RIE="aws-lambda-rie-arm64"
+          else
+            echo "Architecture $ARCHITECTURE is not currently supported."
+            exit 1
+          fi
+          tar -xvf tests/integration/resources/${RIE}.tar.gz --directory .scratch
+          echo "RIE=${RIE}" >> "$GITHUB_ENV"
 
-    steps:
-    - uses: actions/checkout@v4
-    - name: Run amazonlinux integration tests
-      run: DISTRO=amazonlinux make test-integ
+      - name: Build Docker image
+        run: |
+          DOCKERFILE="tests/integration/docker/Dockerfile.echo.${{ matrix.distro }}"
+          TMPFILE=".scratch/Dockerfile.tmp"
+          cp "$DOCKERFILE" "$TMPFILE"
+          if [[ "${{ matrix.distro }}" == "alpine" ]]; then
+            echo "RUN apk add curl" >> "$TMPFILE"
+          fi
+          echo "COPY .scratch/${RIE} /usr/bin/${RIE}" >> "$TMPFILE"
+          docker build . \
+            -f "$TMPFILE" \
+            -t ric-test \
+            --build-arg RUNTIME_VERSION=${{ matrix.runtime_version }} \
+            --build-arg DISTRO_VERSION=${{ matrix.distro_version }} \
+            --build-arg ARCHITECTURE=$(arch)
 
-  debian:
-    runs-on: ubuntu-latest
+      - name: Run integration test
+        run: |
+          TEST_NAME="ric-integ-test"
+          docker network create "${TEST_NAME}-net"
 
-    steps:
-    - uses: actions/checkout@v4
-    - name: Run debian integration tests
-      run: DISTRO=debian make test-integ
+          docker run \
+            --detach \
+            --name "${TEST_NAME}-app" \
+            --network "${TEST_NAME}-net" \
+            --entrypoint="" \
+            ric-test \
+            sh -c "/usr/bin/${RIE} ${{ matrix.python_location }} -m awslambdaric app.handler"
 
-  ubuntu:
-    runs-on: ubuntu-latest
+          sleep 2
 
-    steps:
-    - uses: actions/checkout@v4
-    - name: Run ubuntu integration tests
-      run: DISTRO=ubuntu make test-integ
+          docker run \
+            --name "${TEST_NAME}-tester" \
+            --env "TARGET=${TEST_NAME}-app" \
+            --network "${TEST_NAME}-net" \
+            --entrypoint="" \
+            ric-test \
+            sh -c 'curl -sS -X POST "http://${TARGET}:8080/2015-03-31/functions/function/invocations" -d "{}" --max-time 10'
+
+          ACTUAL="$(docker logs --tail 1 "${TEST_NAME}-tester" | xargs)"
+          EXPECTED="success"
+          echo "Response: ${ACTUAL}"
+          if [ "$ACTUAL" != "$EXPECTED" ]; then
+            echo "FAIL: expected '${EXPECTED}', got '${ACTUAL}'"
+            exit 1
+          fi
+          echo "PASS"
+
+      - name: Dump container logs
+        if: always()
+        run: |
+          TEST_NAME="ric-integ-test"
+          echo "=== App container logs ==="
+          docker logs "${TEST_NAME}-app" 2>&1 || true
+          echo "=== Tester container logs ==="
+          docker logs "${TEST_NAME}-tester" 2>&1 || true
+
+      - name: Cleanup
+        if: always()
+        run: |
+          TEST_NAME="ric-integ-test"
+          docker rm -f "${TEST_NAME}-app" "${TEST_NAME}-tester" 2>/dev/null || true
+          docker network rm "${TEST_NAME}-net" 2>/dev/null || true
