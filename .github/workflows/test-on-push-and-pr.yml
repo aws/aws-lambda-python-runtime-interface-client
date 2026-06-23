@@ -246,76 +246,117 @@ jobs:
           docker rm -f "${TEST_NAME}-app" "${TEST_NAME}-tester" 2>/dev/null || true
           docker network rm "${TEST_NAME}-net" 2>/dev/null || true
 
-  # Verifies the documented end-user `pip install` source build works, including
-  # the native aws-lambda-cpp compile triggered by scripts/preinstall.sh (i.e. a
-  # real install where BUILD is NOT set, so the C++ extension is actually built).
-  #
-  # This specifically guards the Alpine/musl regression in issue #128: Alpine 3.17
-  # removed the libexecinfo-dev package (no execinfo.h on musl), which broke the
-  # backward.cpp compile. These jobs intentionally do NOT install libexecinfo-dev
-  # and cover the full affected Alpine range (3.17+), which the integration-test
-  # matrix above does not (it starts at 3.19).
+  # Builds awslambdaric from source and runs an end-to-end invoke through the
+  # Lambda RIE on every supported OS, pinned to the newest Python (3.14). The
+  # source install compiles the vendored aws-lambda-cpp (the backward.cpp /
+  # execinfo.h path), so the Alpine (musl) row guards the libexecinfo regression
+  # from issue #128. Reuses the per-OS Dockerfiles (ubuntu via deadsnakes,
+  # Amazon Linux builds Python from source) since there are no official
+  # python:3.14 images for those distros. Amazon Linux 2 is omitted as it does
+  # not provide Python 3.14.
   pip-install-from-source:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         include:
-          # Alpine (musl) - full range that dropped libexecinfo-dev (3.17+)
-          - distro: alpine
-            distro_version: "3.17"
-            runtime_version: "3.11"
-          - distro: alpine
-            distro_version: "3.18"
-            runtime_version: "3.11"
-          - distro: alpine
-            distro_version: "3.19"
-            runtime_version: "3.12"
-          - distro: alpine
-            distro_version: "3.20"
-            runtime_version: "3.13"
           - distro: alpine
             distro_version: "3.21"
-            runtime_version: "3.13"
-          # Debian (glibc) - ensure execinfo.h is still detected and stack
-          # traces remain compiled in (no regression on glibc systems).
+            runtime_version: "3.14"
+            python_location: /usr/local/bin/python
           - distro: debian
             distro_version: bookworm
-            runtime_version: "3.12"
+            runtime_version: "3.14"
+            python_location: /usr/local/bin/python
+          - distro: ubuntu
+            distro_version: "24.04"
+            runtime_version: "3.14"
+            python_location: /usr/bin/python3.14
+          - distro: amazonlinux2023
+            distro_version: "2023"
+            runtime_version: "3.14"
+            python_location: /usr/local/bin/python3
 
-    name: "pip install / ${{ matrix.distro }} ${{ matrix.distro_version }} / python ${{ matrix.runtime_version }}"
+    name: "pip install + invoke / ${{ matrix.distro }} ${{ matrix.distro_version }} / python ${{ matrix.runtime_version }}"
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: pip install from source and import native extension
+      - name: Extract RIE
         run: |
-          set -euo pipefail
-
-          if [ "${{ matrix.distro }}" = "alpine" ]; then
-            IMAGE="public.ecr.aws/docker/library/python:${{ matrix.runtime_version }}-alpine${{ matrix.distro_version }}"
-            # Build deps per README/Dockerfile.echo.alpine. Note: libexecinfo-dev
-            # is deliberately omitted - the fix must build without it.
-            INSTALL_DEPS="apk add --no-cache build-base libtool autoconf automake elfutils-dev make cmake libcurl"
+          mkdir -p .scratch
+          ARCHITECTURE=$(arch)
+          if [[ "$ARCHITECTURE" == "x86_64" ]]; then
+            RIE="aws-lambda-rie"
+          elif [[ "$ARCHITECTURE" == "aarch64" ]]; then
+            RIE="aws-lambda-rie-arm64"
           else
-            IMAGE="public.ecr.aws/docker/library/python:${{ matrix.runtime_version }}-${{ matrix.distro_version }}"
-            INSTALL_DEPS="apt-get update && apt-get install -y --no-install-recommends g++ make cmake libcurl4-openssl-dev"
+            echo "Architecture $ARCHITECTURE is not currently supported."
+            exit 1
           fi
+          tar -xvf tests/integration/resources/${RIE}.tar.gz --directory .scratch
+          echo "RIE=${RIE}" >> "$GITHUB_ENV"
 
-          echo "Testing 'pip install .' on ${IMAGE}"
+      - name: Build Docker image
+        run: |
+          DOCKERFILE="tests/integration/docker/Dockerfile.echo.${{ matrix.distro }}"
+          TMPFILE=".scratch/Dockerfile.tmp"
+          cp "$DOCKERFILE" "$TMPFILE"
+          if [[ "${{ matrix.distro }}" == "alpine" ]]; then
+            echo "RUN apk add curl" >> "$TMPFILE"
+          fi
+          echo "COPY .scratch/${RIE} /usr/bin/${RIE}" >> "$TMPFILE"
+          docker build . \
+            -f "$TMPFILE" \
+            -t ric-piptest \
+            --build-arg RUNTIME_VERSION=${{ matrix.runtime_version }} \
+            --build-arg DISTRO_VERSION=${{ matrix.distro_version }} \
+            --build-arg ARCHITECTURE=$(arch)
 
-          # Mount the checkout read-only and build from a writable copy so the
-          # host workspace is not polluted with build artifacts.
-          docker run --rm \
-            -v "$PWD":/src:ro \
-            "$IMAGE" \
-            sh -euc "
-              $INSTALL_DEPS
-              cp -r /src /build
-              cd /build
-              python -m pip install --no-cache-dir .
-              # The native extension only imports if the C++ build (including the
-              # backward.cpp / execinfo.h path) compiled and linked successfully.
-              python -c 'import runtime_client; print(\"native runtime_client extension: OK\")'
-              python -c 'import awslambdaric; print(\"awslambdaric\", awslambdaric.__version__, \"import: OK\")'
-            "
+      - name: Run invoke test
+        run: |
+          TEST_NAME="ric-piptest"
+          docker network create "${TEST_NAME}-net"
+
+          docker run \
+            --detach \
+            --name "${TEST_NAME}-app" \
+            --network "${TEST_NAME}-net" \
+            --entrypoint="" \
+            ric-piptest \
+            sh -c "/usr/bin/${RIE} ${{ matrix.python_location }} -m awslambdaric app.handler"
+
+          sleep 2
+
+          docker run \
+            --name "${TEST_NAME}-tester" \
+            --env "TARGET=${TEST_NAME}-app" \
+            --network "${TEST_NAME}-net" \
+            --entrypoint="" \
+            ric-piptest \
+            sh -c 'curl -sS -X POST "http://${TARGET}:8080/2015-03-31/functions/function/invocations" -d "{}" --max-time 10'
+
+          ACTUAL="$(docker logs --tail 1 "${TEST_NAME}-tester" | xargs)"
+          EXPECTED="success"
+          echo "Response: ${ACTUAL}"
+          if [ "$ACTUAL" != "$EXPECTED" ]; then
+            echo "FAIL: expected '${EXPECTED}', got '${ACTUAL}'"
+            exit 1
+          fi
+          echo "PASS"
+
+      - name: Dump container logs
+        if: always()
+        run: |
+          TEST_NAME="ric-piptest"
+          echo "=== App container logs ==="
+          docker logs "${TEST_NAME}-app" 2>&1 || true
+          echo "=== Tester container logs ==="
+          docker logs "${TEST_NAME}-tester" 2>&1 || true
+
+      - name: Cleanup
+        if: always()
+        run: |
+          TEST_NAME="ric-piptest"
+          docker rm -f "${TEST_NAME}-app" "${TEST_NAME}-tester" 2>/dev/null || true
+          docker network rm "${TEST_NAME}-net" 2>/dev/null || true
