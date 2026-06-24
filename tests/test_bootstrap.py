@@ -1496,24 +1496,20 @@ class TestLogging(unittest.TestCase):
 
 
 class TestBootstrapModule(unittest.TestCase):
-    @patch("awslambdaric.bootstrap.LambdaRuntimeClient")
-    def test_run(self, mock_runtime_client):
-        expected_app_root = "/tmp/test/app_root"
+    def test_run(self):
         expected_handler = "app.my_test_handler"
-        expected_lambda_runtime_api_addr = "test_addr"
 
         mock_event_request = MagicMock()
         mock_event_request.x_amzn_trace_id = "123"
 
+        mock_runtime_client = MagicMock()
         mock_runtime_client.return_value.wait_next_invocation.side_effect = [
             mock_event_request,
             MagicMock(),
         ]
 
         with self.assertRaises(SystemExit) as cm:
-            bootstrap.run(
-                expected_app_root, expected_handler, expected_lambda_runtime_api_addr
-            )
+            bootstrap.run(expected_handler, mock_runtime_client)
 
         self.assertEqual(cm.exception.code, 1)
 
@@ -1523,23 +1519,20 @@ class TestBootstrapModule(unittest.TestCase):
     )
     @patch("awslambdaric.bootstrap.build_fault_result")
     @patch("awslambdaric.bootstrap.log_error", MagicMock())
-    @patch("awslambdaric.bootstrap.LambdaRuntimeClient", MagicMock())
     @patch("awslambdaric.bootstrap.sys")
     def test_run_exception(self, mock_sys, mock_build_fault_result):
         class TestException(Exception):
             pass
 
-        expected_app_root = "/tmp/test/app_root"
         expected_handler = "app.my_test_handler"
-        expected_lambda_runtime_api_addr = "test_addr"
+
+        mock_runtime_client = MagicMock()
 
         mock_build_fault_result.return_value = {}
         mock_sys.exit.side_effect = TestException("Boom!")
 
         with self.assertRaises(TestException):
-            bootstrap.run(
-                expected_app_root, expected_handler, expected_lambda_runtime_api_addr
-            )
+            bootstrap.run(expected_handler, mock_runtime_client)
 
         mock_sys.exit.assert_called_once_with(1)
 
@@ -1561,8 +1554,8 @@ class TestOnInitComplete(unittest.TestCase):
     def raise_type_error(self):
         raise TypeError("This is a Dummy type error")
 
-    @patch("awslambdaric.bootstrap.LambdaRuntimeClient")
-    def test_before_snapshot_exception(self, mock_runtime_client):
+    def test_before_snapshot_exception(self):
+        mock_runtime_client = MagicMock()
         snapshot_restore_py.register_before_snapshot(self.raise_type_error)
 
         with self.assertRaises(SystemExit) as cm:
@@ -1576,8 +1569,8 @@ class TestOnInitComplete(unittest.TestCase):
             FaultException.BEFORE_SNAPSHOT_ERROR,
         )
 
-    @patch("awslambdaric.bootstrap.LambdaRuntimeClient")
-    def test_after_restore_exception(self, mock_runtime_client):
+    def test_after_restore_exception(self):
+        mock_runtime_client = MagicMock()
         snapshot_restore_py.register_after_restore(self.raise_type_error)
 
         with self.assertRaises(SystemExit) as cm:

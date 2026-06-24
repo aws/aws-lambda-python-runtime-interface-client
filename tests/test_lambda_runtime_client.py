@@ -5,12 +5,14 @@ Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 import http
 import http.client
 import unittest.mock
+import threading
 from unittest.mock import MagicMock, patch
 
 from awslambdaric import __version__
 from awslambdaric.lambda_runtime_client import (
     InvocationRequest,
     LambdaRuntimeClient,
+    LambdaMultiConcurrentRuntimeClient,
     LambdaRuntimeClientError,
     _user_agent,
 )
@@ -61,20 +63,21 @@ class TestInvocationRequest(unittest.TestCase):
 
 
 class TestLambdaRuntime(unittest.TestCase):
+    get_next_headers = {
+        "Lambda-Runtime-Aws-Request-Id": "RID1234",
+        "Lambda-Runtime-Trace-Id": "TID1234",
+        "Lambda-Runtime-Invoked-Function-Arn": "FARN1234",
+        "Lambda-Runtime-Deadline-Ms": 12,
+        "Lambda-Runtime-Client-Context": "client_context",
+        "Lambda-Runtime-Cognito-Identity": "cognito_identity",
+        "Lambda-Runtime-Aws-Tenant-Id": "tenant_id",
+        "Content-Type": "application/json",
+    }
+
     @patch("awslambdaric.lambda_runtime_client.runtime_client")
     def test_wait_next_invocation(self, mock_runtime_client):
         response_body = b"{}"
-        headears = {
-            "Lambda-Runtime-Aws-Request-Id": "RID1234",
-            "Lambda-Runtime-Trace-Id": "TID1234",
-            "Lambda-Runtime-Invoked-Function-Arn": "FARN1234",
-            "Lambda-Runtime-Deadline-Ms": 12,
-            "Lambda-Runtime-Client-Context": "client_context",
-            "Lambda-Runtime-Cognito-Identity": "cognito_identity",
-            "Lambda-Runtime-Aws-Tenant-Id": "tenant_id",
-            "Content-Type": "application/json",
-        }
-        mock_runtime_client.next.return_value = response_body, headears
+        mock_runtime_client.next.return_value = response_body, self.get_next_headers
         runtime_client = LambdaRuntimeClient("localhost:1234")
 
         event_request = runtime_client.wait_next_invocation()
@@ -105,6 +108,30 @@ class TestLambdaRuntime(unittest.TestCase):
         self.assertEqual(event_request.tenant_id, "tenant_id")
         self.assertEqual(event_request.content_type, "application/json")
         self.assertEqual(event_request.event_body, response_body)
+
+    @patch("awslambdaric.lambda_runtime_client.runtime_client")
+    def test_wait_next_invocation_calls_next_from_separate_thread(
+        self, mock_runtime_client
+    ):
+        thread_ids = []
+
+        def record_thread_id():
+            thread_ids.append(threading.get_ident())
+            return b"{}", self.get_next_headers
+
+        mock_runtime_client.next.side_effect = record_thread_id
+
+        main_thread_id = threading.get_ident()
+
+        runtime_client = LambdaRuntimeClient("localhost:1234", True)
+        runtime_client.wait_next_invocation()
+
+        self.assertEqual(len(thread_ids), 1)
+        self.assertNotEqual(
+            thread_ids[0],
+            main_thread_id,
+            "runtime_client.next() was not called from a separate thread",
+        )
 
     @patch("awslambdaric.lambda_runtime_client.runtime_client")
     def test_wait_next_invocation_without_tenant_id_header(self, mock_runtime_client):
@@ -284,6 +311,145 @@ class TestLambdaRuntime(unittest.TestCase):
         mock_runtime_client.post_error.assert_called_once_with(
             invoke_id, error_data, xray_fault
         )
+
+    @patch("awslambdaric.lambda_runtime_client.runtime_client")
+    def test_get_next_falls_back_to_backoff_if_multi_concurrent(
+        self, mock_runtime_client
+    ):
+        # First call raises, second call succeeds
+        mock_runtime_client.next.side_effect = [RuntimeError("first fail"), (b"{}", {})]
+        client = LambdaMultiConcurrentRuntimeClient(
+            "localhost:1234", use_thread_for_polling_next=True
+        )
+
+        result = client._get_next()
+        self.assertEqual(result, (b"{}", {}))
+        self.assertEqual(mock_runtime_client.next.call_count, 2)
+
+    @patch("awslambdaric.lambda_runtime_client.runtime_client")
+    def test_get_next_raises_if_not_multi_concurrent(self, mock_runtime_client):
+        mock_runtime_client.next.side_effect = RuntimeError("fail")
+
+        client = LambdaRuntimeClient("localhost:1234", use_thread_for_polling_next=True)
+
+        with self.assertRaises(RuntimeError):
+            client._get_next()
+
+        self.assertEqual(mock_runtime_client.next.call_count, 1)
+
+    @patch("awslambdaric.lambda_runtime_client.runtime_client")
+    @patch("time.sleep", return_value=None)
+    def test_get_next_retries_with_exponential_backoff(
+        self, mock_sleep, mock_runtime_client
+    ):
+        # Simulate all attempts failing
+        mock_runtime_client.next.side_effect = RuntimeError("always fail")
+        client = LambdaMultiConcurrentRuntimeClient(
+            "localhost:1234", use_thread_for_polling_next=True
+        )
+
+        with self.assertRaises(RuntimeError):
+            client._get_next()
+
+        # 1 initial + 4 retries
+        self.assertEqual(mock_runtime_client.next.call_count, 5)
+
+        expected_delays = [0.1, 0.2, 0.4, 0.8]
+        actual_delays = [call.args[0] for call in mock_sleep.call_args_list]
+        self.assertEqual(actual_delays, expected_delays)
+
+    @patch("awslambdaric.lambda_runtime_client.runtime_client")
+    def test_post_invocation_result_suppresses_error_if_multi_concurrent(
+        self, mock_runtime_client
+    ):
+        mock_runtime_client.post_invocation_result.side_effect = RuntimeError("failure")
+
+        client = LambdaMultiConcurrentRuntimeClient(
+            "localhost:1234", use_thread_for_polling_next=True
+        )
+
+        with self.assertLogs(level="WARNING"):
+            client.post_invocation_result("invoke_id", "result")
+
+    @patch("awslambdaric.lambda_runtime_client.runtime_client")
+    def test_post_invocation_result_raises_if_not_multi_concurrent(
+        self, mock_runtime_client
+    ):
+        mock_runtime_client.post_invocation_result.side_effect = RuntimeError("failure")
+
+        client = LambdaRuntimeClient("localhost:1234", use_thread_for_polling_next=True)
+
+        with self.assertRaises(RuntimeError):
+            client.post_invocation_result("invoke_id", "result")
+
+    @patch("awslambdaric.lambda_runtime_client.runtime_client")
+    def test_post_invocation_error_suppresses_error_if_multi_concurrent(
+        self, mock_runtime_client
+    ):
+        mock_runtime_client.post_error.side_effect = RuntimeError("post error")
+
+        client = LambdaMultiConcurrentRuntimeClient(
+            "localhost:1234", use_thread_for_polling_next=True
+        )
+
+        with self.assertLogs(level="WARNING"):
+            client.post_invocation_error("invoke_id", "error_data", "xray_data")
+
+    @patch("awslambdaric.lambda_runtime_client.runtime_client")
+    def test_post_invocation_error_raises_if_not_multi_concurrent(
+        self, mock_runtime_client
+    ):
+        mock_runtime_client.post_error.side_effect = RuntimeError("post error")
+
+        client = LambdaRuntimeClient("localhost:1234", use_thread_for_polling_next=True)
+
+        with self.assertRaises(RuntimeError):
+            client.post_invocation_error("invoke_id", "error_data", "xray_data")
+
+    @patch("http.client.HTTPConnection", autospec=http.client.HTTPConnection)
+    def test_post_init_error_suppresses_403_if_multi_concurrent(
+        self, MockHTTPConnection
+    ):
+        mock_conn = MockHTTPConnection.return_value
+        mock_response = MagicMock(autospec=http.client.HTTPResponse)
+        mock_conn.getresponse.return_value = mock_response
+        mock_response.read.return_value = b""
+        mock_response.code = http.HTTPStatus.FORBIDDEN
+
+        client = LambdaMultiConcurrentRuntimeClient("localhost:1234")
+
+        # Should not raise exception for 403 error
+        client.post_init_error(self.error_result)
+
+    @patch("http.client.HTTPConnection", autospec=http.client.HTTPConnection)
+    def test_post_init_error_raises_non_403_if_multi_concurrent(
+        self, MockHTTPConnection
+    ):
+        mock_conn = MockHTTPConnection.return_value
+        mock_response = MagicMock(autospec=http.client.HTTPResponse)
+        mock_conn.getresponse.return_value = mock_response
+        mock_response.read.return_value = b""
+        mock_response.code = http.HTTPStatus.INTERNAL_SERVER_ERROR
+
+        client = LambdaMultiConcurrentRuntimeClient("localhost:1234")
+
+        with self.assertRaises(LambdaRuntimeClientError):
+            client.post_init_error(self.error_result)
+
+    @patch("http.client.HTTPConnection", autospec=http.client.HTTPConnection)
+    def test_post_init_error_raises_403_if_not_multi_concurrent(
+        self, MockHTTPConnection
+    ):
+        mock_conn = MockHTTPConnection.return_value
+        mock_response = MagicMock(autospec=http.client.HTTPResponse)
+        mock_conn.getresponse.return_value = mock_response
+        mock_response.read.return_value = b""
+        mock_response.code = http.HTTPStatus.FORBIDDEN
+
+        client = LambdaRuntimeClient("localhost:1234")
+
+        with self.assertRaises(LambdaRuntimeClientError):
+            client.post_init_error(self.error_result)
 
     @patch("awslambdaric.lambda_runtime_client.runtime_client")
     def test_post_invocation_error_with_large_xray_cause(self, mock_runtime_client):

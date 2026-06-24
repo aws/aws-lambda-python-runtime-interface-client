@@ -6,8 +6,14 @@ import sys
 from awslambdaric import __version__
 from .lambda_runtime_exception import FaultException
 from .lambda_runtime_marshaller import to_json
+import logging
+import time
 
 ERROR_TYPE_HEADER = "Lambda-Runtime-Function-Error-Type"
+# Retry config constants
+DEFAULT_RETRY_MAX_ATTEMPTS = 5
+DEFAULT_RETRY_INITIAL_DELAY = 0.1  # seconds
+DEFAULT_RETRY_BACKOFF_FACTOR = 2.0
 
 
 def _user_agent():
@@ -46,13 +52,17 @@ class LambdaRuntimeClientError(Exception):
         )
 
 
-class LambdaRuntimeClient(object):
+class BaseLambdaRuntimeClient(object):
     marshaller = LambdaMarshaller()
     """marshaller is a class attribute that determines the unmarshalling and marshalling logic of a function's event
     and response. It allows for function authors to override the the default implementation, LambdaMarshaller which
     unmarshals and marshals JSON, to an instance of a class that implements the same interface."""
 
-    def __init__(self, lambda_runtime_address, use_thread_for_polling_next=False):
+    def __init__(
+        self,
+        lambda_runtime_address,
+        use_thread_for_polling_next=False,
+    ):
         self.lambda_runtime_address = lambda_runtime_address
         self.use_thread_for_polling_next = use_thread_for_polling_next
         if self.use_thread_for_polling_next:
@@ -94,9 +104,16 @@ class LambdaRuntimeClient(object):
                 else error_response_data["errorType"]
             )
         }
-        self.call_rapid(
-            "POST", endpoint, http.HTTPStatus.ACCEPTED, error_response_data, headers
-        )
+        try:
+            self.call_rapid(
+                "POST", endpoint, http.HTTPStatus.ACCEPTED, error_response_data, headers
+            )
+        except Exception as e:
+            self.handle_init_error(e)
+
+    def handle_init_error(self, exc):
+        """Override in subclasses to customize init error handling."""
+        raise NotImplementedError
 
     def restore_next(self):
         import http
@@ -113,6 +130,16 @@ class LambdaRuntimeClient(object):
             "POST", endpoint, http.HTTPStatus.ACCEPTED, restore_error_data, headers
         )
 
+    def handle_exception(self, exc, func_to_retry=None, use_backoff=False):
+        """Override in subclasses to customize error handling."""
+        raise NotImplementedError
+
+    def _get_next(self):
+        try:
+            return runtime_client.next()
+        except Exception as e:
+            return self.handle_exception(e, runtime_client.next, True)
+
     def wait_next_invocation(self):
         # Calling runtime_client.next() from a separate thread unblocks the main thread,
         # which can then process signals.
@@ -120,7 +147,7 @@ class LambdaRuntimeClient(object):
             try:
                 # TPE class is supposed to be registered at construction time and be ready to use.
                 with self.ThreadPoolExecutor(max_workers=1) as executor:
-                    future = executor.submit(runtime_client.next)
+                    future = executor.submit(self._get_next)
                 response_body, headers = future.result()
             except Exception as e:
                 raise FaultException(
@@ -145,17 +172,66 @@ class LambdaRuntimeClient(object):
     def post_invocation_result(
         self, invoke_id, result_data, content_type="application/json"
     ):
-        runtime_client.post_invocation_result(
-            invoke_id,
-            (
-                result_data
-                if isinstance(result_data, bytes)
-                else result_data.encode("utf-8")
-            ),
-            content_type,
-        )
+        try:
+            runtime_client.post_invocation_result(
+                invoke_id,
+                (
+                    result_data
+                    if isinstance(result_data, bytes)
+                    else result_data.encode("utf-8")
+                ),
+                content_type,
+            )
+        except Exception as e:
+            self.handle_exception(e)
 
     def post_invocation_error(self, invoke_id, error_response_data, xray_fault):
-        max_header_size = 1024 * 1024  # 1MiB
-        xray_fault = xray_fault if len(xray_fault.encode()) < max_header_size else ""
-        runtime_client.post_error(invoke_id, error_response_data, xray_fault)
+        try:
+            max_header_size = 1024 * 1024
+            xray_fault = (
+                xray_fault if len(xray_fault.encode()) < max_header_size else ""
+            )
+            runtime_client.post_error(invoke_id, error_response_data, xray_fault)
+        except Exception as e:
+            self.handle_exception(e)
+
+
+class LambdaRuntimeClient(BaseLambdaRuntimeClient):
+    def handle_exception(self, exc, func_to_retry=None, use_backoff=False):
+        raise exc
+
+    def handle_init_error(self, exc):
+        raise exc
+
+
+class LambdaMultiConcurrentRuntimeClient(BaseLambdaRuntimeClient):
+    def _get_next_with_backoff(self, e, func_to_retry):
+        logging.warning(f"Initial runtime_client.next() failed: {e}")
+        delay = DEFAULT_RETRY_INITIAL_DELAY
+        latest_exception = None
+        for attempt in range(1, DEFAULT_RETRY_MAX_ATTEMPTS):
+            try:
+                logging.info(
+                    f"Retrying runtime_client.next() [attempt {attempt + 1}]..."
+                )
+                time.sleep(delay)
+                return func_to_retry()
+            except Exception as e:
+                logging.warning(f"Attempt {attempt + 1} failed: {e}")
+                delay *= DEFAULT_RETRY_BACKOFF_FACTOR
+                latest_exception = e
+
+        raise latest_exception
+
+    # In multi-concurrent mode we don't want to raise unhandled exception and crash the worker on non-2xx responses from RAPID
+    def handle_exception(self, exc, func_to_retry=None, use_backoff=False):
+        if use_backoff:
+            return self._get_next_with_backoff(exc, func_to_retry)
+        # We retry if getting next invoke failed, but if posting response to RAPID failed we just log it and continue
+        logging.warning(f"{exc}: This won't kill the Runtime loop")
+
+    def handle_init_error(self, exc):
+        if isinstance(exc, LambdaRuntimeClientError) and exc.response_code == 403:
+            # Suppress 403 errors from RAPID during init - indicates another runtime worker has already posted init error
+            return
+        raise exc

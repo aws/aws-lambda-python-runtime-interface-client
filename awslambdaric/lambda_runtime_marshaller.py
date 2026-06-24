@@ -18,6 +18,8 @@ class Encoder(json.JSONEncoder):
         if os.environ.get("AWS_EXECUTION_ENV") in {
             "AWS_Lambda_python3.12",
             "AWS_Lambda_python3.13",
+            "AWS_Lambda_python3.14",
+            "AWS_Lambda_python3.15",
         }:
             super().__init__(use_decimal=False, ensure_ascii=False, allow_nan=True)
         else:
