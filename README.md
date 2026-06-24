@@ -50,6 +50,29 @@ RUN pip install \
         awslambdaric
 ```
 
+The `apt-get` snippet above is for Debian/Ubuntu. On **Alpine Linux** the prebuilt
+`manylinux2014` wheels are not compatible (Alpine uses musl libc and no `musllinux`
+wheels are published), so the client is always built from source. Alpine's base
+images are minimal, so you must install the full build toolchain via `apk`. Note
+that `libexecinfo-dev` is **not** required (it was removed in Alpine 3.17+); the
+client builds without it:
+
+```dockerfile
+# Install aws-lambda-cpp build dependencies (Alpine Linux)
+RUN apk add --no-cache \
+  build-base \
+  libtool \
+  autoconf \
+  automake \
+  cmake \
+  curl
+
+# Install the function's dependencies
+RUN pip install \
+    --target ${FUNCTION_DIR} \
+        awslambdaric
+```
+
 The next step would be to set the `ENTRYPOINT` property of the Docker image to invoke the Runtime Interface Client and then set the `CMD` argument to specify the desired handler.
 
 Example Dockerfile (to keep the image light we use a multi-stage build):
