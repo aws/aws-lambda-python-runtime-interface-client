@@ -13,13 +13,18 @@ RUN apk add --no-cache \
 
 # Stage 2 - build function and dependencies
 FROM python-alpine AS build-image
-# Install aws-lambda-cpp build dependencies
+# Install aws-lambda-cpp build dependencies.
+# NOTE: this is the minimal toolchain a customer needs to build awslambdaric
+# from source on Alpine. We intentionally do NOT install elfutils-dev: with
+# libdw present, the bundled backward-cpp uses the DWARF backend and never
+# includes execinfo.h, which would mask the musl/Alpine build issue (#128).
+# Without it, backward-cpp falls back to the execinfo.h path - exactly what
+# customers hit - so this test genuinely exercises the fix.
 RUN apk add --no-cache \
     build-base \
     libtool \
     autoconf \
     automake \
-    elfutils-dev \
     make \
     cmake \
     libcurl
