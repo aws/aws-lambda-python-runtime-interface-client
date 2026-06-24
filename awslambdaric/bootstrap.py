@@ -503,8 +503,6 @@ def run(handler, lambda_runtime_client):
             _log_preview_runtime_warning()
 
             request_handler = _get_handler(handler)
-            from .lambda_runtime_client import LambdaRuntimeClient
-            lambda_runtime_client = LambdaRuntimeClient(lambda_runtime_api_addr, use_thread_for_polling_next)
         except FaultException as e:
             error_result = make_error(
                 e.msg,
