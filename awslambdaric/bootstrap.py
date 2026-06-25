@@ -14,10 +14,10 @@ from .lambda_context import LambdaContext
 from .lambda_runtime_client import LambdaRuntimeClient
 from .lambda_runtime_exception import FaultException
 from .lambda_runtime_log_utils import (
-    _DATETIME_FORMAT,
     _DEFAULT_FRAME_TYPE,
     _JSON_FRAME_TYPES,
     _TEXT_FRAME_TYPES,
+    _format_timestamp,
     JsonFormatter,
     LogFormat,
     _format_log_level,
@@ -106,9 +106,7 @@ if _AWS_LAMBDA_LOG_FORMAT == LogFormat.JSON:
 
     def log_error(error_result, log_sink):
         error_result = {
-            "timestamp": time.strftime(
-                _DATETIME_FORMAT, logging.Formatter.converter(time.time())
-            ),
+            "timestamp": _format_timestamp(time.time()),
             "log_level": "ERROR",
             **error_result,
         }
