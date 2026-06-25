@@ -30,7 +30,7 @@ class TestMain(unittest.TestCase):
             "my.handler", mock_client_cls.return_value
         )
 
-    @patch("awslambdaric.__main__.MultiConcurrentRunner")
+    @patch("awslambdaric.lambda_multi_concurrent_utils.MultiConcurrentRunner")
     @patch("awslambdaric.__main__.LambdaConfigProvider")
     def test_multi_concurrent_path_dispatches_to_multi_concurrent_runner(
         self, mock_config_provider, mock_runner
