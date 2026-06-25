@@ -9,11 +9,12 @@ import awslambdaric.__main__ as package_entry
 
 
 class TestMain(unittest.TestCase):
+    @patch("awslambdaric.lambda_multi_concurrent_utils.MultiConcurrentRunner")
     @patch("awslambdaric.__main__.bootstrap")
     @patch("awslambdaric.__main__.LambdaRuntimeClient")
     @patch("awslambdaric.__main__.LambdaConfigProvider")
     def test_default_path_invokes_runtime_client_and_bootstrap(
-        self, mock_config_provider, mock_client_cls, mock_bootstrap
+        self, mock_config_provider, mock_client_cls, mock_bootstrap, mock_runner
     ):
         # Non-multi-concurrent mode
         cfg = MagicMock()
@@ -30,7 +31,9 @@ class TestMain(unittest.TestCase):
             "my.handler", mock_client_cls.return_value
         )
 
-    @patch("awslambdaric.__main__.MultiConcurrentRunner")
+        mock_runner.run_concurrent.assert_not_called()
+
+    @patch("awslambdaric.lambda_multi_concurrent_utils.MultiConcurrentRunner")
     @patch("awslambdaric.__main__.LambdaConfigProvider")
     def test_multi_concurrent_path_dispatches_to_multi_concurrent_runner(
         self, mock_config_provider, mock_runner
