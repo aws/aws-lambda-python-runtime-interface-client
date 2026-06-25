@@ -6,10 +6,9 @@ SPDX-License-Identifier: Apache-2.0
 import json
 import logging
 import traceback
-from datetime import datetime, timezone
 from enum import IntEnum
 
-_DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%S"
+_DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 _RESERVED_FIELDS = {
     "name",
     "msg",
@@ -81,10 +80,6 @@ def _format_log_level(record: logging.LogRecord) -> int:
 class JsonFormatter(logging.Formatter):
     def __init__(self):
         super().__init__(datefmt=_DATETIME_FORMAT)
-
-    def formatTime(self, record, datefmt=None):
-        dt = datetime.fromtimestamp(record.created, tz=timezone.utc)
-        return dt.strftime(_DATETIME_FORMAT + ".%f")[:-3] + "Z"
 
     @staticmethod
     def __format_stacktrace(exc_info):
