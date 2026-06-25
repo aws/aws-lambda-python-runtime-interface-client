@@ -20,7 +20,6 @@ def main(args):
         max_conc = int(config.max_concurrency)
         socket_path = config.lmi_socket_path
 
-        # Importing multi_concurrent_utils only in the multiconcurrent path
         from .lambda_multi_concurrent_utils import MultiConcurrentRunner
 
         MultiConcurrentRunner.run_concurrent(
