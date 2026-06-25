@@ -6,7 +6,6 @@ import sys
 
 from .lambda_config import LambdaConfigProvider
 from .lambda_runtime_client import LambdaRuntimeClient
-from .lambda_multi_concurrent_utils import MultiConcurrentRunner
 from . import bootstrap
 
 
@@ -20,6 +19,10 @@ def main(args):
         # Multi-concurrent mode: redirect fork, stdout/stderr and run
         max_conc = int(config.max_concurrency)
         socket_path = config.lmi_socket_path
+
+        # Importing multi_concurrent_utils only in the multiconcurrent path
+        from .lambda_multi_concurrent_utils import MultiConcurrentRunner
+
         MultiConcurrentRunner.run_concurrent(
             handler, api_addr, use_thread, socket_path, max_conc
         )
