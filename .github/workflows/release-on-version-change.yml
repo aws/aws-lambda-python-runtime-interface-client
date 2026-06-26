@@ -1,0 +1,63 @@
+name: release-on-version-change
+
+# Creates a GitHub Release automatically whenever the package version in
+# awslambdaric/__init__.py changes on main. The release notes are taken from
+# the matching section of RELEASE.CHANGELOG.md.
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'awslambdaric/__init__.py'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read version
+        id: version
+        run: |
+          VERSION="$(sed -n 's/^__version__[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' awslambdaric/__init__.py)"
+          if [ -z "$VERSION" ]; then
+            echo "Could not determine version from awslambdaric/__init__.py" >&2
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Detected version: $VERSION"
+
+      - name: Extract changelog notes
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          # Write notes to a file (never interpolated into the shell) so that
+          # special characters in the changelog (backticks, parentheses, etc.)
+          # are passed verbatim to gh via --notes-file.
+          awk -v ver="$VERSION" '
+            index($0, "`" ver "`") == 1 { capture = 1; next }
+            capture && /^### / { exit }
+            capture { print }
+          ' RELEASE.CHANGELOG.md > release-notes.md
+          # Trim leading blank lines.
+          sed -i -e '/./,$!d' release-notes.md
+          if [ ! -s release-notes.md ]; then
+            echo "No changelog entry found for $VERSION in RELEASE.CHANGELOG.md." >&2
+            echo "Add a '\`$VERSION\`' section before bumping the version." >&2
+            exit 1
+          fi
+          echo "----- release notes -----"
+          cat release-notes.md
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          gh release create "$VERSION" \
+            --target "$GITHUB_SHA" \
+            --title "AWS Lambda Runtime Interface Client for Python v$VERSION" \
+            --notes-file release-notes.md \
+            --latest

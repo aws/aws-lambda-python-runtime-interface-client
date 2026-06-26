@@ -1,3 +1,8 @@
+### June 25, 2026
+`4.0.1`
+- Support building on Alpine Linux 3.17+ (musl) without `libexecinfo-dev` ([#204](https://github.com/aws/aws-lambda-python-runtime-interface-client/pull/204))
+- Lazy load `multi_concurrent_utils` ([#211](https://github.com/aws/aws-lambda-python-runtime-interface-client/pull/211))
+
 ### Feb 20, 2026
 `4.0.0`
 - Add Lambda Managed Instances (LMI) / Multi-Concurrent Support ([#200](https://github.com/aws/aws-lambda-python-runtime-interface-client/pull/200))
