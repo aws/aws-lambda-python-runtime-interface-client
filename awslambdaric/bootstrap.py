@@ -33,7 +33,6 @@ _AWS_LAMBDA_LOG_LEVEL = _get_log_level_from_env_var(
 )
 AWS_LAMBDA_INITIALIZATION_TYPE = "AWS_LAMBDA_INITIALIZATION_TYPE"
 INIT_TYPE_SNAP_START = "snap-start"
-PREVIEW_RUNTIME_ENVS = {"AWS_Lambda_python3.15"}
 
 
 def _get_handler(handler):
@@ -161,6 +160,7 @@ def handle_event_request(
     epoch_deadline_time_in_ms,
     tenant_id,
     log_sink,
+    invocation_id=None,
 ):
     error_result = None
     try:
@@ -205,11 +205,11 @@ def handle_event_request(
 
         log_error(error_result, log_sink)
         lambda_runtime_client.post_invocation_error(
-            invoke_id, to_json(error_result), to_json(xray_fault)
+            invoke_id, to_json(error_result), to_json(xray_fault), invocation_id
         )
     else:
         lambda_runtime_client.post_invocation_result(
-            invoke_id, result, result_content_type
+            invoke_id, result, result_content_type, invocation_id
         )
 
 
@@ -478,6 +478,9 @@ def _setup_logging(log_format, log_level, log_sink):
     logger.addHandler(logger_handler)
 
 
+PREVIEW_RUNTIME_ENVS = {"AWS_Lambda_python3.15"}
+
+
 def _log_preview_runtime_warning():
     """Emit a warning if the runtime version is a preview."""
     if os.environ.get("LAMBDA_DISABLE_PREVIEW_WARN", ""):
@@ -545,4 +548,5 @@ def run(handler, lambda_runtime_client):
                 event_request.deadline_time_in_ms,
                 event_request.tenant_id,
                 log_sink,
+                event_request.invocation_id,
             )

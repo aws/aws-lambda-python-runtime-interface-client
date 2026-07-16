@@ -200,6 +200,101 @@ class TestLambdaRuntime(unittest.TestCase):
         self.assertEqual(event_request.tenant_id, "")
         self.assertEqual(event_request.event_body, response_body)
 
+    @patch("awslambdaric.lambda_runtime_client.runtime_client")
+    def test_wait_next_invocation_with_invocation_id(self, mock_runtime_client):
+        response_body = b"{}"
+        headers = {
+            **self.get_next_headers,
+            "Lambda-Runtime-Invocation-Id": "inv-uuid-1234",
+        }
+        mock_runtime_client.next.return_value = response_body, headers
+        runtime_client = LambdaRuntimeClient("localhost:1234")
+
+        event_request = runtime_client.wait_next_invocation()
+
+        self.assertIsNotNone(event_request)
+        self.assertEqual(event_request.invocation_id, "inv-uuid-1234")
+
+    @patch("awslambdaric.lambda_runtime_client.runtime_client")
+    def test_wait_next_invocation_without_invocation_id(self, mock_runtime_client):
+        response_body = b"{}"
+        headers = {
+            "Lambda-Runtime-Aws-Request-Id": "RID1234",
+            "Lambda-Runtime-Trace-Id": "TID1234",
+            "Lambda-Runtime-Invoked-Function-Arn": "FARN1234",
+            "Lambda-Runtime-Deadline-Ms": 12,
+            "Lambda-Runtime-Client-Context": "client_context",
+            "Lambda-Runtime-Cognito-Identity": "cognito_identity",
+            "Content-Type": "application/json",
+        }
+        mock_runtime_client.next.return_value = response_body, headers
+        runtime_client = LambdaRuntimeClient("localhost:1234")
+
+        event_request = runtime_client.wait_next_invocation()
+
+        self.assertIsNotNone(event_request)
+        self.assertIsNone(event_request.invocation_id)
+
+    @patch("awslambdaric.lambda_runtime_client.runtime_client")
+    def test_post_invocation_result_with_invocation_id(self, mock_runtime_client):
+        runtime_client = LambdaRuntimeClient("localhost:1234")
+        response_data = "data"
+        invoke_id = "1234"
+        invocation_id = "inv-uuid-5678"
+
+        runtime_client.post_invocation_result(
+            invoke_id, response_data, invocation_id=invocation_id
+        )
+
+        mock_runtime_client.post_invocation_result.assert_called_once_with(
+            invoke_id, response_data.encode("utf-8"), "application/json", invocation_id
+        )
+
+    @patch("awslambdaric.lambda_runtime_client.runtime_client")
+    def test_post_invocation_error_with_invocation_id(self, mock_runtime_client):
+        runtime_client = LambdaRuntimeClient("localhost:1234")
+        error_data = "data"
+        invoke_id = "1234"
+        xray_fault = "xray_fault"
+        invocation_id = "inv-uuid-5678"
+
+        runtime_client.post_invocation_error(
+            invoke_id, error_data, xray_fault, invocation_id
+        )
+
+        mock_runtime_client.post_error.assert_called_once_with(
+            invoke_id, error_data, xray_fault, invocation_id
+        )
+
+    @patch("awslambdaric.lambda_runtime_client.runtime_client")
+    def test_post_invocation_result_without_invocation_id_passes_none(
+        self, mock_runtime_client
+    ):
+        runtime_client = LambdaRuntimeClient("localhost:1234")
+        response_data = "data"
+        invoke_id = "1234"
+
+        runtime_client.post_invocation_result(invoke_id, response_data)
+
+        mock_runtime_client.post_invocation_result.assert_called_once_with(
+            invoke_id, response_data.encode("utf-8"), "application/json", None
+        )
+
+    @patch("awslambdaric.lambda_runtime_client.runtime_client")
+    def test_post_invocation_error_without_invocation_id_passes_none(
+        self, mock_runtime_client
+    ):
+        runtime_client = LambdaRuntimeClient("localhost:1234")
+        error_data = "data"
+        invoke_id = "1234"
+        xray_fault = "xray_fault"
+
+        runtime_client.post_invocation_error(invoke_id, error_data, xray_fault)
+
+        mock_runtime_client.post_error.assert_called_once_with(
+            invoke_id, error_data, xray_fault, None
+        )
+
     error_result = {
         "errorMessage": "Dummy message",
         "errorType": "Runtime.DummyError",
@@ -270,7 +365,7 @@ class TestLambdaRuntime(unittest.TestCase):
         runtime_client.post_invocation_result(invoke_id, response_data)
 
         mock_runtime_client.post_invocation_result.assert_called_once_with(
-            invoke_id, response_data.encode("utf-8"), "application/json"
+            invoke_id, response_data.encode("utf-8"), "application/json", None
         )
 
     @patch("awslambdaric.lambda_runtime_client.runtime_client")
@@ -283,7 +378,7 @@ class TestLambdaRuntime(unittest.TestCase):
         runtime_client.post_invocation_result(invoke_id, response_data, content_type)
 
         mock_runtime_client.post_invocation_result.assert_called_once_with(
-            invoke_id, response_data, content_type
+            invoke_id, response_data, content_type, None
         )
 
     @patch("awslambdaric.lambda_runtime_client.runtime_client")
@@ -309,7 +404,7 @@ class TestLambdaRuntime(unittest.TestCase):
         runtime_client.post_invocation_error(invoke_id, error_data, xray_fault)
 
         mock_runtime_client.post_error.assert_called_once_with(
-            invoke_id, error_data, xray_fault
+            invoke_id, error_data, xray_fault, None
         )
 
     @patch("awslambdaric.lambda_runtime_client.runtime_client")
@@ -461,7 +556,7 @@ class TestLambdaRuntime(unittest.TestCase):
         runtime_client.post_invocation_error(invoke_id, error_data, large_xray_fault)
 
         mock_runtime_client.post_error.assert_called_once_with(
-            invoke_id, error_data, large_xray_fault
+            invoke_id, error_data, large_xray_fault, None
         )
 
     @patch("awslambdaric.lambda_runtime_client.runtime_client")
@@ -476,7 +571,7 @@ class TestLambdaRuntime(unittest.TestCase):
         )
 
         mock_runtime_client.post_error.assert_called_once_with(
-            invoke_id, error_data, ""
+            invoke_id, error_data, "", None
         )
 
     @patch("http.client.HTTPConnection", autospec=http.client.HTTPConnection)

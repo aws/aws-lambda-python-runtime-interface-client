@@ -95,6 +95,7 @@ class TestHandleEventRequest(unittest.TestCase):
             "invoke_id",
             '{"input": "event_body", "aws_request_id": "invoke_id"}',
             "application/json",
+            None,
         )
 
     def test_handle_event_request_invalid_client_context(self):
@@ -862,7 +863,7 @@ class TestContentType(unittest.TestCase):
         )
 
         self.lambda_runtime.post_invocation_result.assert_called_once_with(
-            "invoke-id", '{"response": "foo"}', "application/json"
+            "invoke-id", '{"response": "foo"}', "application/json", None
         )
 
     def test_binary_request_binary_response(self):
@@ -882,7 +883,7 @@ class TestContentType(unittest.TestCase):
         )
 
         self.lambda_runtime.post_invocation_result.assert_called_once_with(
-            "invoke-id", event_body, "application/unknown"
+            "invoke-id", event_body, "application/unknown", None
         )
 
     def test_json_request_binary_response(self):
@@ -902,7 +903,7 @@ class TestContentType(unittest.TestCase):
         )
 
         self.lambda_runtime.post_invocation_result.assert_called_once_with(
-            "invoke-id", binary_data, "application/unknown"
+            "invoke-id", binary_data, "application/unknown", None
         )
 
     def test_binary_with_application_json(self):
@@ -927,11 +928,55 @@ class TestContentType(unittest.TestCase):
             invoke_id,
             error_result,
             xray_fault,
+            invocation_id,
         ), _ = self.lambda_runtime.post_invocation_error.call_args
         error_dict = json.loads(error_result)
 
         self.assertEqual("invoke-id", invoke_id)
         self.assertEqual("Runtime.UnmarshalError", error_dict["errorType"])
+
+    def test_invocation_id_wired_to_post_invocation_result(self):
+        bootstrap.handle_event_request(
+            lambda_runtime_client=self.lambda_runtime,
+            request_handler=lambda event, ctx: {"ok": True},
+            invoke_id="invoke-id",
+            event_body=b'{"key":"value"}',
+            content_type="application/json",
+            client_context_json=None,
+            cognito_identity_json=None,
+            invoked_function_arn="invocation-arn",
+            epoch_deadline_time_in_ms=1415836801003,
+            tenant_id=None,
+            log_sink=bootstrap.StandardLogSink(),
+            invocation_id="inv-uuid-wiring-test",
+        )
+
+        self.lambda_runtime.post_invocation_result.assert_called_once()
+        _, kwargs = self.lambda_runtime.post_invocation_result.call_args
+        args = self.lambda_runtime.post_invocation_result.call_args[0]
+        self.assertEqual("inv-uuid-wiring-test", args[3])
+
+    def test_invocation_id_wired_to_post_invocation_error(self):
+        bootstrap.handle_event_request(
+            lambda_runtime_client=self.lambda_runtime,
+            request_handler=lambda event, ctx: (_ for _ in ()).throw(
+                ValueError("boom")
+            ),
+            invoke_id="invoke-id",
+            event_body=b'{"key":"value"}',
+            content_type="application/json",
+            client_context_json=None,
+            cognito_identity_json=None,
+            invoked_function_arn="invocation-arn",
+            epoch_deadline_time_in_ms=1415836801003,
+            tenant_id=None,
+            log_sink=bootstrap.StandardLogSink(),
+            invocation_id="inv-uuid-error-test",
+        )
+
+        self.lambda_runtime.post_invocation_error.assert_called_once()
+        args = self.lambda_runtime.post_invocation_error.call_args[0]
+        self.assertEqual("inv-uuid-error-test", args[3])
 
 
 class TestLogError(unittest.TestCase):
