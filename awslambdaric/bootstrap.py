@@ -495,8 +495,6 @@ def run(handler, lambda_runtime_client):
     sys.stderr = Unbuffered(sys.stderr)
 
     with create_log_sink() as log_sink:
-        error_result = None
-
         try:
             _setup_logging(_AWS_LAMBDA_LOG_FORMAT, _AWS_LAMBDA_LOG_LEVEL, log_sink)
             global _GLOBAL_AWS_REQUEST_ID, _GLOBAL_TENANT_ID
@@ -504,20 +502,24 @@ def run(handler, lambda_runtime_client):
             _log_preview_runtime_warning()
 
             request_handler = _get_handler(handler)
-        except FaultException as e:
-            error_result = make_error(
-                e.msg,
-                e.exception_type,
-                e.trace,
-            )
-        except Exception:
-            error_result = build_fault_result(sys.exc_info(), None)
+        except Exception as e:
+            if isinstance(e, FaultException):
+                error_result = make_error(
+                    e.msg,
+                    e.exception_type,
+                    e.trace,
+                )
+            else:
+                error_result = build_fault_result(sys.exc_info(), None)
 
-        if error_result is not None:
             from .lambda_literals import lambda_unhandled_exception_warning_message
 
             logging.warning(lambda_unhandled_exception_warning_message)
             log_error(error_result, log_sink)
+            # post_init_error must be called within the exception handling block
+            # so that the init error being handled is still accessible via
+            # sys.exc_info() (e.g. APM tools such as Sentry monkey-patch
+            # post_init_error and rely on this). See issue #172.
             lambda_runtime_client.post_init_error(error_result)
 
             sys.exit(1)
