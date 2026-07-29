@@ -519,7 +519,9 @@ def run(handler, lambda_runtime_client):
         if error_result is not None:
             from .lambda_literals import lambda_unhandled_exception_warning_message
 
-            logging.warning(lambda_unhandled_exception_warning_message)
+            if os.environ.get("LAMBDA_DISABLE_EXCEPTION_WARNING"):
+                logging.warning(lambda_unhandled_exception_warning_message)
+
             log_error(error_result, log_sink)
             lambda_runtime_client.post_init_error(error_result)
 
