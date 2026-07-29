@@ -18,6 +18,26 @@ jobs:
     - name: Run 'pr' target
       run: make pr
 
+  test-runtime-client:
+    name: test runtime client
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    # The tests in this job drive the compiled extension against a stub RAPID,
+    # so unlike the unit tests they need the native code built first.
+    - name: Install aws-lambda-cpp build dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y g++ make cmake libcurl4-openssl-dev
+
+    - name: Install requirements
+      run: make init
+
+    - name: Compile the runtime client extension and run its tests
+      run: make test-runtime-client
+
   integration-test:
     runs-on: ubuntu-latest
     strategy:
