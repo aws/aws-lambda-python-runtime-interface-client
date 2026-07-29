@@ -8,8 +8,16 @@ init:
 	pip3 install -r requirements/base.txt -r requirements/dev.txt
 
 .PHONY: test
+# test_runtime_client_headers.py needs the compiled extension, so it runs in its
+# own target (test-runtime-client) rather than here.
 test: check-format
-	pytest --cov awslambdaric --cov-report term-missing --cov-fail-under 90 tests
+	pytest --cov awslambdaric --cov-report term-missing --cov-fail-under 90 \
+		--ignore tests/test_runtime_client_headers.py tests
+
+.PHONY: test-runtime-client
+test-runtime-client:
+	python3 setup.py build_ext --inplace
+	pytest -v tests/test_runtime_client_headers.py
 
 .PHONY: test-integ
 test-integ:
