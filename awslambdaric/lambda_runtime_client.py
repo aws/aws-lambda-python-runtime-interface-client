@@ -167,10 +167,15 @@ class BaseLambdaRuntimeClient(object):
             tenant_id=headers.get("Lambda-Runtime-Aws-Tenant-Id"),
             content_type=headers.get("Content-Type"),
             event_body=response_body,
+            invocation_id=headers.get("Lambda-Runtime-Invocation-Id"),
         )
 
     def post_invocation_result(
-        self, invoke_id, result_data, content_type="application/json"
+        self,
+        invoke_id,
+        result_data,
+        content_type="application/json",
+        invocation_id=None,
     ):
         try:
             runtime_client.post_invocation_result(
@@ -181,17 +186,22 @@ class BaseLambdaRuntimeClient(object):
                     else result_data.encode("utf-8")
                 ),
                 content_type,
+                invocation_id,
             )
         except Exception as e:
             self.handle_exception(e)
 
-    def post_invocation_error(self, invoke_id, error_response_data, xray_fault):
+    def post_invocation_error(
+        self, invoke_id, error_response_data, xray_fault, invocation_id=None
+    ):
         try:
             max_header_size = 1024 * 1024
             xray_fault = (
                 xray_fault if len(xray_fault.encode()) < max_header_size else ""
             )
-            runtime_client.post_error(invoke_id, error_response_data, xray_fault)
+            runtime_client.post_error(
+                invoke_id, error_response_data, xray_fault, invocation_id
+            )
         except Exception as e:
             self.handle_exception(e)
 

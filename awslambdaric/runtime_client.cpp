@@ -53,9 +53,10 @@ static PyObject *method_next(PyObject *self) {
     auto content_type = response.content_type.c_str();
     auto cognito_id = response.cognito_identity.c_str();
     auto tenant_id = response.tenant_id.c_str();
+    auto invocation_id = response.invocation_id.c_str();
 
     PyObject *payload_bytes = PyBytes_FromStringAndSize(payload.c_str(), payload.length());
-    PyObject *result = Py_BuildValue("(O,{s:s,s:s,s:s,s:l,s:s,s:s,s:s,s:s})",
+    PyObject *result = Py_BuildValue("(O,{s:s,s:s,s:s,s:l,s:s,s:s,s:s,s:s,s:s})",
                          payload_bytes,  //Py_BuildValue() increments reference counter
                          "Lambda-Runtime-Aws-Request-Id", request_id,
                          "Lambda-Runtime-Trace-Id", NULL_IF_EMPTY(trace_id),
@@ -64,7 +65,8 @@ static PyObject *method_next(PyObject *self) {
                          "Lambda-Runtime-Client-Context", NULL_IF_EMPTY(client_context),
                          "Content-Type", NULL_IF_EMPTY(content_type),
                          "Lambda-Runtime-Cognito-Identity", NULL_IF_EMPTY(cognito_id),
-                         "Lambda-Runtime-Aws-Tenant-Id", NULL_IF_EMPTY(tenant_id)
+                         "Lambda-Runtime-Aws-Tenant-Id", NULL_IF_EMPTY(tenant_id),
+                         "Lambda-Runtime-Invocation-Id", NULL_IF_EMPTY(invocation_id)
     );
 
     Py_XDECREF(payload_bytes);
@@ -79,9 +81,9 @@ static PyObject *method_post_invocation_result(PyObject *self, PyObject *args) {
 
     PyObject *invocation_response;
     Py_ssize_t length;
-    char *request_id, *content_type, *response_as_c_string;
+    char *request_id, *content_type, *response_as_c_string, *invocation_id = nullptr;
 
-    if (!PyArg_ParseTuple(args, "sSs", &request_id, &invocation_response, &content_type)) {
+    if (!PyArg_ParseTuple(args, "sSsz", &request_id, &invocation_response, &content_type, &invocation_id)) {
         PyErr_SetString(PyExc_RuntimeError, "Wrong arguments");
         return NULL;
     }
@@ -91,7 +93,8 @@ static PyObject *method_post_invocation_result(PyObject *self, PyObject *args) {
     std::string response_string(response_as_c_string, response_as_c_string + length);
 
     auto response = aws::lambda_runtime::invocation_response::success(response_string, content_type);
-    auto outcome = CLIENT->post_success(request_id, response);
+    std::string inv_id = invocation_id ? invocation_id : "";
+    auto outcome = CLIENT->post_success(request_id, response, inv_id);
     if (!outcome.is_success()) {
         PyErr_SetString(PyExc_RuntimeError, "Failed to post invocation response");
         return NULL;
@@ -107,15 +110,16 @@ static PyObject *method_post_error(PyObject *self, PyObject *args) {
         return NULL;
     }
 
-    char *request_id, *response_string, *xray_fault;
+    char *request_id, *response_string, *xray_fault, *invocation_id = nullptr;
 
-    if (!PyArg_ParseTuple(args, "sss", &request_id, &response_string, &xray_fault)) {
+    if (!PyArg_ParseTuple(args, "sssz", &request_id, &response_string, &xray_fault, &invocation_id)) {
         PyErr_SetString(PyExc_RuntimeError, "Wrong arguments");
         return NULL;
     }
 
     auto response = aws::lambda_runtime::invocation_response(response_string, "application/json", false, xray_fault);
-    auto outcome = CLIENT->post_failure(request_id, response);
+    std::string inv_id = invocation_id ? invocation_id : "";
+    auto outcome = CLIENT->post_failure(request_id, response, inv_id);
     if (!outcome.is_success()) {
         PyErr_SetString(PyExc_RuntimeError, "Failed to post invocation error");
         return NULL;

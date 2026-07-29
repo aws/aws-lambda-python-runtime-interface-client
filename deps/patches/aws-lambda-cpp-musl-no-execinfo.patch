@@ -1,0 +1,21 @@
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -11,10 +11,17 @@
+ add_library(${PROJECT_NAME}
+     "src/logging.cpp"
+     "src/runtime.cpp"
+-    "src/backward.cpp"
+     "${CMAKE_CURRENT_BINARY_DIR}/version.cpp"
+     )
+ 
++include(CheckIncludeFileCXX)
++check_include_file_cxx("execinfo.h" HAVE_EXECINFO_H)
++if (HAVE_EXECINFO_H)
++    target_sources(${PROJECT_NAME} PRIVATE "src/backward.cpp")
++else()
++    message("-- execinfo.h not found, stack traces disabled (musl/Alpine Linux)")
++endif()
++
+ set_target_properties(${PROJECT_NAME} PROPERTIES
+     SOVERSION 0
+     VERSION ${PROJECT_VERSION})

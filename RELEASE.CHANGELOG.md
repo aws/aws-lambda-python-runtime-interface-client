@@ -1,3 +1,7 @@
+### July 15, 2026
+`4.0.2`
+- Add `Lambda-Runtime-Invocation-Id` header support for cross-wiring protection. The RIC now echoes the invocation ID received from RAPID on `/next` back on `/response` and `/error`, enabling RAPID to detect and reject stale responses from timed-out invocations.
+
 ### June 25, 2026
 `4.0.1`
 - Support building on Alpine Linux 3.17+ (musl) without `libexecinfo-dev` ([#204](https://github.com/aws/aws-lambda-python-runtime-interface-client/pull/204))
