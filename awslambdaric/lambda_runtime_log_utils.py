@@ -1,13 +1,38 @@
 """
-Copyright 2023 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+SPDX-License-Identifier: Apache-2.0
 """
 
 import json
 import logging
+import os
 import traceback
+from datetime import datetime, timezone
 from enum import IntEnum
 
-_DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
+# TODO(v5.0): Remove this env var check and make milliseconds the default.
+# Once removed, _format_timestamp simplifies to just the millis branch.
+_TIMESTAMP_PRECISION_MILLIS = (
+    os.environ.get("AWS_LAMBDA_LOG_TIMESTAMP_PRECISION", "").lower() == "milliseconds"
+)
+
+
+def _format_timestamp(epoch_secs):
+    """Format a UTC timestamp in ISO 8601 format.
+
+    Returns second precision by default (e.g. 2024-06-19T23:13:05Z), to avoid breaking changes.
+    When AWS_LAMBDA_LOG_TIMESTAMP_PRECISION=milliseconds, includes
+    milliseconds (e.g. 2024-06-19T23:13:05.068Z).
+    """
+    dt = datetime.fromtimestamp(epoch_secs, tz=timezone.utc)
+
+    if _TIMESTAMP_PRECISION_MILLIS:
+        millis = dt.microsecond // 1000
+        return f"{dt:%Y-%m-%dT%H:%M:%S}.{millis:03d}Z"
+
+    return f"{dt:%Y-%m-%dT%H:%M:%S}Z"
+
+
 _RESERVED_FIELDS = {
     "name",
     "msg",
@@ -78,7 +103,10 @@ def _format_log_level(record: logging.LogRecord) -> int:
 
 class JsonFormatter(logging.Formatter):
     def __init__(self):
-        super().__init__(datefmt=_DATETIME_FORMAT)
+        super().__init__()
+
+    def formatTime(self, record, datefmt=None):
+        return _format_timestamp(record.created)
 
     @staticmethod
     def __format_stacktrace(exc_info):
