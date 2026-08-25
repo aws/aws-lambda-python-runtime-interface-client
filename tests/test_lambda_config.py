@@ -3,6 +3,7 @@ Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 """
 
 import os
+import sys
 import unittest
 from awslambdaric.lambda_config import LambdaConfigProvider
 
@@ -41,16 +42,45 @@ class TestLambdaConfigProvider(unittest.TestCase):
         self.assertIsNone(cfg2.max_concurrency)
         self.assertFalse(cfg2.is_multi_concurrent)
 
-    def test_use_thread_polling_flag(self):
+    def test_use_thread_polling_disabled_for_unsupported_managed_envs(self):
+        # Managed runtimes on the denylist never use thread polling,
+        # regardless of the Python version the code happens to run on.
+        for exec_env in LambdaConfigProvider.UNSUPPORTED_THREADPOLLING_ENVS:
+            env = {
+                "AWS_LAMBDA_RUNTIME_API": "a",
+                "AWS_EXECUTION_ENV": exec_env,
+            }
+            cfg = LambdaConfigProvider(["p", "h.fn"], environ=env)
+            self.assertFalse(
+                cfg.use_thread_polling,
+                msg=f"expected thread polling disabled for {exec_env}",
+            )
+
+    def test_use_thread_polling_enabled_for_custom_oci_image(self):
+        # Custom OCI images (AWS_Lambda_Image) are not on the denylist and
+        # fall back to the minimum-supported Python version check.
+        env = {
+            "AWS_LAMBDA_RUNTIME_API": "a",
+            "AWS_EXECUTION_ENV": "AWS_Lambda_Image",
+        }
+        cfg = LambdaConfigProvider(["p", "h.fn"], environ=env)
+        self.assertEqual(cfg.use_thread_polling, sys.version_info >= (3, 4))
+
+    def test_use_thread_polling_enabled_for_supported_managed_env(self):
+        # Managed runtimes not on the denylist (e.g. newer versions) fall
+        # back to the Python version check.
         env = {
             "AWS_LAMBDA_RUNTIME_API": "a",
             "AWS_EXECUTION_ENV": "AWS_Lambda_python3.12",
         }
         cfg = LambdaConfigProvider(["p", "h.fn"], environ=env)
-        self.assertTrue(cfg.use_thread_polling)
-        env2 = {"AWS_LAMBDA_RUNTIME_API": "a", "AWS_EXECUTION_ENV": "OTHER"}
-        cfg2 = LambdaConfigProvider(["p", "h.fn"], environ=env2)
-        self.assertFalse(cfg2.use_thread_polling)
+        self.assertEqual(cfg.use_thread_polling, sys.version_info >= (3, 4))
+
+    def test_use_thread_polling_without_execution_env(self):
+        # With no AWS_EXECUTION_ENV set, fall back to the version check.
+        env = {"AWS_LAMBDA_RUNTIME_API": "a"}
+        cfg = LambdaConfigProvider(["p", "h.fn"], environ=env)
+        self.assertEqual(cfg.use_thread_polling, sys.version_info >= (3, 4))
 
     def test_lmi_socket_path_property(self):
         env = {

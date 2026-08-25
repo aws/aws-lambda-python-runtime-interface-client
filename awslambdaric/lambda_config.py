@@ -3,15 +3,16 @@ Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 """
 
 import os
+import sys
 
 
 class LambdaConfigProvider:
-    SUPPORTED_THREADPOLLING_ENVS = {
-        "AWS_Lambda_python3.12",
-        "AWS_Lambda_python3.13",
-        "AWS_Lambda_python3.14",
-        "AWS_Lambda_python3.15",
+    UNSUPPORTED_THREADPOLLING_ENVS = {
+        "AWS_Lambda_python3.9",
+        "AWS_Lambda_python3.10",
+        "AWS_Lambda_python3.11",
     }
+
     SOCKET_PATH_ENV = "_LAMBDA_TELEMETRY_LOG_FD_PROVIDER_SOCKET"
     AWS_LAMBDA_RUNTIME_API = "AWS_LAMBDA_RUNTIME_API"
     AWS_LAMBDA_MAX_CONCURRENCY = "AWS_LAMBDA_MAX_CONCURRENCY"
@@ -40,7 +41,7 @@ class LambdaConfigProvider:
     def _parse_thread_polling(self):
         return (
             self._environ.get(self.AWS_EXECUTION_ENV)
-            in self.SUPPORTED_THREADPOLLING_ENVS
+            not in self.UNSUPPORTED_THREADPOLLING_ENVS
         )
 
     def _parse_lmi_socket_path(self):
