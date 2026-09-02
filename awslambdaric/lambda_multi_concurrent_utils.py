@@ -2,6 +2,7 @@
 Copyright 2025 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 """
 
+import logging
 import os
 import sys
 import socket
@@ -9,6 +10,8 @@ import multiprocessing
 
 from . import bootstrap
 from .lambda_runtime_client import LambdaMultiConcurrentRuntimeClient
+
+WORKER_POOL_INITIALIZING_EVENT = "runtime_worker_pool_initializing"
 
 
 class MultiConcurrentRunner:
@@ -33,6 +36,21 @@ class MultiConcurrentRunner:
         bootstrap.run(handler, client)
 
     @classmethod
+    def _emit_worker_pool_event(cls, socket_path: str, max_concurrency: int):
+        """Emit worker pool DEBUG event once from the parent before forking."""
+        if socket_path:
+            cls._redirect_output(socket_path)
+        bootstrap.init_logging()
+        logging.getLogger().debug(
+            {
+                "event": WORKER_POOL_INITIALIZING_EVENT,
+                "workerCount": max_concurrency,
+                "executionEnvironmentMaxConcurrency": max_concurrency,
+            }
+        )
+        logging.getLogger().handlers.clear()
+
+    @classmethod
     def run_concurrent(
         cls,
         handler: str,
@@ -41,6 +59,8 @@ class MultiConcurrentRunner:
         socket_path: str,
         max_concurrency: int,
     ):
+        cls._emit_worker_pool_event(socket_path, max_concurrency)
+
         processes = []
         for _ in range(max_concurrency):
             p = multiprocessing.Process(

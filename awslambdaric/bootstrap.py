@@ -493,6 +493,16 @@ def _log_preview_runtime_warning():
         logging.warning(get_lambda_preview_runtime_warning_message())
 
 
+def init_logging():
+    """Setup logging for the parent process before forking (LMI only)."""
+    sys.stdout = Unbuffered(sys.stdout)
+    sys.stderr = Unbuffered(sys.stderr)
+    log_sink = create_log_sink()
+    log_sink.__enter__()
+    _setup_logging(_AWS_LAMBDA_LOG_FORMAT, _AWS_LAMBDA_LOG_LEVEL, log_sink)
+    return log_sink
+
+
 def run(handler, lambda_runtime_client):
     sys.stdout = Unbuffered(sys.stdout)
     sys.stderr = Unbuffered(sys.stderr)

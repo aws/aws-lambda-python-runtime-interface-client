@@ -117,7 +117,11 @@ class JsonFormatter(logging.Formatter):
         result = {
             "timestamp": self.formatTime(record, self.datefmt),
             "level": record.levelname,
-            "message": record.getMessage(),
+            "message": (
+                record.msg
+                if isinstance(record.msg, dict) and not record.args
+                else record.getMessage()
+            ),
             "logger": record.name,
             "stackTrace": self.__format_stacktrace(record.exc_info),
             "errorType": self.__format_exception_name(record.exc_info),
