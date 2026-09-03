@@ -1613,6 +1613,32 @@ class TestWorkerPoolInitializedLog(unittest.TestCase):
         self.assertEqual(data["level"], "DEBUG")
         self.assertEqual(data["message"]["event"], "runtime_worker_pool_initializing")
 
+    @patch("sys.stdout", new_callable=StringIO)
+    def test_dict_message_with_non_serializable_values_is_not_dropped(
+        self, mock_stdout
+    ):
+        import datetime
+        import decimal
+
+        self._setup_json_logging("DEBUG")
+
+        logging.getLogger().debug(
+            {
+                "event": "custom_event",
+                "when": datetime.datetime(2026, 9, 3, 12, 0, 0),
+                "amount": decimal.Decimal("1.5"),
+                "blob": b"bytes",
+            }
+        )
+
+        # The record must not be dropped: it serializes with values
+        # stringified via the encoder's default=str fallback.
+        data = json.loads(mock_stdout.getvalue())
+        self.assertEqual(data["message"]["event"], "custom_event")
+        self.assertEqual(data["message"]["when"], "2026-09-03 12:00:00")
+        self.assertEqual(data["message"]["amount"], "1.5")
+        self.assertEqual(data["message"]["blob"], "b'bytes'")
+
 
 class TestBootstrapModule(unittest.TestCase):
     def test_run(self):

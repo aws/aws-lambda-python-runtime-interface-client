@@ -68,7 +68,10 @@ _TEXT_FRAME_TYPES = {
 }
 _DEFAULT_FRAME_TYPE = _TEXT_FRAME_TYPES[logging.NOTSET]
 
-_json_encoder = json.JSONEncoder(ensure_ascii=False)
+# default=str keeps formatting resilient: non-JSON-serializable values in
+# dict messages or `extra` attributes are stringified instead of raising and
+# dropping the whole log record.
+_json_encoder = json.JSONEncoder(ensure_ascii=False, default=str)
 _encode_json = _json_encoder.encode
 
 

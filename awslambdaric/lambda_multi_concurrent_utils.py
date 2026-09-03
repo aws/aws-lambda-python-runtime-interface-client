@@ -40,7 +40,7 @@ class MultiConcurrentRunner:
         """Emit worker pool DEBUG event once from the parent before forking."""
         if socket_path:
             cls._redirect_output(socket_path)
-        bootstrap.init_logging()
+        log_sink = bootstrap.init_logging()
         logging.getLogger().debug(
             {
                 "event": WORKER_POOL_INITIALIZING_EVENT,
@@ -49,6 +49,9 @@ class MultiConcurrentRunner:
             }
         )
         logging.getLogger().handlers.clear()
+        # Close the sink deterministically now that its handler is gone
+        # (no-op for StandardLogSink; releases the fd for framed sinks).
+        log_sink.__exit__(None, None, None)
 
     @classmethod
     def run_concurrent(

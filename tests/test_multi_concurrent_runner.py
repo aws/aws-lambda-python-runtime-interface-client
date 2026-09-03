@@ -112,6 +112,10 @@ class TestMultiConcurrentRunnerRedirect(unittest.TestCase):
         self.assertEqual(event["workerCount"], 16)
         self.assertEqual(event["executionEnvironmentMaxConcurrency"], 16)
         mock_logging.getLogger.return_value.handlers.clear.assert_called_once_with()
+        # Sink is closed deterministically after the handler is removed.
+        mock_bootstrap.init_logging.return_value.__exit__.assert_called_once_with(
+            None, None, None
+        )
 
     @patch("awslambdaric.lambda_multi_concurrent_utils.logging")
     @patch("awslambdaric.lambda_multi_concurrent_utils.bootstrap")
