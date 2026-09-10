@@ -36,10 +36,13 @@ class MultiConcurrentRunner:
         bootstrap.run(handler, client)
 
     @classmethod
-    def _emit_worker_pool_event(cls, socket_path: str, max_concurrency: int):
-        """Emit worker pool DEBUG event once from the parent before forking."""
-        if socket_path:
-            cls._redirect_output(socket_path)
+    def _emit_worker_pool_event(cls, max_concurrency: int):
+        """Emit worker pool DEBUG event once from the parent before forking.
+
+        No output redirection here: RAPID wires the runtime main process's
+        stdout/stderr to the log egress at spawn. The FD provider socket is
+        only for the forked workers, which redirect in run_single.
+        """
         log_sink = bootstrap.init_logging()
         logging.getLogger().debug(
             {
@@ -62,7 +65,7 @@ class MultiConcurrentRunner:
         socket_path: str,
         max_concurrency: int,
     ):
-        cls._emit_worker_pool_event(socket_path, max_concurrency)
+        cls._emit_worker_pool_event(max_concurrency)
 
         processes = []
         for _ in range(max_concurrency):

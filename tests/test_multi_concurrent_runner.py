@@ -94,8 +94,8 @@ class TestMultiConcurrentRunnerRedirect(unittest.TestCase):
                 "h", "a", False, "/sock", max_concurrency=3
             )
 
-        mock_emit.assert_called_once_with("/sock", 3)
-        self.assertEqual(order_tracker.mock_calls[0], call.emit("/sock", 3))
+        mock_emit.assert_called_once_with(3)
+        self.assertEqual(order_tracker.mock_calls[0], call.emit(3))
 
     @patch("awslambdaric.lambda_multi_concurrent_utils.logging")
     @patch("awslambdaric.lambda_multi_concurrent_utils.bootstrap")
@@ -103,9 +103,10 @@ class TestMultiConcurrentRunnerRedirect(unittest.TestCase):
         self, mock_bootstrap, mock_logging
     ):
         with patch.object(MultiConcurrentRunner, "_redirect_output") as mock_redirect:
-            MultiConcurrentRunner._emit_worker_pool_event("/sock", 16)
+            MultiConcurrentRunner._emit_worker_pool_event(16)
 
-        mock_redirect.assert_called_once_with("/sock")
+        # Parent never redirects: RAPID wires its stdout at spawn.
+        mock_redirect.assert_not_called()
         mock_bootstrap.init_logging.assert_called_once_with()
         mock_logging.getLogger.return_value.debug.assert_called_once()
         event = mock_logging.getLogger.return_value.debug.call_args[0][0]
@@ -116,18 +117,6 @@ class TestMultiConcurrentRunnerRedirect(unittest.TestCase):
         mock_bootstrap.init_logging.return_value.__exit__.assert_called_once_with(
             None, None, None
         )
-
-    @patch("awslambdaric.lambda_multi_concurrent_utils.logging")
-    @patch("awslambdaric.lambda_multi_concurrent_utils.bootstrap")
-    def test_emit_worker_pool_event_skips_redirect_when_no_socket(
-        self, mock_bootstrap, mock_logging
-    ):
-        with patch.object(MultiConcurrentRunner, "_redirect_output") as mock_redirect:
-            MultiConcurrentRunner._emit_worker_pool_event(None, 4)
-
-        mock_redirect.assert_not_called()
-        mock_bootstrap.init_logging.assert_called_once_with()
-        mock_logging.getLogger.return_value.debug.assert_called_once()
 
     @patch(
         "awslambdaric.lambda_multi_concurrent_utils.LambdaMultiConcurrentRuntimeClient"
