@@ -8,6 +8,7 @@ import logging
 import logging.config
 import os
 import re
+import sys
 import tempfile
 import time
 import traceback
@@ -1702,6 +1703,60 @@ class TestBootstrapModule(unittest.TestCase):
             bootstrap.run(expected_handler, mock_runtime_client)
 
         mock_sys.exit.assert_called_once_with(1)
+
+    def test_run_fault_exception_post_init_error_within_exception_context(self):
+        # Regression test for GitHub issue #172: post_init_error must be
+        # invoked while the init error is still being handled so that
+        # monkey-patched implementations (e.g. Sentry SDK) can access the
+        # exception through sys.exc_info().
+        expected_handler = "app.my_test_handler"
+
+        captured_exc_info = []
+
+        def capture_exc_info(*args, **kwargs):
+            captured_exc_info.append(sys.exc_info())
+
+        mock_runtime_client = MagicMock()
+        mock_runtime_client.post_init_error.side_effect = capture_exc_info
+
+        with self.assertRaises(SystemExit) as cm:
+            bootstrap.run(expected_handler, mock_runtime_client)
+
+        self.assertEqual(cm.exception.code, 1)
+        mock_runtime_client.post_init_error.assert_called_once()
+
+        etype, value, tb = captured_exc_info[0]
+        self.assertIs(etype, FaultException)
+        self.assertIsNotNone(value)
+        self.assertIsNotNone(tb)
+
+    @patch(
+        "awslambdaric.bootstrap.LambdaLoggerHandler",
+        Mock(side_effect=Exception("Boom!")),
+    )
+    @patch("awslambdaric.bootstrap.log_error", MagicMock())
+    def test_run_generic_exception_post_init_error_within_exception_context(self):
+        # Same as above, but for the non-FaultException init error path.
+        expected_handler = "app.my_test_handler"
+
+        captured_exc_info = []
+
+        def capture_exc_info(*args, **kwargs):
+            captured_exc_info.append(sys.exc_info())
+
+        mock_runtime_client = MagicMock()
+        mock_runtime_client.post_init_error.side_effect = capture_exc_info
+
+        with self.assertRaises(SystemExit) as cm:
+            bootstrap.run(expected_handler, mock_runtime_client)
+
+        self.assertEqual(cm.exception.code, 1)
+        mock_runtime_client.post_init_error.assert_called_once()
+
+        etype, value, tb = captured_exc_info[0]
+        self.assertIs(etype, Exception)
+        self.assertEqual(str(value), "Boom!")
+        self.assertIsNotNone(tb)
 
 
 class TestOnInitComplete(unittest.TestCase):
