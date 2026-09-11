@@ -1146,6 +1146,28 @@ class TestLogError(unittest.TestCase):
                 actual_message = content[16:].decode()
                 self.assertEqual(actual_message, expected_logged_error)
 
+    @patch("sys.stdout", new_callable=StringIO)
+    def test_log_error_json_log_sink_uses_level_key(self, mock_stdout):
+        with patch.dict(os.environ, {"AWS_LAMBDA_LOG_FORMAT": "JSON"}, clear=True):
+            importlib.reload(bootstrap)
+            self.addCleanup(self._reload_default_bootstrap)
+
+            err_to_log = bootstrap.make_error(
+                "Error message", "ErrorType", ["line1", "line2"]
+            )
+            bootstrap.log_error(err_to_log, bootstrap.StandardLogSink())
+
+        logged = json.loads(mock_stdout.getvalue())
+        self.assertEqual(logged["level"], "ERROR")
+        self.assertNotIn("log_level", logged)
+        self.assertEqual(logged["errorType"], "ErrorType")
+        self.assertEqual(logged["errorMessage"], "Error message")
+
+    @staticmethod
+    def _reload_default_bootstrap():
+        with patch.dict(os.environ, {}, clear=True):
+            importlib.reload(bootstrap)
+
 
 class TestUnbuffered(unittest.TestCase):
     def test_write(self):

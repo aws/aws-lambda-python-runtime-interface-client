@@ -108,7 +108,7 @@ if _AWS_LAMBDA_LOG_FORMAT == LogFormat.JSON:
             "timestamp": time.strftime(
                 _DATETIME_FORMAT, logging.Formatter.converter(time.time())
             ),
-            "log_level": "ERROR",
+            "level": "ERROR",
             **error_result,
         }
         log_sink.log_error(
