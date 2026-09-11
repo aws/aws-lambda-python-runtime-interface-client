@@ -103,20 +103,24 @@ jobs:
             runtime_version: "3.14"
             python_location: /usr/local/bin/python
           - distro: debian
-            distro_version: bullseye
+            distro_version: trixie
             runtime_version: "3.10"
             python_location: /usr/local/bin/python
           - distro: debian
-            distro_version: bullseye
+            distro_version: trixie
             runtime_version: "3.11"
             python_location: /usr/local/bin/python
           - distro: debian
-            distro_version: bullseye
+            distro_version: trixie
             runtime_version: "3.12"
             python_location: /usr/local/bin/python
           - distro: debian
-            distro_version: bullseye
+            distro_version: trixie
             runtime_version: "3.13"
+            python_location: /usr/local/bin/python
+          - distro: debian
+            distro_version: trixie
+            runtime_version: "3.14"
             python_location: /usr/local/bin/python
           # Amazon Linux 2
           - distro: amazonlinux2
