@@ -39,6 +39,8 @@ class LambdaRuntimeConcurrencyTest(unittest.TestCase):
         with patch(
             "awslambdaric.lambda_multi_concurrent_utils.MultiConcurrentRunner._redirect_output"
         ), patch(
+            "awslambdaric.lambda_multi_concurrent_utils.MultiConcurrentRunner._emit_worker_pool_event"
+        ), patch(
             "awslambdaric.lambda_multi_concurrent_utils.bootstrap.run",
             side_effect=fake_bootstrap_run,
         ):

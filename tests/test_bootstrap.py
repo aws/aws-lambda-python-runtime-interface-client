@@ -1540,6 +1540,106 @@ class TestLogging(unittest.TestCase):
         self.assertEqual(mock_stdout.getvalue(), "")
 
 
+class TestWorkerPoolInitializedLog(unittest.TestCase):
+    def setUp(self):
+        logging.getLogger().handlers.clear()
+        logging.getLogger().level = logging.NOTSET
+
+    def tearDown(self):
+        logging.getLogger().handlers.clear()
+        logging.getLogger().level = logging.NOTSET
+
+    def _setup_json_logging(self, log_level):
+        bootstrap._setup_logging(
+            LogFormat.from_str("JSON"), log_level, bootstrap.StandardLogSink()
+        )
+
+    @patch("sys.stdout", new_callable=StringIO)
+    def test_dict_message_serialized_as_nested_json_at_debug(self, mock_stdout):
+        self._setup_json_logging("DEBUG")
+
+        logging.getLogger().debug(
+            {
+                "event": "runtime_worker_pool_initializing",
+                "workerCount": 17,
+                "executionEnvironmentMaxConcurrency": 34,
+            }
+        )
+
+        data = json.loads(mock_stdout.getvalue().strip())
+        self.assertEqual(data["level"], "DEBUG")
+        self.assertEqual(
+            data["message"],
+            {
+                "event": "runtime_worker_pool_initializing",
+                "workerCount": 17,
+                "executionEnvironmentMaxConcurrency": 34,
+            },
+        )
+
+    @patch("sys.stdout", new_callable=StringIO)
+    def test_not_emitted_at_higher_log_levels(self, mock_stdout):
+        for log_level in ("INFO", "WARN", "ERROR", "FATAL"):
+            with self.subTest(log_level):
+                logging.getLogger().handlers.clear()
+                logging.getLogger().level = logging.NOTSET
+                self._setup_json_logging(_get_log_level_from_env_var(log_level))
+
+                logging.getLogger().debug({"event": "test"})
+
+                self.assertEqual(mock_stdout.getvalue(), "")
+
+    @patch("sys.stdout", new_callable=StringIO)
+    def test_init_logging_enables_parent_emission(self, mock_stdout):
+        with patch.dict(
+            os.environ,
+            {"AWS_LAMBDA_LOG_FORMAT": "JSON", "AWS_LAMBDA_LOG_LEVEL": "DEBUG"},
+            clear=True,
+        ):
+            importlib.reload(bootstrap)
+            bootstrap.init_logging()
+
+            logging.getLogger().debug(
+                {
+                    "event": "runtime_worker_pool_initializing",
+                    "workerCount": 4,
+                    "executionEnvironmentMaxConcurrency": 4,
+                }
+            )
+
+        importlib.reload(bootstrap)
+
+        data = json.loads(mock_stdout.getvalue())
+        self.assertEqual(data["level"], "DEBUG")
+        self.assertEqual(data["message"]["event"], "runtime_worker_pool_initializing")
+
+    @patch("sys.stdout", new_callable=StringIO)
+    def test_dict_message_with_non_serializable_values_is_not_dropped(
+        self, mock_stdout
+    ):
+        import datetime
+        import decimal
+
+        self._setup_json_logging("DEBUG")
+
+        logging.getLogger().debug(
+            {
+                "event": "custom_event",
+                "when": datetime.datetime(2026, 9, 3, 12, 0, 0),
+                "amount": decimal.Decimal("1.5"),
+                "blob": b"bytes",
+            }
+        )
+
+        # The record must not be dropped: it serializes with values
+        # stringified via the encoder's default=str fallback.
+        data = json.loads(mock_stdout.getvalue())
+        self.assertEqual(data["message"]["event"], "custom_event")
+        self.assertEqual(data["message"]["when"], "2026-09-03 12:00:00")
+        self.assertEqual(data["message"]["amount"], "1.5")
+        self.assertEqual(data["message"]["blob"], "b'bytes'")
+
+
 class TestBootstrapModule(unittest.TestCase):
     def test_run(self):
         expected_handler = "app.my_test_handler"
