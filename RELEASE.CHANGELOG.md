@@ -1,3 +1,7 @@
+### September 15, 2026
+`4.0.4`
+- Use the `level` key (instead of `log_level`) for the log level field in JSON-formatted uncaught error logs, aligning it with the key used by other structured log events ([#221](https://github.com/aws/aws-lambda-python-runtime-interface-client/pull/221))
+
 ### September 2, 2026
 `4.0.3`
 - Emit a structured `runtime_worker_pool_initializing` DEBUG log event once per execution environment during INIT in multi-concurrent (Lambda Managed Instances) mode, reporting `workerCount` and `executionEnvironmentMaxConcurrency` for worker pool observability. Only visible when the function log level is DEBUG or lower; no impact on the standard on-demand path.
