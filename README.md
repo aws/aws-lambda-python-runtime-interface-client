@@ -101,6 +101,16 @@ def handler(event, context):
     return "Hello World!"
 ```
 
+### Structured (JSON) logging
+
+When the function is configured to emit JSON-formatted logs (`AWS_LAMBDA_LOG_FORMAT=JSON`), logs written by the runtime for uncaught errors include the log level under the `level` key, e.g.:
+
+```json
+{"timestamp": "...", "level": "ERROR", "errorType": "...", "errorMessage": "...", "stackTrace": ["..."]}
+```
+
+If you parse these logs, read the level from `level` (this field was previously emitted as `log_level`).
+
 ### Local Testing
 
 To make it easy to locally test Lambda functions packaged as container images we open-sourced a lightweight web-server, Lambda Runtime Interface Emulator (RIE), which allows your function packaged as a container image to accept HTTP requests. You can install the [AWS Lambda Runtime Interface Emulator](https://github.com/aws/aws-lambda-runtime-interface-emulator) on your local machine to test your function. Then when you run the image function, you set the entrypoint to be the emulator.
