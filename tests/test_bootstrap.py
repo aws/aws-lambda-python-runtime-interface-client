@@ -740,7 +740,7 @@ class TestGetEventHandler(unittest.TestCase):
     def test_get_event_handler_bad_handler(self):
         handler_name = "bad_handler"
         with self.assertRaises(FaultException) as cm:
-            response_handler = bootstrap._get_handler(handler_name)
+            response_handler = bootstrap.get_handler(handler_name)
         returned_exception = cm.exception
         self.assertEqual(
             self.FaultExceptionMatcher(
@@ -753,7 +753,7 @@ class TestGetEventHandler(unittest.TestCase):
     def test_get_event_handler_import_error(self):
         handler_name = "no_module.handler"
         with self.assertRaises(FaultException) as cm:
-            response_handler = bootstrap._get_handler(handler_name)
+            response_handler = bootstrap.get_handler(handler_name)
         returned_exception = cm.exception
         self.assertEqual(
             self.FaultExceptionMatcher(
@@ -778,7 +778,7 @@ class TestGetEventHandler(unittest.TestCase):
             handler_name = "{}.syntax_error".format(filename)
 
             with self.assertRaises(FaultException) as cm:
-                response_handler = bootstrap._get_handler(handler_name)
+                response_handler = bootstrap.get_handler(handler_name)
             returned_exception = cm.exception
             self.assertEqual(
                 self.FaultExceptionMatcher(
@@ -801,7 +801,7 @@ class TestGetEventHandler(unittest.TestCase):
             filename, _ = os.path.splitext(filename_w_ext)
             handler_name = "{}.my_handler".format(filename)
             with self.assertRaises(FaultException) as cm:
-                response_handler = bootstrap._get_handler(handler_name)
+                response_handler = bootstrap.get_handler(handler_name)
             returned_exception = cm.exception
             self.assertEqual(
                 self.FaultExceptionMatcher(
@@ -814,12 +814,12 @@ class TestGetEventHandler(unittest.TestCase):
     def test_get_event_handler_slash(self):
         importlib.invalidate_caches()
         handler_name = "tests/test_handler_with_slash/test_handler.my_handler"
-        response_handler = bootstrap._get_handler(handler_name)
+        response_handler = bootstrap.get_handler(handler_name)
         response_handler()
 
     def test_get_event_handler_build_in_conflict(self):
         with self.assertRaises(FaultException) as cm:
-            response_handler = bootstrap._get_handler("sys.hello")
+            response_handler = bootstrap.get_handler("sys.hello")
         returned_exception = cm.exception
         self.assertEqual(
             self.FaultExceptionMatcher(
@@ -830,13 +830,13 @@ class TestGetEventHandler(unittest.TestCase):
         )
 
     def test_get_event_handler_doesnt_throw_build_in_module_name_slash(self):
-        response_handler = bootstrap._get_handler(
+        response_handler = bootstrap.get_handler(
             "tests/test_built_in_module_name/sys.my_handler"
         )
         response_handler()
 
     def test_get_event_handler_doent_throw_build_in_module_name(self):
-        response_handler = bootstrap._get_handler(
+        response_handler = bootstrap.get_handler(
             "tests.test_built_in_module_name.sys.my_handler"
         )
         response_handler()

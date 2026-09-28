@@ -1,3 +1,7 @@
+### September 24, 2026
+`4.1.0`
+- Add pre-fork hooks for multi-concurrent (Lambda Managed Instances) mode. A function can register callables with the `@register_pre_fork` decorator from `awslambdaric.lambda_concurrency_hooks`; they run once in the parent process, after the handler is imported and before worker processes are started. Workers re-import the handler in their own process, so hooks are for external side effects (starting a subprocess, warming a local service, writing to `/tmp`) and share no in-memory state with workers. A hook that raises is reported to the Runtime API as an INIT error with the type `Runtime.PreForkError` and no worker is started. No impact on the standard on-demand path.
+
 ### September 15, 2026
 `4.0.4`
 - Use the `level` key (instead of `log_level`) for the log level field in JSON-formatted uncaught error logs, aligning it with the key used by other structured log events ([#221](https://github.com/aws/aws-lambda-python-runtime-interface-client/pull/221))

@@ -13,6 +13,7 @@ class FaultException(Exception):
     MALFORMED_HANDLER_NAME = "Runtime.MalformedHandlerName"
     BEFORE_SNAPSHOT_ERROR = "Runtime.BeforeSnapshotError"
     AFTER_RESTORE_ERROR = "Runtime.AfterRestoreError"
+    PRE_FORK_ERROR = "Runtime.PreForkError"
     LAMBDA_CONTEXT_UNMARSHAL_ERROR = "Runtime.LambdaContextUnmarshalError"
     LAMBDA_RUNTIME_CLIENT_ERROR = "Runtime.LambdaRuntimeClientError"
 

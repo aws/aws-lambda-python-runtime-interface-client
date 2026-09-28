@@ -35,7 +35,7 @@ AWS_LAMBDA_INITIALIZATION_TYPE = "AWS_LAMBDA_INITIALIZATION_TYPE"
 INIT_TYPE_SNAP_START = "snap-start"
 
 
-def _get_handler(handler):
+def get_handler(handler):
     try:
         modname, fname = handler.rsplit(".", 1)
     except ValueError as e:
@@ -516,7 +516,7 @@ def run(handler, lambda_runtime_client):
 
             _log_preview_runtime_warning()
 
-            request_handler = _get_handler(handler)
+            request_handler = get_handler(handler)
         except FaultException as e:
             error_result = make_error(
                 e.msg,

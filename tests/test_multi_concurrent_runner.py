@@ -58,9 +58,9 @@ class TestMultiConcurrentRunnerRedirect(unittest.TestCase):
         mock_client_cls.assert_called_once_with("addr", True)
         mock_bootstrap.run.assert_called_once_with("h.fn", mock_client)
 
-    @patch.object(MultiConcurrentRunner, "_emit_worker_pool_event")
+    @patch.object(MultiConcurrentRunner, "_before_fork")
     @patch("multiprocessing.Process")
-    def test_run_concurrent_spawns_and_joins(self, mock_process, mock_emit):
+    def test_run_concurrent_spawns_and_joins(self, mock_process, mock_before_fork):
         fake_proc = MagicMock()
         mock_process.return_value = fake_proc
 
@@ -78,9 +78,11 @@ class TestMultiConcurrentRunnerRedirect(unittest.TestCase):
             self.assertEqual(target, MultiConcurrentRunner.run_single)
             self.assertEqual(args, ("h", "a", False, "/sock"))
 
+    @patch("awslambdaric.lambda_multi_concurrent_utils.logging")
+    @patch("awslambdaric.lambda_multi_concurrent_utils.bootstrap")
     @patch("multiprocessing.Process")
     def test_run_concurrent_emits_worker_pool_event_once_before_spawning(
-        self, mock_process
+        self, mock_process, mock_bootstrap, mock_logging
     ):
         mock_process.return_value = MagicMock()
         order_tracker = MagicMock()
@@ -89,34 +91,28 @@ class TestMultiConcurrentRunnerRedirect(unittest.TestCase):
         with patch.object(
             MultiConcurrentRunner, "_emit_worker_pool_event"
         ) as mock_emit:
-            order_tracker.attach_mock(mock_emit, "emit")
-            MultiConcurrentRunner.run_concurrent(
-                "h", "a", False, "/sock", max_concurrency=3
-            )
+            with patch.object(MultiConcurrentRunner, "_run_pre_fork_hooks"):
+                order_tracker.attach_mock(mock_emit, "emit")
+                MultiConcurrentRunner.run_concurrent(
+                    "h", "a", False, "/sock", max_concurrency=3
+                )
 
         mock_emit.assert_called_once_with(3)
         self.assertEqual(order_tracker.mock_calls[0], call.emit(3))
 
     @patch("awslambdaric.lambda_multi_concurrent_utils.logging")
-    @patch("awslambdaric.lambda_multi_concurrent_utils.bootstrap")
-    def test_emit_worker_pool_event_sets_up_parent_logging_and_emits(
-        self, mock_bootstrap, mock_logging
-    ):
+    def test_emit_worker_pool_event_emits_pool_size(self, mock_logging):
         with patch.object(MultiConcurrentRunner, "_redirect_output") as mock_redirect:
             MultiConcurrentRunner._emit_worker_pool_event(16)
 
         # Parent never redirects: RAPID wires its stdout at spawn.
         mock_redirect.assert_not_called()
-        mock_bootstrap.init_logging.assert_called_once_with()
         mock_logging.getLogger.return_value.debug.assert_called_once()
         event = mock_logging.getLogger.return_value.debug.call_args[0][0]
         self.assertEqual(event["workerCount"], 16)
         self.assertEqual(event["executionEnvironmentMaxConcurrency"], 16)
-        mock_logging.getLogger.return_value.handlers.clear.assert_called_once_with()
-        # Sink is closed deterministically after the handler is removed.
-        mock_bootstrap.init_logging.return_value.__exit__.assert_called_once_with(
-            None, None, None
-        )
+        # Setting up and releasing the sink is _before_fork's job now.
+        mock_logging.getLogger.return_value.handlers.clear.assert_not_called()
 
     @patch(
         "awslambdaric.lambda_multi_concurrent_utils.LambdaMultiConcurrentRuntimeClient"
