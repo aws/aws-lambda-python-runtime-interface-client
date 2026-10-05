@@ -7,6 +7,11 @@ import os
 import sys
 import time
 
+# Allowlist of W3C trace-context fields that may be surfaced through
+# ``LambdaContext.w3c()``. Any other key carried on ``clientContext.w3c`` is
+# ignored, and any allowlisted key whose value is not a string is dropped.
+W3C_ALLOWED_FIELDS = ("traceparent", "tracestate", "baggage")
+
 
 class LambdaContext(object):
     def __init__(
@@ -26,6 +31,7 @@ class LambdaContext(object):
         self.function_version = os.environ.get("AWS_LAMBDA_FUNCTION_VERSION")
         self.invoked_function_arn = invoked_function_arn
         self.tenant_id = tenant_id
+        self._w3c_fields = self._extract_and_strip_w3c(client_context)
 
         self.client_context = make_obj_from_dict(ClientContext, client_context)
         if self.client_context is not None:
@@ -48,6 +54,38 @@ class LambdaContext(object):
         epoch_now_in_ms = int(time.time() * 1000)
         delta_ms = self._epoch_deadline_time_in_ms - epoch_now_in_ms
         return delta_ms if delta_ms > 0 else 0
+
+    def w3c(self):
+        """
+        Return the W3C trace-context at invoke time.
+        """
+        return dict(self._w3c_fields)
+
+    @staticmethod
+    def _extract_and_strip_w3c(client_context):
+        """
+        Pop ``w3c`` out of the parsed ``client_context`` dict and return a
+        normalized copy of its allowlisted string fields (see
+        ``W3C_ALLOWED_FIELDS``). Mutates ``client_context`` in place so the
+        ``w3c`` key is removed and cannot be read through
+        ``context.client_context``.
+        """
+        if not isinstance(client_context, dict):
+            return {}
+        if "w3c" not in client_context:
+            return {}
+
+        raw_w3c = client_context.pop("w3c")
+
+        if not isinstance(raw_w3c, dict):
+            return {}
+
+        fields = {}
+        for key in W3C_ALLOWED_FIELDS:
+            value = raw_w3c.get(key)
+            if isinstance(value, str):
+                fields[key] = value
+        return fields
 
     def log(self, msg):
         for handler in logging.getLogger().handlers:
