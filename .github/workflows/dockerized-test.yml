@@ -19,20 +19,16 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.13'
+          python-version: '3.14'
           cache: pip
           cache-dependency-path: requirements/dev.txt
 
       - name: Build the test image
-        # The test image overlays the local pure-Python modules on top of the
-        # awslambdaric already installed in public.ecr.aws/lambda/python:3.13,
-        # preserving the compiled runtime_client extension that ships in the
-        # base image.
         run: |
           docker build . \
             -t local/test \
             -f Dockerfile.test \
-            --build-arg BASE_IMAGE=public.ecr.aws/lambda/python:3.13
+            --build-arg BASE_IMAGE=public.ecr.aws/lambda/python:3.14
 
       - name: Run dockerized suites
         uses: aws/containerized-test-runner-for-aws-lambda@76eacfb110903739d9c5f7fcdaafede6324a1473 # maxday/client-context

@@ -1,15 +1,9 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-ARG BASE_IMAGE=public.ecr.aws/lambda/python:3.13
+ARG BASE_IMAGE=public.ecr.aws/lambda/python:3.14
 FROM $BASE_IMAGE
 
-# Overlay the local pure-Python awslambdaric modules on top of the one shipped
-# in the base image. The compiled `runtime_client` extension that ships in the
-# base image is preserved; only the Python modules we care about (lambda_context,
-# bootstrap, etc.) are swapped. The destination directory is discovered via
-# `import awslambdaric` so this works for any BASE_IMAGE whose Python version
-# changes the site-packages path.
 COPY awslambdaric/*.py /tmp/awslambdaric-py/
 RUN RIC_PATH=$(python -c "import awslambdaric, os; print(os.path.dirname(awslambdaric.__file__))") \
     && cp /tmp/awslambdaric-py/*.py "$RIC_PATH"/ \
