@@ -1,0 +1,12 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+ARG BASE_IMAGE=public.ecr.aws/lambda/python:3.14
+FROM $BASE_IMAGE
+
+COPY awslambdaric/*.py /tmp/awslambdaric-py/
+RUN RIC_PATH=$(python -c "import awslambdaric, os; print(os.path.dirname(awslambdaric.__file__))") \
+    && cp /tmp/awslambdaric-py/*.py "$RIC_PATH"/ \
+    && rm -rf /tmp/awslambdaric-py
+
+COPY test/dockerized/tasks /var/task/

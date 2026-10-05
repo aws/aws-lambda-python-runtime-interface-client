@@ -159,3 +159,133 @@ class TestLambdaContext(unittest.TestCase):
         context.log("YOLO!")
 
         mock_sys.stdout.write("YOLO!")
+
+
+class TestLambdaContextW3C(unittest.TestCase):
+    _DEADLINE_EPOCH_MS = 1415836801000
+    _INVOKE_ID = "invoke-id-w3c"
+    _ARN = "arn:test:w3c"
+
+    def _build(self, client_context):
+        return LambdaContext(
+            self._INVOKE_ID,
+            client_context,
+            {},
+            self._DEADLINE_EPOCH_MS,
+            self._ARN,
+        )
+
+    def test_w3c_returns_empty_when_client_context_is_none(self):
+        context = self._build(None)
+        self.assertEqual(context.w3c(), {})
+
+    def test_w3c_returns_empty_when_client_context_has_no_w3c_key(self):
+        client_context = {"custom": {"value": "test"}}
+        context = self._build(client_context)
+        self.assertEqual(context.w3c(), {})
+        self.assertEqual(client_context, {"custom": {"value": "test"}})
+
+    def test_w3c_returns_baggage_only(self):
+        client_context = {"w3c": {"baggage": "abc"}}
+        context = self._build(client_context)
+        self.assertEqual(context.w3c(), {"baggage": "abc"})
+
+    def test_w3c_returns_every_allowlisted_field(self):
+        client_context = {
+            "custom": {"value": "test"},
+            "w3c": {
+                "traceparent": "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01",
+                "tracestate": "rojo=00f067aa0ba902b7",
+                "baggage": "userId=alice",
+            },
+        }
+        context = self._build(client_context)
+        self.assertEqual(
+            context.w3c(),
+            {
+                "traceparent": "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01",
+                "tracestate": "rojo=00f067aa0ba902b7",
+                "baggage": "userId=alice",
+            },
+        )
+
+    def test_w3c_strips_source_client_context_w3c_after_construction(self):
+        client_context = {
+            "custom": {"value": "test"},
+            "w3c": {
+                "traceparent": "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01",
+                "baggage": "userId=alice",
+            },
+        }
+        context = self._build(client_context)
+        self.assertIsNotNone(context.client_context)
+        self.assertFalse(hasattr(context.client_context, "w3c"))
+        self.assertNotIn("w3c", client_context)
+        self.assertEqual(client_context, {"custom": {"value": "test"}})
+
+    def test_w3c_ignores_non_string_values_while_stripping_the_source(self):
+        client_context = {
+            "w3c": {
+                "baggage": "abc",
+                "traceparent": 42,  # wrong type — must be dropped
+                "tracestate": None,  # wrong type — must be dropped
+            },
+        }
+        context = self._build(client_context)
+        self.assertEqual(context.w3c(), {"baggage": "abc"})
+        self.assertNotIn("w3c", client_context)
+
+    def test_w3c_treats_non_dict_value_as_empty_and_still_strips_source(self):
+        client_context = {"w3c": "not-an-object"}
+        context = self._build(client_context)
+        self.assertEqual(context.w3c(), {})
+        self.assertNotIn("w3c", client_context)
+
+    def test_w3c_treats_list_value_as_empty_and_still_strips_source(self):
+        client_context = {"w3c": ["baggage=abc"]}
+        context = self._build(client_context)
+        self.assertEqual(context.w3c(), {})
+        self.assertNotIn("w3c", client_context)
+
+    def test_w3c_returns_fresh_copy_so_callers_cannot_mutate_underlying_map(self):
+        client_context = {"w3c": {"baggage": "abc"}}
+        context = self._build(client_context)
+        first = context.w3c()
+        first["baggage"] = "tampered"
+        first["injected"] = "nope"
+        self.assertEqual(context.w3c(), {"baggage": "abc"})
+
+    def test_w3c_drops_non_allowlisted_keys_even_when_value_is_a_valid_string(self):
+        client_context = {
+            "w3c": {
+                "baggage": "keep=me",
+                # Non-allowlisted keys — must NOT be surfaced by w3c()
+                "unknownField": "should-not-appear",
+                "x-custom-trace": "should-not-appear",
+                "__proto__": "should-not-appear",
+                "constructor": "should-not-appear",
+                "toString": "should-not-appear",
+            },
+        }
+        context = self._build(client_context)
+        self.assertEqual(context.w3c(), {"baggage": "keep=me"})
+        self.assertNotIn("w3c", client_context)
+
+    def test_w3c_omits_allowlisted_keys_when_absent_no_none_leaks(self):
+        client_context = {"w3c": {"baggage": "abc"}}
+        result = self._build(client_context).w3c()
+        self.assertEqual(result, {"baggage": "abc"})
+        self.assertNotIn("traceparent", result)
+        self.assertNotIn("tracestate", result)
+
+    def test_w3c_drops_allowlisted_keys_whose_value_is_not_a_string(self):
+        client_context = {
+            "w3c": {
+                "traceparent": 42,
+                "tracestate": None,
+                "baggage": {"nested": "no"},
+            },
+        }
+        context = self._build(client_context)
+        self.assertEqual(context.w3c(), {})
+        self.assertNotIn("w3c", client_context)
