@@ -14,14 +14,7 @@ jobs:
   dockerized-test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.14'
-          cache: pip
-          cache-dependency-path: requirements/dev.txt
+      - uses: actions/checkout@v5
 
       - name: Build the test image
         run: |
