@@ -189,6 +189,15 @@ jobs:
     name: "${{ matrix.distro }} ${{ matrix.distro_version }} / python ${{ matrix.runtime_version }}"
 
     steps:
+      - name: Jitter start (stagger matrix shards to spare public.ecr.aws rate limit)
+        # Every shard is scheduled within milliseconds of the others and pulls
+        # its base images from public.ecr.aws inside the same rate-limit window,
+        # so together they trip the throttle (429 Too Many Requests).
+        run: |
+          jitter=$((RANDOM % 61))
+          echo "Sleeping ${jitter}s to stagger this shard"
+          sleep "${jitter}"
+
       - uses: actions/checkout@v4
 
       - name: Extract RIE
@@ -215,7 +224,7 @@ jobs:
             echo "RUN apk add curl" >> "$TMPFILE"
           fi
           echo "COPY .scratch/${RIE} /usr/bin/${RIE}" >> "$TMPFILE"
-          docker build . \
+          tests/integration/docker-retry.sh docker build . \
             -f "$TMPFILE" \
             -t ric-test \
             --build-arg RUNTIME_VERSION=${{ matrix.runtime_version }} \
