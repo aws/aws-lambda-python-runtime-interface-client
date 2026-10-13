@@ -1,3 +1,7 @@
+### October 13, 2026
+`4.2.1`
+- Revert pre-fork hooks for multi-concurrent (Lambda Managed Instances) mode introduced in `4.1.0` ([#226](https://github.com/aws/aws-lambda-python-runtime-interface-client/pull/226)), as the change was breaking. The `awslambdaric.lambda_concurrency_hooks` module, the `@register_pre_fork` decorator and the `Runtime.PreForkError` error type are removed, restoring the `4.0.4` multi-concurrent startup behavior. No impact on the standard on-demand path.
+
 ### October 7, 2026
 `4.2.0`
 - Add a `w3c()` helper to `LambdaContext` that returns the W3C trace-context fields (`traceparent`, `tracestate`, `baggage`) carried on `clientContext.w3c` at invoke time ([#228](https://github.com/aws/aws-lambda-python-runtime-interface-client/pull/228))
