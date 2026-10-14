@@ -59,32 +59,50 @@ class TestMultiConcurrentRunnerRedirect(unittest.TestCase):
         mock_bootstrap.run.assert_called_once_with("h.fn", mock_client)
 
     @patch.object(MultiConcurrentRunner, "_emit_worker_pool_event")
-    @patch("multiprocessing.Process")
-    def test_run_concurrent_spawns_and_joins(self, mock_process, mock_emit):
+    @patch("multiprocessing.get_context")
+    def test_run_concurrent_spawns_and_joins(self, mock_get_context, mock_emit):
         fake_proc = MagicMock()
-        mock_process.return_value = fake_proc
+        mock_ctx = MagicMock()
+        mock_ctx.Process.return_value = fake_proc
+        mock_get_context.return_value = mock_ctx
 
         MultiConcurrentRunner.run_concurrent(
             "h", "a", False, "/sock", max_concurrency=3
         )
 
-        self.assertEqual(mock_process.call_count, 3)
+        self.assertEqual(mock_ctx.Process.call_count, 3)
         self.assertEqual(fake_proc.start.call_count, 3)
         self.assertEqual(fake_proc.join.call_count, 3)
 
-        for call_args in mock_process.call_args_list:
+        for call_args in mock_ctx.Process.call_args_list:
             target = call_args.kwargs.get("target") or call_args[1].get("target")
             args = call_args.kwargs.get("args") or call_args[1].get("args")
             self.assertEqual(target, MultiConcurrentRunner.run_single)
             self.assertEqual(args, ("h", "a", False, "/sock"))
 
-    @patch("multiprocessing.Process")
+    @patch.object(MultiConcurrentRunner, "_emit_worker_pool_event")
+    @patch("multiprocessing.get_context")
+    def test_run_concurrent_pins_fork_start_method(self, mock_get_context, mock_emit):
+        """Workers come from an explicit "fork" context, never from the
+        interpreter default (fork on 3.13, forkserver on 3.14+)."""
+        mock_ctx = MagicMock()
+        mock_get_context.return_value = mock_ctx
+
+        MultiConcurrentRunner.run_concurrent(
+            "h", "a", False, "/sock", max_concurrency=2
+        )
+
+        mock_get_context.assert_called_once_with("fork")
+        self.assertEqual(mock_ctx.Process.call_count, 2)
+
+    @patch("multiprocessing.get_context")
     def test_run_concurrent_emits_worker_pool_event_once_before_spawning(
-        self, mock_process
+        self, mock_get_context
     ):
-        mock_process.return_value = MagicMock()
+        mock_ctx = MagicMock()
+        mock_get_context.return_value = mock_ctx
         order_tracker = MagicMock()
-        order_tracker.attach_mock(mock_process, "process")
+        order_tracker.attach_mock(mock_ctx.Process, "process")
 
         with patch.object(
             MultiConcurrentRunner, "_emit_worker_pool_event"
