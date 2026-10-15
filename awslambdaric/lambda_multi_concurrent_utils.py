@@ -67,7 +67,6 @@ class MultiConcurrentRunner:
     ):
         cls._emit_worker_pool_event(max_concurrency)
 
-        # Not the interpreter default: fork on 3.13, forkserver on 3.14+.
         ctx = multiprocessing.get_context("fork")
         processes = []
         for _ in range(max_concurrency):

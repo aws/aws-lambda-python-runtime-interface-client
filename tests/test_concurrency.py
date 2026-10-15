@@ -57,14 +57,6 @@ class LambdaRuntimeConcurrencyTest(unittest.TestCase):
         self.assertEqual(fail_counter.value, 2)
 
     def test_workers_are_forked_children_regardless_of_default_start_method(self):
-        """The runner must not inherit the interpreter default start method.
-
-        Force the default to "forkserver" (what 3.14+ picks) and check that
-        workers are still direct children of this process, that the parent
-        forked while single-threaded, and that a module imported in the parent
-        before the fork is already present in each worker (fork semantics, not
-        a fresh interpreter).
-        """
         previous = multiprocessing.get_start_method(allow_none=True)
         multiprocessing.set_start_method("forkserver", force=True)
         try:

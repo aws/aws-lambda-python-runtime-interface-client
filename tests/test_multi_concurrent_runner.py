@@ -83,8 +83,6 @@ class TestMultiConcurrentRunnerRedirect(unittest.TestCase):
     @patch.object(MultiConcurrentRunner, "_emit_worker_pool_event")
     @patch("multiprocessing.get_context")
     def test_run_concurrent_pins_fork_start_method(self, mock_get_context, mock_emit):
-        """Workers come from an explicit "fork" context, never from the
-        interpreter default (fork on 3.13, forkserver on 3.14+)."""
         mock_ctx = MagicMock()
         mock_get_context.return_value = mock_ctx
 
