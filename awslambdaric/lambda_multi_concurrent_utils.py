@@ -67,9 +67,10 @@ class MultiConcurrentRunner:
     ):
         cls._emit_worker_pool_event(max_concurrency)
 
+        ctx = multiprocessing.get_context("fork")
         processes = []
         for _ in range(max_concurrency):
-            p = multiprocessing.Process(
+            p = ctx.Process(
                 target=cls.run_single,
                 args=(handler, api_addr, use_thread, socket_path),
             )
