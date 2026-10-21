@@ -76,9 +76,9 @@ class TestInvocationIdOnTheWire(unittest.TestCase):
 
     These tests drive the compiled extension against a real socket, so they
     cover the header-emitting C++ code in aws-lambda-cpp that the mocked unit
-    tests in test_lambda_runtime_client.py cannot reach. If
-    aws-lambda-cpp-add-invocation-id.patch is ever dropped from the vendored
-    tarball, these are the tests that fail.
+    tests in test_lambda_runtime_client.py cannot reach. If a future
+    aws-lambda-cpp release ever drops the invocation-id support these rely on,
+    these are the tests that fail.
     """
 
     def _run_client(self, invocation_id, mode="response"):
