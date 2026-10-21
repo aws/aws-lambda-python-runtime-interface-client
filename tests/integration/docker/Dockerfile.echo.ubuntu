@@ -31,14 +31,16 @@ FROM python-image AS python-ubuntu-builder
 
 ARG RUNTIME_VERSION
 
-# Install aws-lambda-cpp build dependencies
+# Install build dependencies (curl built from source; prebuilt aws-lambda-cpp
+# fetched with curl and GPG-verified with gnupg)
 RUN apt-get install -y \
         g++ \
         gcc \
         tar \
         gzip \
         make \
-        cmake \
+        curl \
+        gnupg \
         autoconf \
         automake \
         libtool \

@@ -53,8 +53,7 @@ FROM python-amazonlinux-builder AS build-image
 ARG RUNTIME_VERSION
 ARG ARCHITECTURE
 
-# Install aws-lambda-cpp build dependencies
-RUN dnf install -y \
+RUN dnf install -y --allowerasing \
   tar \
   gzip \
   make \
@@ -63,13 +62,12 @@ RUN dnf install -y \
   libtool \
   libcurl-devel \
   gcc-c++ \
+  gnupg2 \
   wget \
   sqlite-devel
 
-# Install a modern CMake
-RUN wget --quiet -O cmake-install https://github.com/Kitware/CMake/releases/download/v3.20.0/cmake-3.20.0-linux-${ARCHITECTURE}.sh && \
-    sh cmake-install --skip-license --prefix=/usr --exclude-subdirectory;
-
+# The stage-1 Python is built with --enable-shared into /usr/local, so the
+# loader needs /usr/local/lib to run it.
 ENV PATH=/usr/local/bin:$PATH
 ENV LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
 
