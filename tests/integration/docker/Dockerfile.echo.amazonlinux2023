@@ -53,9 +53,7 @@ FROM python-amazonlinux-builder AS build-image
 ARG RUNTIME_VERSION
 ARG ARCHITECTURE
 
-# Install build dependencies (curl built from source; prebuilt aws-lambda-cpp
-# fetched with wget and GPG-verified with gnupg2)
-RUN dnf install -y \
+RUN dnf install -y --allowerasing \
   tar \
   gzip \
   make \
@@ -67,6 +65,11 @@ RUN dnf install -y \
   gnupg2 \
   wget \
   sqlite-devel
+
+# The stage-1 Python is built with --enable-shared into /usr/local, so the
+# loader needs /usr/local/lib to run it.
+ENV PATH=/usr/local/bin:$PATH
+ENV LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
 
 
 # Include global args in this stage of the build

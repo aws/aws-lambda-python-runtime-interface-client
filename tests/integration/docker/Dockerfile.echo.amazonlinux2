@@ -67,6 +67,11 @@ RUN yum install -y \
   gnupg2 \
   wget
 
+# The stage-1 Python is built with --enable-shared into /usr/local, so the
+# loader needs /usr/local/lib to run it.
+ENV PATH=/usr/local/bin:$PATH
+ENV LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+
 
 # Include global args in this stage of the build
 ARG RIC_BUILD_DIR="/home/build/"
