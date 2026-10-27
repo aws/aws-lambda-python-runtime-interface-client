@@ -1,3 +1,7 @@
+### October 27, 2026
+`4.2.3`
+- Remove `AWS_Lambda_python3.15` from the preview runtime list so the preview warning is no longer emitted on Python 3.15 ([#236](https://github.com/aws/aws-lambda-python-runtime-interface-client/pull/236)).
+
 ### October 15, 2026
 `4.2.2`
 - Pin the worker process start method to `fork` in multi-concurrent (Lambda Managed Instances) mode instead of inheriting the interpreter default, which changed from `fork` to `forkserver` in Python 3.14. Workers are now direct children of the runtime process on every supported Python version ([#233](https://github.com/aws/aws-lambda-python-runtime-interface-client/pull/233)). No behavior change on Python 3.13 and earlier; no impact on the standard on-demand path.

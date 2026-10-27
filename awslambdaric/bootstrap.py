@@ -478,7 +478,7 @@ def _setup_logging(log_format, log_level, log_sink):
     logger.addHandler(logger_handler)
 
 
-PREVIEW_RUNTIME_ENVS = {"AWS_Lambda_python3.15"}
+PREVIEW_RUNTIME_ENVS = set()
 
 
 def _log_preview_runtime_warning():
