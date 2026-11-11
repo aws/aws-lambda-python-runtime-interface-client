@@ -31,12 +31,13 @@ Also, your Lambda function code needs to be copied into the image.
 # Include global arg in this stage of the build
 ARG FUNCTION_DIR
 
-# Install aws-lambda-cpp build dependencies
+# Install build dependencies
 RUN apt-get update && \
   apt-get install -y \
   g++ \
   make \
-  cmake \
+  curl \
+  gnupg \
   unzip \
   libcurl4-openssl-dev
 
@@ -62,12 +63,13 @@ FROM public.ecr.aws/docker/library/python:buster as build-image
 # Include global arg in this stage of the build
 ARG FUNCTION_DIR
 
-# Install aws-lambda-cpp build dependencies
+# Install build dependencies
 RUN apt-get update && \
   apt-get install -y \
   g++ \
   make \
-  cmake \
+  curl \
+  gnupg \
   unzip \
   libcurl4-openssl-dev
 

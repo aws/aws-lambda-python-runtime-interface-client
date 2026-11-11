@@ -4,12 +4,14 @@ ARG DISTRO_VERSION
 # Stage 1 - build function and dependencies
 FROM public.ecr.aws/docker/library/python:${RUNTIME_VERSION}-${DISTRO_VERSION} AS python-debian-builder
 
-# Install aws-lambda-cpp build dependencies
+# Install build dependencies (curl built from source; prebuilt aws-lambda-cpp
+# fetched with curl and GPG-verified with gnupg)
 RUN apt-get update && \
     apt-get install -y \
         g++ \
         make \
-        cmake \
+        curl \
+        gnupg \
         libcurl4-openssl-dev
 
 # Include global args in this stage of the build

@@ -153,5 +153,4 @@ tmp*.py
 
 # dependencies
 deps/artifacts/
-deps/aws-lambda-cpp-*/
 deps/curl-*/
